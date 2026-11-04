@@ -5,7 +5,7 @@ from .models import Campaign, Character, CharacterClass, Item, Race, Spell
 
 
 def index(request):
-    return render(request, "CampaignManager/index.html")
+    return render(request, "index.html")
 
 
 # Campaigns
@@ -13,13 +13,13 @@ def index(request):
 class CampaignListView(ListView):
     model = Campaign
     context_object_name = "campaigns"
-    template_name = "CampaignManager/campaign_list.html"
+    template_name = "campaign_list.html"
 
 
 class CampaignDetailView(DetailView):
     model = Campaign
     context_object_name = "campaign"
-    template_name = "CampaignManager/campaign_detail.html"
+    template_name = "campaign_detail.html"
 
 
 # Characters
@@ -27,13 +27,13 @@ class CampaignDetailView(DetailView):
 class CharacterListView(ListView):
     model = Character
     context_object_name = "characters"
-    template_name = "CampaignManager/character_list.html"
+    template_name = "character_list.html"
 
 
 class CharacterDetailView(DetailView):
     model = Character
     context_object_name = "character"
-    template_name = "CampaignManager/character_detail.html"
+    template_name = "character_detail.html"
 
 
 # Races
@@ -41,13 +41,13 @@ class CharacterDetailView(DetailView):
 class RaceListView(ListView):
     model = Race
     context_object_name = "races"
-    template_name = "CampaignManager/race_list.html"
+    template_name = "race_list.html"
 
 
 class RaceDetailView(DetailView):
     model = Race
     context_object_name = "race"
-    template_name = "CampaignManager/race_detail.html"
+    template_name = "race_detail.html"
 
 
 # Character classes
@@ -55,13 +55,13 @@ class RaceDetailView(DetailView):
 class CharacterClassListView(ListView):
     model = CharacterClass
     context_object_name = "character_classes"
-    template_name = "CampaignManager/character_class_list.html"
+    template_name = "character_class_list.html"
 
 
 class CharacterClassDetailView(DetailView):
     model = CharacterClass
     context_object_name = "character_class"
-    template_name = "CampaignManager/character_class_detail.html"
+    template_name = "character_class_detail.html"
 
 
 # Spells
@@ -69,13 +69,13 @@ class CharacterClassDetailView(DetailView):
 class SpellListView(ListView):
     model = Spell
     context_object_name = "spells"
-    template_name = "CampaignManager/spell_list.html"
+    template_name = "spell_list.html"
 
 
 class SpellDetailView(DetailView):
     model = Spell
     context_object_name = "spell"
-    template_name = "CampaignManager/spell_detail.html"
+    template_name = "spell_detail.html"
 
 
 # Items
@@ -83,10 +83,10 @@ class SpellDetailView(DetailView):
 class ItemListView(ListView):
     model = Item
     context_object_name = "items"
-    template_name = "CampaignManager/item_list.html"
+    template_name = "item_list.html"
 
 
 class ItemDetailView(DetailView):
     model = Item
     context_object_name = "item"
-    template_name = "CampaignManager/item_detail.html"
+    template_name = "item_detail.html"
