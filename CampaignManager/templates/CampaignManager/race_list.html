@@ -1,0 +1,28 @@
+{% extends "CampaignManager/base.html" %}
+
+{% block title %}Races | KirokuStory{% endblock %}
+
+{% block content %}
+<h2>Races</h2>
+
+{% if races %}
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Speed</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for race in races %}
+        <tr>
+            <td><a href="{% url 'race_detail' race.pk %}">{{ race.name }}</a></td>
+            <td>{{ race.speed }} m</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>There are no races yet.</p>
+{% endif %}
+{% endblock %}

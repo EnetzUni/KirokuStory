@@ -1,0 +1,28 @@
+{% extends "CampaignManager/base.html" %}
+
+{% block title %}Classes | KirokuStory{% endblock %}
+
+{% block content %}
+<h2>Classes</h2>
+
+{% if character_classes %}
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Primary ability</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for character_class in character_classes %}
+        <tr>
+            <td><a href="{% url 'character_class_detail' character_class.pk %}">{{ character_class.name }}</a></td>
+            <td>{{ character_class.primary_ability }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>There are no classes yet.</p>
+{% endif %}
+{% endblock %}

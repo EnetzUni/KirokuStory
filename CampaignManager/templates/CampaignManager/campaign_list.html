@@ -1,0 +1,30 @@
+{% extends "CampaignManager/base.html" %}
+
+{% block title %}Campaigns | KirokuStory{% endblock %}
+
+{% block content %}
+<h2>Campaigns</h2>
+
+{% if campaigns %}
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Start date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for campaign in campaigns %}
+        <tr>
+            <td><a href="{% url 'campaign_detail' campaign.pk %}">{{ campaign.name }}</a></td>
+            <td>{{ campaign.get_status_display }}</td>
+            <td>{{ campaign.start_date }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>There are no campaigns yet.</p>
+{% endif %}
+{% endblock %}

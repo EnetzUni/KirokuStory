@@ -1,0 +1,43 @@
+{% extends "CampaignManager/base.html" %}
+
+{% block title %}{{ character_class.name }} | KirokuStory{% endblock %}
+
+{% block content %}
+<h2>{{ character_class.name }}</h2>
+
+{% if character_class.description %}{{ character_class.description|linebreaks }}{% endif %}
+
+<dl>
+    <dt>Primary ability</dt>
+    <dd>{{ character_class.primary_ability }}</dd>
+</dl>
+
+<h3>Abilities granted</h3>
+<ul>
+    {% for row in character_class.classability_set.all %}
+    <li>{{ row.ability.name }}{% if row.ability.unique %} (unique){% endif %}, from level {{ row.level_required }}</li>
+    {% empty %}
+    <li>This class grants no abilities.</li>
+    {% endfor %}
+</ul>
+
+<h3>Spells it can cast</h3>
+<ul>
+    {% for spell in character_class.spells.all %}
+    <li><a href="{% url 'spell_detail' spell.pk %}">{{ spell.name }}</a></li>
+    {% empty %}
+    <li>This class cannot cast spells.</li>
+    {% endfor %}
+</ul>
+
+<h3>Characters of this class</h3>
+<ul>
+    {% for character in character_class.character_set.all %}
+    <li><a href="{% url 'character_detail' character.pk %}">{{ character.name }}</a></li>
+    {% empty %}
+    <li>No characters of this class.</li>
+    {% endfor %}
+</ul>
+
+<p><a href="{% url 'character_class_list' %}">Back to classes</a></p>
+{% endblock %}

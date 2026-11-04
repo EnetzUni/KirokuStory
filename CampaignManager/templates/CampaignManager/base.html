@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}KirokuStory{% endblock %}</title>
+</head>
+
+<body>
+    <!-- HEADER -->
+    <header>
+        <h1><a href="{% url 'index' %}">KirokuStory</a></h1>
+
+        <!-- MENU -->
+        <nav>
+            <ul>
+                <li><a href="{% url 'index' %}">Home</a></li>
+                <li><a href="{% url 'campaign_list' %}">Campaigns</a></li>
+                <li><a href="{% url 'character_list' %}">Characters</a></li>
+                <li><a href="{% url 'race_list' %}">Races</a></li>
+                <li><a href="{% url 'character_class_list' %}">Classes</a></li>
+                <li><a href="{% url 'spell_list' %}">Spells</a></li>
+                <li><a href="{% url 'item_list' %}">Items</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

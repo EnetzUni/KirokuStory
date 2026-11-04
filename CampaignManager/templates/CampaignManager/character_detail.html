@@ -1,0 +1,117 @@
+{% extends "CampaignManager/base.html" %}
+
+{% block title %}{{ character.name }} | KirokuStory{% endblock %}
+
+{% block content %}
+<h2>{{ character.name }}</h2>
+
+<dl>
+    <dt>Type</dt>
+    <dd>
+        {% if not character.is_npc %}Player character
+        {% elif character.template %}NPC, copy of <a href="{% url 'character_detail' character.template.pk %}">{{ character.template.name }}</a>
+        {% else %}NPC template
+        {% endif %}
+    </dd>
+
+    <dt>Player</dt>
+    <dd>{{ character.player|default:"—" }}</dd>
+
+    <dt>Race</dt>
+    <dd><a href="{% url 'race_detail' character.race.pk %}">{{ character.race.name }}</a></dd>
+
+    <dt>Class</dt>
+    <dd><a href="{% url 'character_class_detail' character.char_class.pk %}">{{ character.char_class.name }}</a></dd>
+
+    <dt>Campaigns</dt>
+    <dd>{% for campaign in character.campaigns.all %}<a href="{% url 'campaign_detail' campaign.pk %}">{{ campaign.name }}</a>{% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}</dd>
+
+    <dt>XP</dt>
+    <dd>{{ character.xp }}</dd>
+
+    <dt>Hit points</dt>
+    <dd>{{ character.temp_hp }} / {{ character.hp }}</dd>
+
+    <dt>Armor class</dt>
+    <dd>{{ character.ac }}</dd>
+
+    <dt>Current armor points</dt>
+    <dd>{{ character.temp_ap }}</dd>
+
+    <dt>Inspiration</dt>
+    <dd>{{ character.inspiration }}</dd>
+</dl>
+
+<h3>Ability scores</h3>
+<table>
+    <thead>
+        <tr>
+            <th>STR</th>
+            <th>DEX</th>
+            <th>CON</th>
+            <th>INT</th>
+            <th>WIS</th>
+            <th>CHA</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>{{ character.strength }}</td>
+            <td>{{ character.dexterity }}</td>
+            <td>{{ character.constitution }}</td>
+            <td>{{ character.intelligence }}</td>
+            <td>{{ character.wisdom }}</td>
+            <td>{{ character.charisma }}</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>Abilities</h3>
+<ul>
+    {% for ability in character.abilities.all %}
+    <li>{{ ability.name }}{% if ability.unique %} (unique){% endif %}</li>
+    {% empty %}
+    <li>No abilities.</li>
+    {% endfor %}
+</ul>
+
+<h3>Spells</h3>
+<ul>
+    {% for spell in character.spells.all %}
+    <li><a href="{% url 'spell_detail' spell.pk %}">{{ spell.name }}</a></li>
+    {% empty %}
+    <li>No spells.</li>
+    {% endfor %}
+</ul>
+
+<h3>Inventory</h3>
+<ul>
+    {% for row in character.inventory_set.all %}
+    <li><a href="{% url 'item_detail' row.item.pk %}">{{ row.item.name }}</a> × {{ row.quantity }}</li>
+    {% empty %}
+    <li>The inventory is empty.</li>
+    {% endfor %}
+</ul>
+
+<h3>Active effects</h3>
+<ul>
+    {% for row in character.activeeffect_set.all %}
+    <li>{{ row.effect.name }} ({{ row.remaining_turns }} turns left)</li>
+    {% empty %}
+    <li>No active effects.</li>
+    {% endfor %}
+</ul>
+
+{% if character.is_npc_template %}
+<h3>Copies</h3>
+<ul>
+    {% for copy in character.copies.all %}
+    <li><a href="{% url 'character_detail' copy.pk %}">{{ copy.name }}</a></li>
+    {% empty %}
+    <li>This NPC has no copies.</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+<p><a href="{% url 'character_list' %}">Back to characters</a></p>
+{% endblock %}

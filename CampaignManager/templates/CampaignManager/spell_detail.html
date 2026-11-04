@@ -1,0 +1,69 @@
+{% extends "CampaignManager/base.html" %}
+
+{% block title %}{{ spell.name }} | KirokuStory{% endblock %}
+
+{% block content %}
+<h2>{{ spell.name }}</h2>
+
+{% if spell.description %}{{ spell.description|linebreaks }}{% endif %}
+
+<dl>
+    <dt>Level</dt>
+    <dd>{% if spell.level == 0 %}Cantrip{% else %}{{ spell.level }}{% endif %}</dd>
+
+    <dt>Casting time</dt>
+    <dd>{{ spell.casting_time }}</dd>
+
+    <dt>Range</dt>
+    <dd>{{ spell.range }} m</dd>
+
+    <dt>Duration</dt>
+    <dd>{{ spell.duration }}</dd>
+
+    <dt>Components</dt>
+    <dd>{% for component in spell.components.all %}{{ component.type }}{% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}</dd>
+</dl>
+
+<h3>Attacks</h3>
+<ul>
+    {% for attack in spell.attacks.all %}
+    <li>
+        <strong>{{ attack.name }}</strong>:
+        {% for dice in attack.dice.all %}{{ dice }}{% if not forloop.last %} + {% endif %}{% endfor %}{% if attack.extra %}{% if attack.dice.exists %} + {% endif %}{{ attack.extra }}{% endif %} damage,
+        range {{ attack.range }} m{% if attack.area %}, area {{ attack.area }} m{% endif %}{% if attack.cooldown %}, cooldown {{ attack.cooldown }} rounds{% endif %}
+        {% for armor_damage in attack.armor_damages.all %}{% if forloop.first %}({% endif %}{{ armor_damage }}{% if forloop.last %}){% else %}, {% endif %}{% endfor %}
+    </li>
+    {% empty %}
+    <li>This spell makes no attacks.</li>
+    {% endfor %}
+</ul>
+
+<h3>Effects</h3>
+<ul>
+    {% for effect in spell.effects.all %}
+    <li>{{ effect.name }} ({{ effect.duration }})</li>
+    {% empty %}
+    <li>This spell applies no effects.</li>
+    {% endfor %}
+</ul>
+
+<h3>Classes that can cast it</h3>
+<ul>
+    {% for character_class in spell.characterclass_set.all %}
+    <li><a href="{% url 'character_class_detail' character_class.pk %}">{{ character_class.name }}</a></li>
+    {% empty %}
+    <li>No class can cast this spell.</li>
+    {% endfor %}
+</ul>
+
+<h3>Characters who know it</h3>
+<ul>
+    {% for character in spell.character_set.all %}
+    <li><a href="{% url 'character_detail' character.pk %}">{{ character.name }}</a></li>
+    {% empty %}
+    <li>No character knows this spell.</li>
+    {% endfor %}
+</ul>
+
+<p><a href="{% url 'spell_list' %}">Back to spells</a></p>
+{% endblock %}

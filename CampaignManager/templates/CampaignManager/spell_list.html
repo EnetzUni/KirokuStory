@@ -1,0 +1,32 @@
+{% extends "CampaignManager/base.html" %}
+
+{% block title %}Spells | KirokuStory{% endblock %}
+
+{% block content %}
+<h2>Spells</h2>
+
+{% if spells %}
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Level</th>
+            <th>Casting time</th>
+            <th>Range</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for spell in spells %}
+        <tr>
+            <td><a href="{% url 'spell_detail' spell.pk %}">{{ spell.name }}</a></td>
+            <td>{% if spell.level == 0 %}Cantrip{% else %}{{ spell.level }}{% endif %}</td>
+            <td>{{ spell.casting_time }}</td>
+            <td>{{ spell.range }} m</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>There are no spells yet.</p>
+{% endif %}
+{% endblock %}

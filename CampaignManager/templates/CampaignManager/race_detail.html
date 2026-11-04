@@ -1,0 +1,34 @@
+{% extends "CampaignManager/base.html" %}
+
+{% block title %}{{ race.name }} | KirokuStory{% endblock %}
+
+{% block content %}
+<h2>{{ race.name }}</h2>
+
+{% if race.description %}{{ race.description|linebreaks }}{% endif %}
+
+<dl>
+    <dt>Speed</dt>
+    <dd>{{ race.speed }} m</dd>
+</dl>
+
+<h3>Abilities granted</h3>
+<ul>
+    {% for row in race.raceability_set.all %}
+    <li>{{ row.ability.name }}{% if row.ability.unique %} (unique){% endif %}, from level {{ row.level_required }}</li>
+    {% empty %}
+    <li>This race grants no abilities.</li>
+    {% endfor %}
+</ul>
+
+<h3>Characters of this race</h3>
+<ul>
+    {% for character in race.character_set.all %}
+    <li><a href="{% url 'character_detail' character.pk %}">{{ character.name }}</a></li>
+    {% empty %}
+    <li>No characters of this race.</li>
+    {% endfor %}
+</ul>
+
+<p><a href="{% url 'race_list' %}">Back to races</a></p>
+{% endblock %}

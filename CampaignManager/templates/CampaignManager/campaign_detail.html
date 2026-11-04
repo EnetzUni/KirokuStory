@@ -1,0 +1,34 @@
+{% extends "CampaignManager/base.html" %}
+
+{% block title %}{{ campaign.name }} | KirokuStory{% endblock %}
+
+{% block content %}
+<h2>{{ campaign.name }}</h2>
+
+{% if campaign.description %}{{ campaign.description|linebreaks }}{% endif %}
+
+<dl>
+    <dt>Status</dt>
+    <dd>{{ campaign.get_status_display }}</dd>
+
+    <dt>Start date</dt>
+    <dd>{{ campaign.start_date }}</dd>
+
+    <dt>Masters</dt>
+    <dd>{% for user in campaign.masters.all %}{{ user.username }}{% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}</dd>
+
+    <dt>Players</dt>
+    <dd>{% for user in campaign.players.all %}{{ user.username }}{% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}</dd>
+</dl>
+
+<h3>Characters</h3>
+<ul>
+    {% for character in campaign.characters.all %}
+    <li><a href="{% url 'character_detail' character.pk %}">{{ character.name }}</a>{% if character.is_npc %} (NPC){% endif %}</li>
+    {% empty %}
+    <li>This campaign has no characters yet.</li>
+    {% endfor %}
+</ul>
+
+<p><a href="{% url 'campaign_list' %}">Back to campaigns</a></p>
+{% endblock %}

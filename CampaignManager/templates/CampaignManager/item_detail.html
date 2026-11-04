@@ -1,0 +1,62 @@
+{% extends "CampaignManager/base.html" %}
+
+{% block title %}{{ item.name }} | KirokuStory{% endblock %}
+
+{% block content %}
+<h2>{{ item.name }}</h2>
+
+{% if item.description %}{{ item.description|linebreaks }}{% endif %}
+
+<dl>
+    <dt>Price</dt>
+    <dd>{{ item.price }}</dd>
+
+    <dt>Consumable</dt>
+    <dd>{{ item.consumable|yesno:"Yes,No" }}</dd>
+
+    <dt>Effects</dt>
+    <dd>{% for effect in item.effects.all %}{{ effect.name }}{% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}</dd>
+</dl>
+
+{% if item.weapon %}
+<h3>Weapon</h3>
+<dl>
+    <dt>To hit</dt>
+    <dd>{{ item.weapon.to_hit }}</dd>
+
+    <dt>Equipped</dt>
+    <dd>{{ item.weapon.equipped|yesno:"Yes,No" }}</dd>
+
+    <dt>Attacks</dt>
+    <dd>{% for attack in item.weapon.attacks.all %}{{ attack.name }}{% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}</dd>
+</dl>
+{% endif %}
+
+{% if item.armor %}
+<h3>Armor</h3>
+<dl>
+    <dt>Armor type</dt>
+    <dd>{{ item.armor.armor_type.type }}</dd>
+
+    <dt>AP</dt>
+    <dd>{{ item.armor.ap }}</dd>
+
+    <dt>Magic AP</dt>
+    <dd>{{ item.armor.magic_ap }}</dd>
+
+    <dt>Equipped</dt>
+    <dd>{{ item.armor.equipped|yesno:"Yes,No" }}</dd>
+</dl>
+{% endif %}
+
+<h3>Carried by</h3>
+<ul>
+    {% for row in item.inventory_set.all %}
+    <li><a href="{% url 'character_detail' row.character.pk %}">{{ row.character.name }}</a> × {{ row.quantity }}</li>
+    {% empty %}
+    <li>No character carries this item.</li>
+    {% endfor %}
+</ul>
+
+<p><a href="{% url 'item_list' %}">Back to items</a></p>
+{% endblock %}
