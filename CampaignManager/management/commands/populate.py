@@ -3,7 +3,8 @@
 - The usual D&D 5e races and classes, with their main traits and features.
 - A test user and the Alforge campaign, described from CONTEXTO_MUNDO.md.
 - Balasar, built from his level 10 druid character sheet, with his
-  abilities, spells and equipment.
+  abilities, spells and equipment. His dart is a copy of the "Dardo"
+  item template; his other items are generic and carried directly.
 
 Run it with:  python manage.py populate
 It is safe to run more than once: existing rows are updated, not duplicated.
@@ -233,6 +234,8 @@ SPELLS = [
 # The campaign, from CONTEXTO_MUNDO.md (sections 2, 3.1 and 10)
 # ---------------------------------------------------------------------------
 
+DART_DESCRIPTION = "Arma sencilla arrojadiza: 1d6 de daño perforante, alcance 7/20 m. Sutil."
+
 CAMPAIGN_NAME = "Alforge"
 CAMPAIGN_DESCRIPTION = """\
 Campaña de D&D ambientada en el continente de Alforge, que reúne regiones como Iretrone, Sokoku, Yarikawa, Hespern, Sarinthya, Lantared, Nordjem, Weida y BlackRake.
@@ -344,17 +347,37 @@ class Command(BaseCommand):
         ])
         balasar.spells.set(spells)
 
-        # Equipment: his dart (an individual weapon) and the items on his sheet
-        dart_attack = upsert(Attack, {"name": "Dardo"}, extra=2, range=m(20), area=0)
+        # Equipment. Weapons are carried as copies of an item template, so the
+        # "Dardo" template holds the generic dart (1d6, +0 to hit) and Balasar
+        # carries his own copy with the values on his sheet (1d6 + 2, +8 to hit).
+        dart_attack = upsert(Attack, {"name": "Dardo"}, extra=0, range=m(20), area=0)
         dart_attack.dice.set([dice(1, 6)])
-        dart = balasar.items.filter(name="Dardo").first() or Item.objects.create(name="Dardo")
+        dart_template = (
+            Item.objects.filter(name="Dardo", template__isnull=True, inventory__isnull=True).first()
+            or Item.objects.create(name="Dardo")
+        )
+        dart_template.description = DART_DESCRIPTION
+        dart_template.save()
+        template_weapon, _ = Weapon.objects.update_or_create(
+            item=dart_template, defaults={"to_hit": "+0", "equipped": False}
+        )
+        template_weapon.attacks.set([dart_attack])
+
+        balasar_dart_attack = upsert(Attack, {"name": "Dardo (Balasar)"}, extra=2, range=m(20), area=0)
+        balasar_dart_attack.dice.set([dice(1, 6)])
+        dart = balasar.items.filter(name="Dardo").first() or dart_template.make_copy()
+        dart.template = dart_template  # also turns a dart from an older run into a copy
+        dart.description = dart_template.description
+        dart.save()
         dart_weapon, _ = Weapon.objects.update_or_create(
             item=dart, defaults={"to_hit": "+8", "equipped": True}
         )
-        dart_weapon.attacks.set([dart_attack])
+        dart_weapon.attacks.set([balasar_dart_attack])
         Inventory.objects.update_or_create(character=balasar, item=dart, defaults={"quantity": 1})
+
+        # Generic items: templates carried directly
         for name in ("Bolsa de trucos de canela", "Cogollos infinitos"):
-            item = upsert(Item, {"name": name})
+            item = upsert(Item, {"name": name, "template": None})
             Inventory.objects.update_or_create(character=balasar, item=item, defaults={"quantity": 1})
 
         self.stdout.write(self.style.SUCCESS(

@@ -80,7 +80,39 @@ admin.site.register(DiceRoll)
 admin.site.register(ArmorDamage)
 admin.site.register(Effect)
 admin.site.register(ActiveEffect)
-admin.site.register(Item)
+
+
+class IsTemplateFilter(admin.SimpleListFilter):
+    title = "kind"
+    parameter_name = "kind"
+
+    def lookups(self, request, model_admin):
+        return [("template", "Templates"), ("copy", "Copies")]
+
+    def queryset(self, request, queryset):
+        if self.value() == "template":
+            return queryset.filter(template__isnull=True)
+        if self.value() == "copy":
+            return queryset.filter(template__isnull=False)
+        return queryset
+
+
+@admin.register(Item)
+class ItemAdmin(admin.ModelAdmin):
+    list_display = ("name", "template", "price")
+    list_filter = (IsTemplateFilter,)
+    actions = ["make_item_copy"]
+
+    @admin.action(description="Make a copy of the selected items")
+    def make_item_copy(self, request, queryset):
+        for item in queryset:
+            item.make_copy()
+        self.message_user(
+            request,
+            f"{len(queryset)} item copies made. Add them to a character's inventory from Inventories.",
+        )
+
+
 admin.site.register(Inventory)
 admin.site.register(Weapon)
 admin.site.register(Armor)
