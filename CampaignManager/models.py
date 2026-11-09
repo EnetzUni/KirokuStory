@@ -109,9 +109,9 @@ class Character(models.Model):
         """Create a new NPC from this template and return it.
 
         Copies the stats, abilities, spells, inventory and active effects.
-        Individual weapons and armor are duplicated so each copy has its own;
-        generic items (gold, potions...) are shared. Campaigns are not copied:
-        pass them in `campaigns`.
+        Item copies (individual weapons and armor) are copied again so each NPC
+        has its own; item templates carried directly (gold, potions...) are
+        shared. Campaigns are not copied: pass them in `campaigns`.
         """
         if not self.is_npc_template:
             raise ValueError("Only NPC templates can be copied.")
@@ -131,8 +131,8 @@ class Character(models.Model):
 
         for row in self.inventory_set.select_related("item"):
             item = row.item
-            if item.is_individual:
-                item = item.copy()
+            if not item.is_template:
+                item = item.make_copy()
             Inventory.objects.create(character=copy, item=item, quantity=row.quantity)
 
         for row in self.activeeffect_set.all():
@@ -329,6 +329,21 @@ class Item(models.Model):
     description = models.TextField(blank=True)
     consumable = models.BooleanField(default=False)
 
+    # Item templates. A template is an item with no template: a catalog entry such
+    # as "Espada larga" or "Oro". A copy is one physical piece made from a template,
+    # with its own Weapon or Armor data (equipped, upgrades). Characters carry copies
+    # of weapons and armor; generic items (gold, potions...) are carried directly.
+    # A template cannot be deleted while it has copies.
+    template = models.ForeignKey(
+        "self",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="copies",
+        limit_choices_to={"template__isnull": True},
+        help_text="Only for copies: the item template this piece was made from",
+    )
+
     # aplica
     effects = models.ManyToManyField("Effect", blank=True)
 
@@ -336,17 +351,34 @@ class Item(models.Model):
         return self.name
 
     @property
-    def is_individual(self):
-        """True if this item is an individual weapon or piece of armor."""
+    def is_template(self):
+        return self.template_id is None
+
+    @property
+    def is_equipment(self):
+        """True for weapons and armor, which characters carry as individual copies."""
         return hasattr(self, "weapon") or hasattr(self, "armor")
 
-    def copy(self):
-        """Return a new Item with the same data, including its Weapon or Armor."""
+    def clean(self):
+        if self.template_id is not None:
+            if self.template_id == self.pk:
+                raise ValidationError({"template": "An item cannot be its own template."})
+            if self.pk is not None and self.copies.exists():
+                raise ValidationError({"template": "This item is a template with copies, so it cannot be a copy."})
+
+    @transaction.atomic
+    def make_copy(self):
+        """Create a new copy of this item, including its Weapon or Armor, and return it.
+
+        The copy gets this item's data and points to the template: this item if it
+        is a template, or this item's template if it is itself a copy.
+        """
         new = Item.objects.create(
             name=self.name,
             price=self.price,
             description=self.description,
             consumable=self.consumable,
+            template=self.template or self,
         )
         new.effects.set(self.effects.all())
         if hasattr(self, "weapon"):
@@ -379,6 +411,18 @@ class Inventory(models.Model):
     def __str__(self):
         return f"{self.character} - {self.item} x{self.quantity}"
 
+    def clean(self):
+        if self.item_id is not None and self.item.is_template and self.item.is_equipment:
+            raise ValidationError(
+                {"item": "Weapons and armor are carried as copies: make a copy of this template and carry that."}
+            )
+
+
+def validate_not_equipped_template(equipment):
+    """A template is a catalog entry, so only its copies can be equipped."""
+    if equipment.equipped and equipment.item_id is not None and equipment.item.is_template:
+        raise ValidationError({"equipped": "A template cannot be equipped: equip one of its copies."})
+
 
 class Weapon(models.Model):
     # es un
@@ -392,6 +436,9 @@ class Weapon(models.Model):
     def __str__(self):
         return str(self.item)
 
+    def clean(self):
+        validate_not_equipped_template(self)
+
 
 class Armor(models.Model):
     # es un, es de tipo
@@ -403,6 +450,9 @@ class Armor(models.Model):
 
     def __str__(self):
         return str(self.item)
+
+    def clean(self):
+        validate_not_equipped_template(self)
 
 
 class ArmorType(models.Model):
@@ -420,9 +470,10 @@ class ArmorType(models.Model):
 # ---------------------------------------------------------------------------
 # Deleting NPC copies
 # ---------------------------------------------------------------------------
-# When an NPC copy is deleted, the weapons and armor that were copied for it are
-# deleted too. Generic items (gold, potions...) are shared with other characters,
-# so they are kept. Player characters and templates never delete their items.
+# When an NPC copy is deleted, the item copies in its inventory (its individual
+# weapons and armor) are deleted too. Item templates carried directly (gold,
+# potions...) are shared with other characters, so they are kept. Player
+# characters and NPC templates never delete their items.
 # Signals are used instead of Character.delete() because copies are also deleted
 # by the template's CASCADE and by the admin's bulk delete, which skip delete().
 
@@ -430,8 +481,7 @@ class ArmorType(models.Model):
 def remember_npc_copy_items(sender, instance, **kwargs):
     if instance.is_npc and instance.template_id is not None:
         instance._items_to_delete = list(
-            Item.objects.filter(inventory__character=instance)
-            .filter(models.Q(weapon__isnull=False) | models.Q(armor__isnull=False))
+            Item.objects.filter(inventory__character=instance, template__isnull=False)
             .values_list("pk", flat=True)
         )
 

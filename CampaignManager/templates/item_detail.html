@@ -8,6 +8,9 @@
 {% if item.description %}{{ item.description|linebreaks }}{% endif %}
 
 <dl>
+    <dt>Type</dt>
+    <dd>{% if item.template %}Copy of <a href="{% url 'item_detail' item.template.pk %}">{{ item.template.name }}</a>{% else %}Template{% endif %}</dd>
+
     <dt>Price</dt>
     <dd>{{ item.price }}</dd>
 
@@ -47,6 +50,17 @@
     <dt>Equipped</dt>
     <dd>{{ item.armor.equipped|yesno:"Yes,No" }}</dd>
 </dl>
+{% endif %}
+
+{% if not item.template %}
+<h3>Copies</h3>
+<ul>
+    {% for copy in item.copies.all %}
+    <li><a href="{% url 'item_detail' copy.pk %}">{{ copy.name }}</a>{% for row in copy.inventory_set.all %}{% if forloop.first %}, carried by {% endif %}{{ row.character.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</li>
+    {% empty %}
+    <li>This template has no copies.</li>
+    {% endfor %}
+</ul>
 {% endif %}
 
 <h3>Carried by</h3>
