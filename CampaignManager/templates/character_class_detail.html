@@ -21,6 +21,21 @@
     {% endfor %}
 </ul>
 
+<h3>Subclasses</h3>
+{% for subclass in character_class.subclasses.all %}
+<h4><a href="{% url 'subclass_detail' subclass.pk %}">{{ subclass.name }}</a></h4>
+{% if subclass.description %}{{ subclass.description|linebreaks }}{% endif %}
+<ul>
+    {% for row in subclass.subclassability_set.all %}
+    <li>{{ row.ability.name }}{% if row.ability.unique %} (unique){% endif %}, from level {{ row.level_required }}</li>
+    {% empty %}
+    <li>This subclass grants no abilities.</li>
+    {% endfor %}
+</ul>
+{% empty %}
+<p>This class has no subclasses.</p>
+{% endfor %}
+
 <h3>Spells it can cast</h3>
 <ul>
     {% for spell in character_class.spells.all %}

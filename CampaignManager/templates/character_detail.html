@@ -18,10 +18,10 @@
     <dd>{{ character.player|default:"—" }}</dd>
 
     <dt>Race</dt>
-    <dd><a href="{% url 'race_detail' character.race.pk %}">{{ character.race.name }}</a></dd>
+    <dd><a href="{% url 'race_detail' character.race.pk %}">{{ character.race.name }}</a>{% if character.subrace %} (<a href="{% url 'subrace_detail' character.subrace.pk %}">{{ character.subrace.name }}</a>){% endif %}</dd>
 
     <dt>Class</dt>
-    <dd><a href="{% url 'character_class_detail' character.char_class.pk %}">{{ character.char_class.name }}</a></dd>
+    <dd><a href="{% url 'character_class_detail' character.char_class.pk %}">{{ character.char_class.name }}</a>{% if character.subclass %} (<a href="{% url 'subclass_detail' character.subclass.pk %}">{{ character.subclass.name }}</a>){% endif %}</dd>
 
     <dt>Campaigns</dt>
     <dd>{% for campaign in character.campaigns.all %}<a href="{% url 'campaign_detail' campaign.pk %}">{{ campaign.name }}</a>{% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}</dd>

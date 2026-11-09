@@ -21,7 +21,7 @@
             <td><a href="{% url 'spell_detail' spell.pk %}">{{ spell.name }}</a></td>
             <td>{% if spell.level == 0 %}Cantrip{% else %}{{ spell.level }}{% endif %}</td>
             <td>{{ spell.casting_time }}</td>
-            <td>{{ spell.range }} m</td>
+            <td>{% if spell.range is None %}—{% else %}{{ spell.range }} m{% endif %}</td>
         </tr>
         {% endfor %}
     </tbody>

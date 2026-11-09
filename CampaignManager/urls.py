@@ -14,8 +14,14 @@ urlpatterns = [
     path("races/", views.RaceListView.as_view(), name="race_list"),
     path("races/<int:pk>/", views.RaceDetailView.as_view(), name="race_detail"),
 
+    path("subraces/", views.SubraceListView.as_view(), name="subrace_list"),
+    path("subraces/<int:pk>/", views.SubraceDetailView.as_view(), name="subrace_detail"),
+
     path("classes/", views.CharacterClassListView.as_view(), name="character_class_list"),
     path("classes/<int:pk>/", views.CharacterClassDetailView.as_view(), name="character_class_detail"),
+
+    path("subclasses/", views.SubclassListView.as_view(), name="subclass_list"),
+    path("subclasses/<int:pk>/", views.SubclassDetailView.as_view(), name="subclass_detail"),
 
     path("spells/", views.SpellListView.as_view(), name="spell_list"),
     path("spells/<int:pk>/", views.SpellDetailView.as_view(), name="spell_detail"),

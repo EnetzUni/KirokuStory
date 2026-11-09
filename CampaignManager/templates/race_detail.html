@@ -21,6 +21,21 @@
     {% endfor %}
 </ul>
 
+<h3>Subraces</h3>
+{% for subrace in race.subraces.all %}
+<h4><a href="{% url 'subrace_detail' subrace.pk %}">{{ subrace.name }}</a></h4>
+{% if subrace.description %}{{ subrace.description|linebreaks }}{% endif %}
+<ul>
+    {% for row in subrace.subraceability_set.all %}
+    <li>{{ row.ability.name }}{% if row.ability.unique %} (unique){% endif %}, from level {{ row.level_required }}</li>
+    {% empty %}
+    <li>This subrace grants no abilities.</li>
+    {% endfor %}
+</ul>
+{% empty %}
+<p>This race has no subraces.</p>
+{% endfor %}
+
 <h3>Characters of this race</h3>
 <ul>
     {% for character in race.character_set.all %}

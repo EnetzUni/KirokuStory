@@ -12,7 +12,7 @@
     <dd>{% if item.template %}Copy of <a href="{% url 'item_detail' item.template.pk %}">{{ item.template.name }}</a>{% else %}Template{% endif %}</dd>
 
     <dt>Price</dt>
-    <dd>{{ item.price }}</dd>
+    <dd>{{ item.price|default_if_none:"—" }}</dd>
 
     <dt>Consumable</dt>
     <dd>{{ item.consumable|yesno:"Yes,No" }}</dd>

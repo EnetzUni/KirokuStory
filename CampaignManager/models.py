@@ -52,10 +52,13 @@ class Character(models.Model):
     wisdom = models.IntegerField()
     charisma = models.IntegerField()
 
-    # controla (optional), define, pertenece a
+    # controla (optional), define, pertenece a. The subclass must belong to the
+    # character's class and the subrace to its race (checked in clean()).
     player = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     char_class = models.ForeignKey("CharacterClass", on_delete=models.PROTECT)
+    subclass = models.ForeignKey("Subclass", on_delete=models.PROTECT, null=True, blank=True)
     race = models.ForeignKey("Race", on_delete=models.PROTECT)
+    subrace = models.ForeignKey("Subrace", on_delete=models.PROTECT, null=True, blank=True)
 
     # contiene: many campaigns, or none. Deleting a campaign only removes the link,
     # so the character is kept.
@@ -98,17 +101,29 @@ class Character(models.Model):
         return self.is_npc and self.template_id is None
 
     def clean(self):
+        errors = {}
+        if self.subrace_id is not None and self.race_id is not None and self.subrace.race_id != self.race_id:
+            errors["subrace"] = f"{self.subrace} is a subrace of {self.subrace.race}, not of {self.race}."
+        if (
+            self.subclass_id is not None
+            and self.char_class_id is not None
+            and self.subclass.char_class_id != self.char_class_id
+        ):
+            errors["subclass"] = f"{self.subclass} is a subclass of {self.subclass.char_class}, not of {self.char_class}."
         if self.template_id is not None:
             if self.template_id == self.pk:
-                raise ValidationError({"template": "A character cannot be its own template."})
-            if self.pk is not None and self.copies.exists():
-                raise ValidationError({"template": "This NPC is a template with copies, so it cannot be a copy."})
+                errors["template"] = "A character cannot be its own template."
+            elif self.pk is not None and self.copies.exists():
+                errors["template"] = "This NPC is a template with copies, so it cannot be a copy."
+        if errors:
+            raise ValidationError(errors)
 
     @transaction.atomic
     def make_copy(self, name=None, campaigns=()):
         """Create a new NPC from this template and return it.
 
-        Copies the stats, abilities, spells, inventory and active effects.
+        Copies the stats, race and subrace, class and subclass, abilities,
+        spells, inventory and active effects.
         Item copies (individual weapons and armor) are copied again so each NPC
         has its own; item templates carried directly (gold, potions...) are
         shared. Campaigns are not copied: pass them in `campaigns`.
@@ -155,6 +170,19 @@ class Race(models.Model):
         return self.name
 
 
+class Subrace(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    # tiene
+    race = models.ForeignKey("Race", on_delete=models.CASCADE, related_name="subraces")
+
+    # otorga
+    abilities = models.ManyToManyField("Ability", through="SubraceAbility")
+
+    def __str__(self):
+        return self.name
+
+
 class CharacterClass(models.Model):
     name = models.CharField(max_length=100)
     primary_ability = models.CharField(max_length=50)
@@ -166,6 +194,22 @@ class CharacterClass(models.Model):
 
     class Meta:
         verbose_name_plural = "character classes"
+
+    def __str__(self):
+        return self.name
+
+
+class Subclass(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    # tiene
+    char_class = models.ForeignKey("CharacterClass", on_delete=models.CASCADE, related_name="subclasses")
+
+    # otorga
+    abilities = models.ManyToManyField("Ability", through="SubclassAbility")
+
+    class Meta:
+        verbose_name_plural = "subclasses"
 
     def __str__(self):
         return self.name
@@ -231,6 +275,36 @@ class ClassAbility(models.Model):
         return f"{self.char_class} - {self.ability} (lvl {self.level_required})"
 
 
+class SubraceAbility(models.Model):
+    subrace = models.ForeignKey("Subrace", on_delete=models.CASCADE)
+    ability = models.ForeignKey("Ability", on_delete=models.CASCADE)
+    level_required = models.IntegerField(default=1)
+
+    class Meta:
+        verbose_name_plural = "subrace abilities"
+        constraints = [
+            models.UniqueConstraint(fields=["subrace", "ability"], name="unique_subrace_ability"),
+        ]
+
+    def __str__(self):
+        return f"{self.subrace} - {self.ability} (lvl {self.level_required})"
+
+
+class SubclassAbility(models.Model):
+    subclass = models.ForeignKey("Subclass", on_delete=models.CASCADE)
+    ability = models.ForeignKey("Ability", on_delete=models.CASCADE)
+    level_required = models.IntegerField(default=1)
+
+    class Meta:
+        verbose_name_plural = "subclass abilities"
+        constraints = [
+            models.UniqueConstraint(fields=["subclass", "ability"], name="unique_subclass_ability"),
+        ]
+
+    def __str__(self):
+        return f"{self.subclass} - {self.ability} (lvl {self.level_required})"
+
+
 # ---------------------------------------------------------------------------
 # Spells and combat
 # ---------------------------------------------------------------------------
@@ -238,8 +312,10 @@ class ClassAbility(models.Model):
 class Spell(models.Model):
     name = models.CharField(max_length=100)
     level = models.IntegerField(default=0, help_text="0 = cantrip (truco)")
-    casting_time = models.CharField(max_length=50)
-    range = models.IntegerField(help_text="In meters")
+    # Reactions describe their trigger, so some casting times are long sentences.
+    casting_time = models.CharField(max_length=200)
+    # Empty for ranges that are not a distance: "Vista", "Ilimitado" or "Especial".
+    range = models.IntegerField(null=True, blank=True, help_text="In meters. Empty if not a distance (Vista, Ilimitado, Especial)")
     duration = models.CharField(max_length=50)
     description = models.TextField(blank=True)
 
@@ -274,13 +350,28 @@ class Attack(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def base_dice(self):
+        return self.dice.filter(per_extra_level=False)
+
+    @property
+    def scaling_dice(self):
+        """Dice added once per extra level. Spells only: weapons ignore them."""
+        return self.dice.filter(per_extra_level=True)
+
 
 class DiceRoll(models.Model):
     amount = models.IntegerField(help_text="Number of dice")
     sides = models.IntegerField(help_text="Sides per die")
+    per_extra_level = models.BooleanField(
+        default=False,
+        help_text="Rolled once per extra level: spell slot levels above the spell's level, "
+        "or character levels 5, 11 and 17 reached for cantrips. Not used by weapons.",
+    )
 
     def __str__(self):
-        return f"{self.amount}d{self.sides}"
+        dice = f"{self.amount}d{self.sides}"
+        return f"{dice} per extra level" if self.per_extra_level else dice
 
 
 class ArmorDamage(models.Model):
@@ -304,7 +395,8 @@ class ArmorDamage(models.Model):
 class Effect(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
-    duration = models.CharField(max_length=50)
+    # Optional: conditions such as "Agarrado" have no duration of their own.
+    duration = models.CharField(max_length=50, blank=True)
 
     def __str__(self):
         return self.name
@@ -325,7 +417,7 @@ class ActiveEffect(models.Model):
 
 class Item(models.Model):
     name = models.CharField(max_length=100)
-    price = models.IntegerField(default=0)
+    price = models.IntegerField(null=True, blank=True)
     description = models.TextField(blank=True)
     consumable = models.BooleanField(default=False)
 

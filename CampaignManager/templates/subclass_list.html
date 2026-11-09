@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Subclasses | KirokuStory{% endblock %}
+
+{% block content %}
+<h2>Subclasses</h2>
+
+{% if subclasses %}
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Class</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for subclass in subclasses %}
+        <tr>
+            <td><a href="{% url 'subclass_detail' subclass.pk %}">{{ subclass.name }}</a></td>
+            <td><a href="{% url 'character_class_detail' subclass.char_class.pk %}">{{ subclass.char_class.name }}</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>There are no subclasses yet.</p>
+{% endif %}
+{% endblock %}

@@ -18,7 +18,9 @@
                 <li><a href="{% url 'campaign_list' %}">Campaigns</a></li>
                 <li><a href="{% url 'character_list' %}">Characters</a></li>
                 <li><a href="{% url 'race_list' %}">Races</a></li>
+                <li><a href="{% url 'subrace_list' %}">Subraces</a></li>
                 <li><a href="{% url 'character_class_list' %}">Classes</a></li>
+                <li><a href="{% url 'subclass_list' %}">Subclasses</a></li>
                 <li><a href="{% url 'spell_list' %}">Spells</a></li>
                 <li><a href="{% url 'item_list' %}">Items</a></li>
             </ul>
@@ -29,5 +31,10 @@
     <main>
         {% block content %}{% endblock %}
     </main>
+
+    <!-- FOOTER: attribution required by the CC-BY-4.0 license of the SRD 5.2.1 data -->
+    <footer>
+        <p lang="es">Esta obra incluye material procedente del documento de referencia del sistema 5.2.1 (“SRD 5.2.1”) de Wizards of the Coast LLC, disponible en <a href="https://www.dndbeyond.com/srd">https://www.dndbeyond.com/srd</a>. La licencia sobre el SRD 5.2.1 se concede de acuerdo con la licencia internacional de atribución/reconocimiento 4.0 de Creative Commons, disponible en <a href="https://creativecommons.org/licenses/by/4.0/legalcode">https://creativecommons.org/licenses/by/4.0/legalcode</a>.</p>
+    </footer>
 </body>
 </html>

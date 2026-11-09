@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}{{ subrace.name }} | KirokuStory{% endblock %}
+
+{% block content %}
+<h2>{{ subrace.name }}</h2>
+
+{% if subrace.description %}{{ subrace.description|linebreaks }}{% endif %}
+
+<dl>
+    <dt>Race</dt>
+    <dd><a href="{% url 'race_detail' subrace.race.pk %}">{{ subrace.race.name }}</a></dd>
+</dl>
+
+<h3>Abilities granted</h3>
+{% for row in subrace.subraceability_set.all %}
+<h4>{{ row.ability.name }}{% if row.ability.unique %} (unique){% endif %}, from level {{ row.level_required }}</h4>
+{% if row.ability.description %}{{ row.ability.description|linebreaks }}{% endif %}
+{% empty %}
+<p>This subrace grants no abilities.</p>
+{% endfor %}
+
+<h3>Characters of this subrace</h3>
+<ul>
+    {% for character in subrace.character_set.all %}
+    <li><a href="{% url 'character_detail' character.pk %}">{{ character.name }}</a></li>
+    {% empty %}
+    <li>No characters of this subrace.</li>
+    {% endfor %}
+</ul>
+
+<p><a href="{% url 'subrace_list' %}">Back to subraces</a></p>
+{% endblock %}

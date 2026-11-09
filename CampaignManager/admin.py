@@ -21,6 +21,10 @@ from .models import (
     Race,
     RaceAbility,
     Spell,
+    Subclass,
+    SubclassAbility,
+    Subrace,
+    SubraceAbility,
     User,
     Weapon,
 )
@@ -69,10 +73,14 @@ class CharacterAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Race)
+admin.site.register(Subrace)
 admin.site.register(CharacterClass)
+admin.site.register(Subclass)
 admin.site.register(Ability)
 admin.site.register(RaceAbility)
 admin.site.register(ClassAbility)
+admin.site.register(SubraceAbility)
+admin.site.register(SubclassAbility)
 admin.site.register(Spell)
 admin.site.register(Component)
 admin.site.register(Attack)

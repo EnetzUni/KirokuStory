@@ -21,8 +21,8 @@
         <tr>
             <td><a href="{% url 'character_detail' character.pk %}">{{ character.name }}</a></td>
             <td>{% if not character.is_npc %}Player character{% elif character.template %}NPC copy{% else %}NPC template{% endif %}</td>
-            <td>{{ character.race }}</td>
-            <td>{{ character.char_class }}</td>
+            <td>{{ character.race }}{% if character.subrace %} ({{ character.subrace }}){% endif %}</td>
+            <td>{{ character.char_class }}{% if character.subclass %} ({{ character.subclass }}){% endif %}</td>
             <td>{{ character.player|default:"—" }}</td>
         </tr>
         {% endfor %}

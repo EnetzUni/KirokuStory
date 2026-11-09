@@ -22,7 +22,7 @@
             <td><a href="{% url 'item_detail' item.pk %}">{{ item.name }}</a></td>
             <td>{% if item.template %}Copy{% else %}Template{% endif %}</td>
             <td>{% if item.weapon %}Weapon{% elif item.armor %}Armor{% else %}Item{% endif %}</td>
-            <td>{{ item.price }}</td>
+            <td>{{ item.price|default_if_none:"—" }}</td>
             <td>{{ item.consumable|yesno:"Yes,No" }}</td>
         </tr>
         {% endfor %}
