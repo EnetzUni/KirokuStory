@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Subraces | KirokuStory{% endblock %}
+
+{% block content %}
+<h2>Subraces</h2>
+
+{% if subraces %}
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Race</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for subrace in subraces %}
+        <tr>
+            <td><a href="{% url 'subrace_detail' subrace.pk %}">{{ subrace.name }}</a></td>
+            <td><a href="{% url 'race_detail' subrace.race.pk %}">{{ subrace.race.name }}</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>There are no subraces yet.</p>
+{% endif %}
+{% endblock %}

@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.views.generic import DetailView, ListView
 
-from .models import Campaign, Character, CharacterClass, Item, Race, Spell
+from .models import Campaign, Character, CharacterClass, Item, Race, Spell, Subclass, Subrace
 
 
 def index(request):
@@ -50,6 +50,20 @@ class RaceDetailView(DetailView):
     template_name = "race_detail.html"
 
 
+# Subraces
+
+class SubraceListView(ListView):
+    model = Subrace
+    context_object_name = "subraces"
+    template_name = "subrace_list.html"
+
+
+class SubraceDetailView(DetailView):
+    model = Subrace
+    context_object_name = "subrace"
+    template_name = "subrace_detail.html"
+
+
 # Character classes
 
 class CharacterClassListView(ListView):
@@ -62,6 +76,20 @@ class CharacterClassDetailView(DetailView):
     model = CharacterClass
     context_object_name = "character_class"
     template_name = "character_class_detail.html"
+
+
+# Subclasses
+
+class SubclassListView(ListView):
+    model = Subclass
+    context_object_name = "subclasses"
+    template_name = "subclass_list.html"
+
+
+class SubclassDetailView(DetailView):
+    model = Subclass
+    context_object_name = "subclass"
+    template_name = "subclass_detail.html"
 
 
 # Spells

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}{{ subclass.name }} | KirokuStory{% endblock %}
+
+{% block content %}
+<h2>{{ subclass.name }}</h2>
+
+{% if subclass.description %}{{ subclass.description|linebreaks }}{% endif %}
+
+<dl>
+    <dt>Class</dt>
+    <dd><a href="{% url 'character_class_detail' subclass.char_class.pk %}">{{ subclass.char_class.name }}</a></dd>
+</dl>
+
+<h3>Abilities granted</h3>
+{% for row in subclass.subclassability_set.all %}
+<h4>{{ row.ability.name }}{% if row.ability.unique %} (unique){% endif %}, from level {{ row.level_required }}</h4>
+{% if row.ability.description %}{{ row.ability.description|linebreaks }}{% endif %}
+{% empty %}
+<p>This subclass grants no abilities.</p>
+{% endfor %}
+
+<h3>Characters of this subclass</h3>
+<ul>
+    {% for character in subclass.character_set.all %}
+    <li><a href="{% url 'character_detail' character.pk %}">{{ character.name }}</a></li>
+    {% empty %}
+    <li>No characters of this subclass.</li>
+    {% endfor %}
+</ul>
+
+<p><a href="{% url 'subclass_list' %}">Back to subclasses</a></p>
+{% endblock %}
