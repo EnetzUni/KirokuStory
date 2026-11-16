@@ -18,6 +18,7 @@ from .models import (
     Effect,
     Inventory,
     Item,
+    ItemEffect,
     Race,
     RaceAbility,
     Spell,
@@ -121,6 +122,7 @@ class ItemAdmin(admin.ModelAdmin):
         )
 
 
+admin.site.register(ItemEffect)
 admin.site.register(Inventory)
 admin.site.register(Weapon)
 admin.site.register(Armor)

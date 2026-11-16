@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
 from django.db import models, transaction
 from django.db.models.signals import post_delete, pre_delete
 from django.dispatch import receiver
@@ -335,12 +336,27 @@ class Component(models.Model):
         return self.type
 
 
+class Stat(models.TextChoices):
+    """Ability scores that attacks use, by the codes stored in the data."""
+    STRENGTH = "str", "Fuerza"
+    DEXTERITY = "dex", "Destreza"
+
+
 class Attack(models.Model):
     name = models.CharField(max_length=100)
     extra = models.IntegerField(default=0, help_text="Fixed damage that does not depend on dice")
-    range = models.IntegerField(help_text="In meters")
+    # Some attacks have no set range (bombs). In melee, 1 square = 1 m.
+    range = models.IntegerField(null=True, blank=True, help_text="In meters; in melee, 1 square = 1 m. Empty if the attack has no set range")
     area = models.IntegerField(default=0, help_text="In meters")
     cooldown = models.IntegerField(default=0, help_text="In rounds")
+    # Damage = base dice + extra + this ability's modifier + dice per extra level.
+    stat_bonus = models.CharField(
+        max_length=3,
+        choices=Stat.choices,
+        null=True,
+        blank=True,
+        help_text="Ability whose modifier is added to the damage (some blunt attacks add Strength)",
+    )
 
     # tira, inflige, aplica
     dice = models.ManyToManyField("DiceRoll", blank=True)
@@ -377,9 +393,12 @@ class DiceRoll(models.Model):
 class ArmorDamage(models.Model):
     # "None" = the attack has no ArmorDamage linked.
     # "Both" = the attack has one of each linked (Attack.armor_damages is many-to-many).
+    # Penetrante: the damage ignores `amount` AP, which stay unchanged. Triturante:
+    # subtracts `amount` AP after the damage is dealt. With both, the damage is dealt
+    # against the unchanged AP and the triturante AP are subtracted afterwards.
     class Type(models.TextChoices):
-        PENETRATING = "penetrating", "Penetrating"
-        SHREDDING = "shredding", "Shredding"
+        PENETRATING = "penetrating", "Penetrante"
+        SHREDDING = "shredding", "Triturante"
 
     type = models.CharField(max_length=20, choices=Type.choices)
     amount = models.IntegerField(help_text="Number of AP points affected")
@@ -436,8 +455,8 @@ class Item(models.Model):
         help_text="Only for copies: the item template this piece was made from",
     )
 
-    # aplica
-    effects = models.ManyToManyField("Effect", blank=True)
+    # aplica: each effect with its own value, the X of the trait (SANGRADO 3)
+    effects = models.ManyToManyField("Effect", through="ItemEffect")
 
     def __str__(self):
         return self.name
@@ -472,7 +491,10 @@ class Item(models.Model):
             consumable=self.consumable,
             template=self.template or self,
         )
-        new.effects.set(self.effects.all())
+        ItemEffect.objects.bulk_create(
+            ItemEffect(item=new, effect_id=row.effect_id, value=row.value)
+            for row in self.itemeffect_set.all()
+        )
         if hasattr(self, "weapon"):
             weapon = Weapon.objects.create(
                 item=new, to_hit=self.weapon.to_hit, equipped=self.weapon.equipped
@@ -487,6 +509,25 @@ class Item(models.Model):
                 equipped=self.armor.equipped,
             )
         return new
+
+
+class ItemEffect(models.Model):
+    item = models.ForeignKey("Item", on_delete=models.CASCADE)
+    effect = models.ForeignKey("Effect", on_delete=models.CASCADE)
+    value = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="The trait's X (SANGRADO 3, EMPUJE 2…). Empty if the trait has no value",
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["item", "effect"], name="unique_item_effect"),
+        ]
+
+    def __str__(self):
+        value = "" if self.value is None else f" {self.value}"
+        return f"{self.item} - {self.effect}{value}"
 
 
 class Inventory(models.Model):
@@ -516,10 +557,23 @@ def validate_not_equipped_template(equipment):
         raise ValidationError({"equipped": "A template cannot be equipped: equip one of its copies."})
 
 
+# Optional integer, an ability ("str" or "dex") and an optional multiplier:
+# "dex", "2 + str", "-3 + dex x2" (= -3 + 2 × the Dexterity modifier).
+validate_to_hit = RegexValidator(
+    rf"^\s*([+-]?\d+\s*\+\s*)?({'|'.join(Stat.values)})(\s*x\s*\d+)?\s*$",
+    'Write an optional integer, "str" or "dex", and an optional multiplier: "dex", "2 + str", "-3 + dex x2".',
+)
+
+
 class Weapon(models.Model):
     # es un
     item = models.OneToOneField("Item", on_delete=models.CASCADE)
-    to_hit = models.CharField(max_length=50, help_text="A number or a formula")
+    to_hit = models.CharField(
+        max_length=50,
+        validators=[validate_to_hit],
+        help_text='Formula: optional integer + "str" or "dex" + optional multiplier, '
+        'e.g. "dex", "2 + str", "-3 + dex x2" (= -3 + 2 × Dexterity modifier)',
+    )
     equipped = models.BooleanField(default=False)
 
     # realiza

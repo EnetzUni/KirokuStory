@@ -1,18 +1,22 @@
-"""Add the sample campaign data on top of the SRD 5.2.1 catalog.
+"""Add the sample campaign data on top of the SRD 5.2.1 catalog and our weapons.
 
-The races, classes, spells, abilities, weapons and conditions come from the
-fixture CampaignManager/fixtures/datos_iniciales_srd.json, which must be loaded
-first. This command adds:
+The races, classes, spells, abilities and conditions come from the fixture
+CampaignManager/fixtures/datos_iniciales_srd.json, and the weapons from
+CampaignManager/fixtures/armas_caseras.json. Both must be loaded first: this
+command creates rows with new ids, which a fixture loaded later would overwrite.
+This command adds:
 
 - A test user and the Alforge campaign, described from CONTEXTO_MUNDO.md.
 - Balasar, from his level 10 druid character sheet, linked to the SRD rows
-  (Elfo, wood-elf lineage, Druida, his spells, the "Dardo" item template).
-- What the SRD does not include: the Círculo de la Luna subclass, the spells
-  Escudo de piedra and Tierra en erupción, his other traits and his items.
+  (Elfo, wood-elf lineage, Druida, his spells).
+- What the fixtures do not include: the Círculo de la Luna subclass, the spells
+  Escudo de piedra and Tierra en erupción, the "Dardo" weapon template, his
+  other traits and his items.
 
-Setup, in this order:
+Setup, in this order, on a database with empty tables:
     python manage.py migrate
     python manage.py loaddata datos_iniciales_srd
+    python manage.py loaddata armas_caseras
     python manage.py populate
 
 It is safe to run more than once: existing rows are updated, not duplicated.
@@ -34,6 +38,7 @@ from CampaignManager.models import (
     Item,
     Race,
     Spell,
+    Stat,
     Subclass,
     SubclassAbility,
     Subrace,
@@ -64,7 +69,9 @@ SRD_SPELLS = [
     "Escudo de fuego", "Marchitar", "Polimorfar",
     "Conjurar elemental",
 ]
-SRD_DART = "Dardo"
+
+# Any row of armas_caseras.json, to check it is loaded before this command runs
+HOMEMADE_WEAPON = "Katana"
 
 # ---------------------------------------------------------------------------
 # What the SRD does not include
@@ -100,6 +107,14 @@ OWN_SPELLS = [
          attack=("Erupción", [(3, 12), (1, 12, True)], 120, 20)),
 ]
 
+# The homemade weapons have no dart, so the one on his sheet is a weapon template
+# of its own: 1d6 + Dexterity modifier, thrown 20 ft. Balasar's copy hits with
+# +8 (6 + his Dexterity modifier, +2), the values on his sheet.
+DART = "Dardo"
+DART_ATTACK = "Dardo · lanzamiento"
+DART_TO_HIT = "dex"
+BALASAR_DART_TO_HIT = "6 + dex"
+
 # Generic items from his sheet, carried directly
 OWN_ITEMS = ["Bolsa de trucos de canela", "Cogollos infinitos"]
 
@@ -131,19 +146,23 @@ def dice(amount, sides, per_extra_level=False):
     return upsert(DiceRoll, {"amount": amount, "sides": sides, "per_extra_level": per_extra_level})
 
 
-def srd(model, **lookup):
-    """Get an SRD row, with a clear error if the fixture is not loaded."""
+def fixture_row(model, fixture, **lookup):
+    """Get a row from a fixture, with a clear error if the fixture is not loaded."""
     try:
         return model.objects.get(**lookup)
     except model.DoesNotExist:
         raise CommandError(
-            f"{model.__name__} {lookup} not found. Load the SRD first: "
-            "python manage.py loaddata datos_iniciales_srd"
+            f"{model.__name__} {lookup} not found. Load the fixture first: "
+            f"python manage.py loaddata {fixture}"
         )
 
 
+def srd(model, **lookup):
+    return fixture_row(model, "datos_iniciales_srd", **lookup)
+
+
 class Command(BaseCommand):
-    help = "Add the Alforge campaign and Balasar on top of the SRD 5.2.1 data."
+    help = "Add the Alforge campaign and Balasar on top of the SRD 5.2.1 data and the homemade weapons."
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -153,7 +172,7 @@ class Command(BaseCommand):
         race_abilities = [srd(Ability, name=n, raceability__race=race) for n in SRD_RACE_ABILITIES]
         class_abilities = [srd(Ability, name=n, classability__char_class=druid) for n in SRD_CLASS_ABILITIES]
         srd_spells = [srd(Spell, name=n) for n in SRD_SPELLS]
-        dart_template = srd(Item, name=SRD_DART, template__isnull=True)
+        fixture_row(Item, "armas_caseras", name=HOMEMADE_WEAPON, template__isnull=True)
 
         # What the SRD does not include
         own_abilities = [
@@ -185,6 +204,16 @@ class Command(BaseCommand):
             own_spells.append(spell)
         druid.spells.add(*own_spells)
 
+        dart_attack = upsert(
+            Attack, {"name": DART_ATTACK}, extra=0, range=m(20), area=0, stat_bonus=Stat.DEXTERITY
+        )
+        dart_attack.dice.set([dice(1, 6)])
+        dart_template = upsert(Item, {"name": DART, "template": None}, price=None)
+        dart_weapon, _ = Weapon.objects.update_or_create(
+            item=dart_template, defaults={"to_hit": DART_TO_HIT, "equipped": False}
+        )
+        dart_weapon.attacks.set([dart_attack])
+
         # Test user and campaign
         test_user = User.objects.filter(username="testuser").first()
         if test_user is None:
@@ -211,13 +240,13 @@ class Command(BaseCommand):
         balasar.abilities.set(race_abilities + class_abilities + moon_abilities + own_abilities)
         balasar.spells.set(srd_spells + own_spells)
 
-        # His dart: a copy of the SRD "Dardo" template, with the values on his
-        # sheet (+8 to hit, 1d6 + 2). His other items are generic and carried directly.
-        balasar_dart_attack = upsert(Attack, {"name": "Dardo (Balasar)"}, extra=2, range=m(20), area=0)
-        balasar_dart_attack.dice.set([dice(1, 6)])
-        dart = balasar.items.filter(name=SRD_DART).first() or dart_template.make_copy()
-        Weapon.objects.update_or_create(item=dart, defaults={"to_hit": "+8", "equipped": True})
-        dart.weapon.attacks.set([balasar_dart_attack])
+        # His dart: a copy of the "Dardo" template, equipped, with the to hit on his
+        # sheet. His other items are generic and carried directly.
+        dart = balasar.items.filter(template=dart_template).first() or dart_template.make_copy()
+        Weapon.objects.update_or_create(
+            item=dart, defaults={"to_hit": BALASAR_DART_TO_HIT, "equipped": True}
+        )
+        dart.weapon.attacks.set([dart_attack])
         Inventory.objects.update_or_create(character=balasar, item=dart, defaults={"quantity": 1})
         for name in OWN_ITEMS:
             item = upsert(Item, {"name": name, "template": None}, price=None)

@@ -18,7 +18,7 @@
     <dd>{{ item.consumable|yesno:"Yes,No" }}</dd>
 
     <dt>Effects</dt>
-    <dd>{% for effect in item.effects.all %}{{ effect.name }}{% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}</dd>
+    <dd>{% for row in item.itemeffect_set.all %}{{ row.effect.name }}{% if row.value is not None %} {{ row.value }}{% endif %}{% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}</dd>
 </dl>
 
 {% if item.weapon %}
@@ -29,10 +29,16 @@
 
     <dt>Equipped</dt>
     <dd>{{ item.weapon.equipped|yesno:"Yes,No" }}</dd>
-
-    <dt>Attacks</dt>
-    <dd>{% for attack in item.weapon.attacks.all %}{{ attack.name }}{% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}</dd>
 </dl>
+
+<h4>Attacks</h4>
+<ul>
+    {% for attack in item.weapon.attacks.all %}
+    <li>{% include "attack_summary.html" %}</li>
+    {% empty %}
+    <li>This weapon makes no attacks.</li>
+    {% endfor %}
+</ul>
 {% endif %}
 
 {% if item.armor %}

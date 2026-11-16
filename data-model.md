@@ -18,9 +18,9 @@ Text version of the entity-relationship diagram (`ER.drawio`), written as contex
 | Abilities | Ability, RaceAbility, SubraceAbility, ClassAbility, SubclassAbility |
 | Spells and combat | Spell, Component, Attack, DiceRoll, ArmorDamage |
 | Effects | Effect, ActiveEffect |
-| Items and equipment | Item, Inventory, Weapon, Armor, ArmorType |
+| Items and equipment | Item, ItemEffect, Inventory, Weapon, Armor, ArmorType |
 
-RaceAbility, SubraceAbility, ClassAbility, SubclassAbility, Inventory and ActiveEffect are **link tables** (yellow in the diagram): they join two models and carry extra data of their own.
+RaceAbility, SubraceAbility, ClassAbility, SubclassAbility, ItemEffect, Inventory and ActiveEffect are **link tables** (yellow in the diagram): they join two models and carry extra data of their own.
 
 ---
 
@@ -232,9 +232,12 @@ Race, subrace, class and subclass abilities are kept in four tables on purpose: 
 |---|---|---|
 | name | string | |
 | extra | int | Fixed damage that does not depend on dice |
-| range | int | In meters |
+| range | int | **Optional.** In meters; in melee, 1 square = 1 m. Empty when the attack has no set range (bombs) |
 | area | int | In meters |
 | cooldown | int | In rounds |
+| stat_bonus | string | **Optional.** `str` (Fuerza) or `dex` (Destreza): the ability whose modifier is added to the damage. Some blunt attacks add Strength |
+
+Damage = base dice + `extra` + the `stat_bonus` modifier, if any + dice per extra level × extra levels (see game rule 4).
 
 - Performed by Weapons and by Spells (*realiza*, many-to-many in both cases).
 - Rolls (*tira*) many DiceRolls. One attack can combine several dice rolls of different kinds.
@@ -255,15 +258,15 @@ For example, Marchitar's attack has 8d8 (`per_extra_level = false`) and 1d8 (`pe
 
 | Field | Type | Notes |
 |---|---|---|
-| type | string | `penetrating` or `shredding` |
+| type | string | `penetrating` (Penetrante) or `shredding` (Triturante) |
 | amount | int | Number of AP points affected |
 
 An attack is in one of four armor-damage cases. Only two of them are values of `type`; the other two come from how many ArmorDamages are linked to the attack:
 
 - **None:** the attack has no ArmorDamage linked. Not a value of `type`. This is why armor damage is its own table: attacks without it carry no empty columns.
-- **Penetrating** (`penetrating`): the attack ignores `amount` AP points.
-- **Shredding** (`shredding`): after dealing damage, the attack subtracts `amount` AP points.
-- **Both:** the attack has more than one ArmorDamage linked, a penetrating one and a shredding one. Not a value of `type` either. Shredding is always applied first (see game rules).
+- **Penetrante** (`penetrating`): the damage ignores `amount` AP points. It does not change the AP.
+- **Triturante** (`shredding`): the attack subtracts `amount` AP points after dealing damage. Until then the AP are unchanged.
+- **Both:** the attack has more than one ArmorDamage linked, a penetrante one and a triturante one. Not a value of `type` either. There is no order to choose: the damage is dealt against the unchanged AP, ignoring the penetrante amount, and the triturante amount is subtracted afterwards (see game rule 3).
 
 ---
 
@@ -277,7 +280,7 @@ An attack is in one of four armor-damage cases. Only two of them are values of `
 | description | text | |
 | duration | string | **Optional.** Conditions such as Agarrado or Cegado have no duration of their own |
 
-Applied (*aplica*, many-to-many) by Spells, Abilities, Attacks, Items and ArmorTypes. Weapon and armor effects are attached through their Item.
+Applied (*aplica*, many-to-many) by Spells, Abilities, Attacks, Items and ArmorTypes. Weapon and armor effects are attached through their Item, in ItemEffect, which also stores each effect's value. The weapon traits (BARRIDO, SANGRADO, EMPUJE…) are Effects.
 
 ### ActiveEffect (link table)
 
@@ -306,7 +309,7 @@ The effects currently on a character.
 - Gold is an Item; how much a character has is the quantity in Inventory.
 - Deleting a character does not delete its items, except for NPC copies (see NPCs).
 - A Weapon or an Armor *is an* (*es un*) Item: one-to-one.
-- Applies (*aplica*) many Effects.
+- Applies (*aplica*) many Effects through ItemEffect, each with an optional value.
 
 ### Item templates and copies
 
@@ -314,9 +317,19 @@ Items work with templates and copies (*es copia de*, Item → Item), like NPCs. 
 
 - **Template:** an item with no `template`, for example "Espada larga" or "Oro". It is a catalog entry, defined once. A template's Weapon or Armor row describes a kind of weapon or armor.
 - **Copy:** an item whose `template` points to the template it was made from. It is one physical piece with its own Weapon or Armor row, so equipping or upgrading it changes only that piece.
-- **Making a copy** duplicates the item's data, effects and Weapon or Armor row, including its attacks. A copy made from another copy points to the same template.
+- **Making a copy** duplicates the item's data, effects (with their values) and Weapon or Armor row, including its attacks. A copy made from another copy points to the same template.
 - **Weapons and armor are carried as copies:** characters never carry a weapon or armor template. Generic items (gold, potions…) are templates carried directly; how many a character has is the quantity in Inventory.
 - A template cannot be deleted while it has copies: delete the copies first.
+
+### ItemEffect (link table)
+
+| Field | Type | Notes |
+|---|---|---|
+| item_id | FK → Item | |
+| effect_id | FK → Effect | |
+| value | int | **Optional.** The trait's X: SANGRADO 3, EMPUJE 2… Empty if the trait has no value (BARRIDO) |
+
+One row per item and effect. The Effect's description says what X means; for example, SANGRADO 3 makes the target lose 3 HP per round.
 
 ### Inventory (link table)
 
@@ -333,8 +346,10 @@ One row per character and item. Weapons and armor in an inventory are always cop
 | Field | Type | Notes |
 |---|---|---|
 | item_id | FK → Item | One-to-one |
-| to_hit | string | A number or a formula, converted to int when attacking |
+| to_hit | string | A formula: an optional integer, an ability (`str` or `dex`) and an optional multiplier (see game rule 14) |
 | equipped | bool | Only copies can be equipped |
+
+Examples of `to_hit`: `dex` (the Dexterity modifier), `2 + str` (2 + the Strength modifier), `-3 + dex x2` (−3 + 2 × the Dexterity modifier). The revolver's one-hand to hit is in its item's description.
 
 A template's Weapon row describes a **kind** of weapon; a copy's Weapon row is an **individual** weapon (see Item templates and copies).
 
@@ -367,16 +382,19 @@ A template's Armor row describes a **kind** of armor; a copy's Armor row is an *
 
 ## Initial data
 
-The database starts from two sources, loaded in this order on a database with empty tables:
+The database starts from three sources, loaded in this order on a database with empty tables:
 
 ```bash
 python manage.py migrate
-python manage.py loaddata datos_iniciales_srd   # the rules catalog (SRD 5.2.1 in Spanish)
-python manage.py populate                       # the sample campaign on top of it
+python manage.py loaddata datos_iniciales_srd   # the rules catalog (SRD 5.2.1 in Spanish), without weapons
+python manage.py loaddata armas_caseras         # our homemade weapons
+python manage.py populate                       # the sample campaign on top of them
 ```
 
-- **`CampaignManager/fixtures/datos_iniciales_srd.json`**: the official SRD 5.2.1 in Spanish, adapted to this model. It holds 9 races and 24 subraces, 12 classes and 12 subclasses, 286 abilities, 339 spells, 148 attacks, 124 items (38 of them weapons, all item templates without a price) and the 15 conditions as Effects. It has no armor or armor types. Its primary keys are fixed and start at 1, so it must be loaded into empty tables: rows with the same ids would be overwritten. Distances already follow rule 10 (6 ft = 2 m).
-- **`python manage.py populate`**: adds the test user, the Alforge campaign and Balasar, linked to the SRD rows by name. It also adds what the SRD does not include: the druid subclass Círculo de la Luna, the spells Escudo de piedra and Tierra en erupción, the other traits on Balasar's sheet and his items. It stops with an error if the SRD is not loaded, and it can be run again without duplicating anything.
+- **`CampaignManager/fixtures/datos_iniciales_srd.json`**: the official SRD 5.2.1 in Spanish, adapted to this model. It holds 9 races and 24 subraces, 12 classes and 12 subclasses, 286 abilities, 339 spells, 97 attacks (all of them from spells), 86 items (item templates without a price) and the 15 conditions as Effects. It has no weapons, armor or armor types. Its primary keys are fixed and start at 1, so it must be loaded into empty tables: rows with the same ids would be overwritten. Distances already follow rule 10 (6 ft = 2 m).
+- **`CampaignManager/fixtures/armas_caseras.json`**: our homemade weapons, which replace the SRD's. It holds 32 weapon item templates (melee weapons, shields, bows, firearms and bombs) with their Weapon rows and 99 attacks, the 23 weapon traits as Effects (BARRIDO, SANGRADO…), 52 ItemEffects with the value of each trait, 12 ArmorDamages and 2 DiceRolls. Its primary keys start above the SRD's, so it overwrites none of them.
+- **`python manage.py populate`**: adds the test user, the Alforge campaign and Balasar, linked to the SRD rows by name. It also adds what neither fixture includes: the druid subclass Círculo de la Luna, the spells Escudo de piedra and Tierra en erupción, a "Dardo" weapon template (the homemade weapons have no dart), the other traits on Balasar's sheet and his items. It stops with an error if either fixture is not loaded, and it can be run again without duplicating anything.
+- **The order matters:** `populate` creates rows with the next free ids, the same ones the fixtures use, so a fixture loaded after `populate` would overwrite them. To load the fixtures again on a database that already has data, start again from empty tables.
 - **License:** the SRD is published under CC-BY-4.0, which requires its attribution statement on the website. It is in the footer of `base.html`, on every page.
 
 ---
@@ -390,8 +408,12 @@ These are house rules or constraints the diagram cannot express.
    - **Maximum AP is not stored on the character.** It is calculated for the character sheet from the equipped armor: `Armor.ap + ArmorType.ap`, and `Armor.magic_ap + ArmorType.magic_ap` for magic AP. If no armor is equipped, both maximums are 0.
    - The two parts are stored separately: `Armor.ap` is that piece's own AP, already including its upgrades, and `ArmorType.ap` is the amount every armor of that type adds.
    - Only current AP is stored on the character, as `temp_ap`, because it changes during combat. Magic AP has no stored current value: only its calculated maximum exists.
-3. **Armor damage:** penetrating attacks ignore `amount` AP; shredding attacks subtract `amount` AP after dealing damage. An attack with both applies each of them, always shredding first and penetrating second.
-4. **Attack damage:** the sum of the attack's dice with `per_extra_level = false`, plus `extra`, plus its dice with `per_extra_level = true` rolled once per extra level.
+3. **Armor damage:** the AP only change after the damage is dealt.
+   - **Penetrante:** the damage ignores `amount` AP. It never changes the AP.
+   - **Triturante:** subtracts `amount` AP, always after the damage is dealt.
+   - **Both:** no order is needed. The damage is dealt against the unchanged AP, ignoring the penetrante amount; then the triturante amount is subtracted.
+4. **Attack damage:** the sum of the attack's dice with `per_extra_level = false`, plus `extra`, plus the modifier of its `stat_bonus` ability if it has one, plus its dice with `per_extra_level = true` rolled once per extra level.
+   - **Ability modifier:** (score − 10) / 2, rounded down. For example, Strength 8 → −1 and Dexterity 14 → +2.
    - **Spells of level 1 or higher:** extra levels = level of the spell slot used − `Spell.level`.
    - **Cantrips** (`Spell.level = 0`): extra levels = how many of the character levels 5, 11 and 17 the character has reached (0 to 3).
    - **Weapons:** dice with `per_extra_level = true` are not used.
@@ -409,7 +431,7 @@ These are house rules or constraints the diagram cannot express.
 7. **Ability levels:** a character gets a race, subrace, class or subclass ability only once their level is at least `level_required`.
 8. **One class per character:** no multiclassing. A character has at most one subclass and at most one subrace.
 9. **Calculated, not stored:** speed comes from the race (subraces have no speed); maximum AP and magic AP come from the equipped armor; initiative and passive perception come from the ability scores; level comes from xp (conversion to be defined later).
-10. **Units:** distances (race speed, spell and attack range, attack area) are in meters; attack cooldown is in rounds. Distances in feet (D&D books, character sheets) are converted with 6 ft = 2 m, rounded to the nearest meter: 30 ft = 10 m, 35 ft = 12 m, 25 ft = 8 m.
+10. **Units:** distances (race speed, spell and attack range, attack area) are in meters; in melee, 1 square = 1 m. Attack cooldown is in rounds. A spell's or attack's range is empty when it is not a distance. Distances in feet (D&D books, character sheets) are converted with 6 ft = 2 m, rounded to the nearest meter: 30 ft = 10 m, 35 ft = 12 m, 25 ft = 8 m.
 11. **NPCs:**
    - Only NPCs can have a template (checked by a database constraint).
    - A copy's template must be a template: an NPC that is not a copy. A character cannot be its own template, and an NPC that already has copies cannot become a copy.
@@ -425,6 +447,8 @@ These are house rules or constraints the diagram cannot express.
    - A character's subrace must belong to its race (`character.subrace.race` = `character.race`), and its subclass to its class (`character.subclass.char_class` = `character.char_class`).
    - The database cannot check this across two foreign keys, so `Character.clean()` does; the admin form shows both errors at once.
    - Copying an NPC copies its subrace and subclass too.
+14. **Weapon to hit:** `Weapon.to_hit` is a formula with an optional integer, an ability (`str` or `dex`) and an optional multiplier for that ability's modifier: `-3 + dex x2` = −3 + 2 × the Dexterity modifier (see rule 4 for modifiers).
+   - The format is checked by a validator when the weapon is validated (`full_clean()`, the admin). Loading a fixture does not run validators.
 
 ---
 
@@ -463,22 +487,25 @@ These are house rules or constraints the diagram cannot express.
 | *es de tipo* | `Armor.armor_type = ForeignKey(ArmorType)` |
 | *es copia de* (NPCs) | `Character.template = ForeignKey("self", null=True, blank=True, related_name="copies")` |
 | *es copia de* (items) | `Item.template = ForeignKey("self", null=True, blank=True, related_name="copies")` |
-| *aplica* | `effects = ManyToManyField(Effect)` on Spell, Ability, Attack, Item and ArmorType |
+| *aplica* | `effects = ManyToManyField(Effect)` on Spell, Ability, Attack and ArmorType |
+| *aplica* (items) | `Item.effects = ManyToManyField(Effect, through="ItemEffect")` |
 
 The two User ↔ Campaign relationships need different `related_name` values, otherwise Django reports a clash. No other relationship needs one; `Character.campaigns` uses `related_name="characters"`, `Character.template` and `Item.template` use `related_name="copies"`, and `Subrace.race` and `Subclass.char_class` use `related_name="subraces"` and `"subclasses"`, only so they read as `campaign.characters`, `template.copies`, `race.subraces` and `char_class.subclasses`.
 
 ### Constraints and choices
 
-- `UniqueConstraint` on Inventory (`character`, `item`), RaceAbility (`race`, `ability`), SubraceAbility (`subrace`, `ability`), ClassAbility (`char_class`, `ability`) and SubclassAbility (`subclass`, `ability`).
+- `UniqueConstraint` on Inventory (`character`, `item`), ItemEffect (`item`, `effect`), RaceAbility (`race`, `ability`), SubraceAbility (`subrace`, `ability`), ClassAbility (`char_class`, `ability`) and SubclassAbility (`subclass`, `ability`).
 - `CheckConstraint` on Character: `template` is empty or `is_npc` is true.
 - `Campaign.status`: use `TextChoices` with `activa`, `pausada`, `terminada`.
-- `ArmorDamage.type`: use `TextChoices` with `penetrating`, `shredding`. "None" and "both" are not choices: they are zero, or more than one, ArmorDamages linked to the attack.
+- `ArmorDamage.type`: use `TextChoices` with `penetrating` (Penetrante) and `shredding` (Triturante). "None" and "both" are not choices: they are zero, or more than one, ArmorDamages linked to the attack.
+- `Attack.stat_bonus`: choices `str` (Fuerza) and `dex` (Destreza), from the `Stat` TextChoices; empty means no ability modifier.
+- `Weapon.to_hit`: a `RegexValidator` checks the formula (rule 14), with the same ability codes as `Stat`.
 
 ### `on_delete`
 
 | Foreign key | `on_delete` | Effect |
 |---|---|---|
-| Link tables (Inventory, ActiveEffect, RaceAbility, SubraceAbility, ClassAbility, SubclassAbility) | `CASCADE` | Rows disappear with either side |
+| Link tables (ItemEffect, Inventory, ActiveEffect, RaceAbility, SubraceAbility, ClassAbility, SubclassAbility) | `CASCADE` | Rows disappear with either side |
 | Subrace.race, Subclass.char_class | `CASCADE` | Deleting a race or class deletes its subraces or subclasses; blocked if a character uses one of them |
 | Weapon.item, Armor.item | `CASCADE` | Deleting the Item deletes its weapon or armor data |
 | Character.race, Character.subrace, Character.char_class, Character.subclass, Armor.armor_type | `PROTECT` | Cannot delete a race, subrace, class, subclass or armor type still in use |

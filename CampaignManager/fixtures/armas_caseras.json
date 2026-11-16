@@ -1,0 +1,3293 @@
+[
+ {
+  "model": "CampaignManager.diceroll",
+  "pk": 47,
+  "fields": {
+   "amount": 2,
+   "sides": 20,
+   "per_extra_level": false
+  }
+ },
+ {
+  "model": "CampaignManager.diceroll",
+  "pk": 48,
+  "fields": {
+   "amount": 2,
+   "sides": 12,
+   "per_extra_level": false
+  }
+ },
+ {
+  "model": "CampaignManager.armordamage",
+  "pk": 1,
+  "fields": {
+   "type": "penetrating",
+   "amount": 2
+  }
+ },
+ {
+  "model": "CampaignManager.armordamage",
+  "pk": 2,
+  "fields": {
+   "type": "penetrating",
+   "amount": 1
+  }
+ },
+ {
+  "model": "CampaignManager.armordamage",
+  "pk": 3,
+  "fields": {
+   "type": "shredding",
+   "amount": 3
+  }
+ },
+ {
+  "model": "CampaignManager.armordamage",
+  "pk": 4,
+  "fields": {
+   "type": "shredding",
+   "amount": 1
+  }
+ },
+ {
+  "model": "CampaignManager.armordamage",
+  "pk": 5,
+  "fields": {
+   "type": "shredding",
+   "amount": 2
+  }
+ },
+ {
+  "model": "CampaignManager.armordamage",
+  "pk": 6,
+  "fields": {
+   "type": "shredding",
+   "amount": 5
+  }
+ },
+ {
+  "model": "CampaignManager.armordamage",
+  "pk": 7,
+  "fields": {
+   "type": "penetrating",
+   "amount": 4
+  }
+ },
+ {
+  "model": "CampaignManager.armordamage",
+  "pk": 8,
+  "fields": {
+   "type": "penetrating",
+   "amount": 3
+  }
+ },
+ {
+  "model": "CampaignManager.armordamage",
+  "pk": 9,
+  "fields": {
+   "type": "penetrating",
+   "amount": 6
+  }
+ },
+ {
+  "model": "CampaignManager.armordamage",
+  "pk": 10,
+  "fields": {
+   "type": "penetrating",
+   "amount": 5
+  }
+ },
+ {
+  "model": "CampaignManager.armordamage",
+  "pk": 11,
+  "fields": {
+   "type": "penetrating",
+   "amount": 8
+  }
+ },
+ {
+  "model": "CampaignManager.armordamage",
+  "pk": 12,
+  "fields": {
+   "type": "shredding",
+   "amount": 8
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 16,
+  "fields": {
+   "name": "BARRIDO",
+   "description": "El ataque de slash afecta a tres casillas en línea: la central y las dos adyacentes. Todas las criaturas en ellas reciben el ataque, incluidos los aliados.",
+   "duration": "Instantáneo"
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 17,
+  "fields": {
+   "name": "SANGRADO",
+   "description": "Si el ataque causa daño a la vida, el objetivo queda Sangrando y pierde X HP al inicio de cada fase de su bando (una vez por ronda) hasta recibir curación o tratar la herida. El sangrado dura máximo 5 rondas.",
+   "duration": "Hasta curar la herida (máx. 5 rondas)"
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 18,
+  "fields": {
+   "name": "IAIDO",
+   "description": "Desenvaine rápido. Una vez por combate, al empezar (antes del primer turno de cualquier bando, o en el momento de una emboscada, la hagas tú o la sufras), haces un ataque inmediato con ventaja. El arma tiene que estar envainada o enfundada. No se recupera durante el combate.",
+   "duration": "Instantáneo (1 por combate)"
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 19,
+  "fields": {
+   "name": "ESGRIMA",
+   "description": "Recibe +2 To Hit contra enemigos sin escudo y -2 To Hit contra enemigos con escudo. Los modificadores pueden variar según el arma.",
+   "duration": "Pasivo"
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 20,
+  "fields": {
+   "name": "RASTRERO",
+   "description": "Los críticos ignoran los AP del objetivo. También puede ignorarlos al atacar por la espalda a un enemigo desprevenido, una vez por activación.",
+   "duration": "Instantáneo"
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 21,
+  "fields": {
+   "name": "DESARME",
+   "description": "Al intentar desarmar como parte de un ataque, obtienes +2 a la tirada enfrentada correspondiente. Si el ataque es crítico, el desarme tiene éxito automáticamente.",
+   "duration": "Instantáneo"
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 22,
+  "fields": {
+   "name": "EMPUJE",
+   "description": "Al impactar, desplaza al objetivo una casilla en dirección contraria al atacante. Recibe daño si el empuje acaba en una pared",
+   "duration": "Instantáneo"
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 23,
+  "fields": {
+   "name": "FORMACIÓN",
+   "description": "Recibe +1 To Hit por cada aliado adyacente, hasta un máximo de +2.",
+   "duration": "Pasivo"
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 24,
+  "fields": {
+   "name": "REMATE",
+   "description": "Contra enemigos derribados o que tengan un 25 % de sus HP máximos o menos, el ataque inflige el doble de daño final, después de aplicar armadura y penetración. Solo puede beneficiarse de este efecto una vez por activación.",
+   "duration": "Instantáneo"
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 25,
+  "fields": {
+   "name": "JINETE",
+   "description": "Recibe +4 To Hit al atacar mientras está montado a caballo.",
+   "duration": "Pasivo"
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 26,
+  "fields": {
+   "name": "NEGACIÓN",
+   "description": "Una vez por fase enemiga, cuando un enemigo entra en el alcance del arma, permite realizar un ataque como reacción (no gasta acciones). Si impacta, lo empuja una casilla y detiene su avance. Funciona como un Overwatch cuerpo a cuerpo.",
+   "duration": "Instantáneo (1 por fase enemiga)"
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 27,
+  "fields": {
+   "name": "GANCHO",
+   "description": "Al impactar, permite desplazar al objetivo a una casilla libre dentro del alcance del arma. Con alcance 1, puede elegir entre las ocho casillas adyacentes; con alcance 2, entre las 24 casillas dentro de ese alcance.",
+   "duration": "Instantáneo"
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 28,
+  "fields": {
+   "name": "DERRIBO",
+   "description": "Al intentar derribar como parte de un ataque, obtienes +2 a la tirada enfrentada correspondiente. Si el ataque es crítico, el derribo tiene éxito automáticamente.",
+   "duration": "Instantáneo"
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 29,
+  "fields": {
+   "name": "FORTALEZA",
+   "description": "Concede +1 CA a los aliados adyacentes mientras se empuña el escudo.",
+   "duration": "Pasivo"
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 30,
+  "fields": {
+   "name": "CONCENTRACION",
+   "description": "Si el usuario gasta sus 2 acciones sin moverse (atacar + atacar, o atacar + Guardia), recibe +X To Hit en los ataques de esa activación (valor según arma).",
+   "duration": "1 activación"
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 31,
+  "fields": {
+   "name": "MOVIL",
+   "description": "Después de atacar, permite desplazarse hasta tres casillas adicionales sin gastar acción. Se activa una sola vez por activación, independientemente del número de ataques realizados.",
+   "duration": "Instantáneo"
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 32,
+  "fields": {
+   "name": "CONO",
+   "description": "El ataque afecta a todas las criaturas situadas dentro de un área cónica frente al usuario, hasta el alcance establecido por el arma. Los aliados dentro del área también pueden recibir el impacto.",
+   "duration": "Instantáneo"
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 33,
+  "fields": {
+   "name": "ENVOLVER",
+   "description": "El ataque ignora los bonos de CA que el objetivo recibe de escudos (pasivo, con postura defensiva y Fortaleza).",
+   "duration": "Instantáneo"
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 34,
+  "fields": {
+   "name": "RIPOSTA",
+   "description": "Una vez por fase enemiga, cuando un enemigo falla un ataque cuerpo a cuerpo contra ti, puedes atacarle como reacción (no gasta acciones). Con la Postura defensiva activa, la Riposta tiene +2 To Hit.",
+   "duration": "Instantáneo (1 por fase enemiga)"
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 35,
+  "fields": {
+   "name": "PESADA",
+   "description": "Cada ataque con esta arma gasta las 2 acciones de la activación. No se puede mover y atacar en la misma activación.",
+   "duration": "Pasivo"
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 36,
+  "fields": {
+   "name": "TAMBOR",
+   "description": "El arma dispara X veces antes de quedarse vacía. Recargar la deja llena y gasta 1 acción, o tu acción adicional o tu ataque extra si los tienes. TAMBOR (1): hay que recargar tras cada disparo. Atrincherado (sin moverte en la activación) puedes disparar, recargar con la acción adicional o el ataque extra y volver a disparar: 2 disparos como máximo. Si te mueves, solo 1.",
+   "duration": "Pasivo"
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 37,
+  "fields": {
+   "name": "CONSUMIBLE",
+   "description": "Se gasta al usarse. Máximo 1 consumible del mismo tipo por activación.",
+   "duration": "Pasivo"
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 38,
+  "fields": {
+   "name": "TELEGRAFIADA",
+   "description": "Usarla gasta las 2 acciones. Se marca la zona de efecto a la vista de todos y el efecto ocurre al inicio de la siguiente fase del usuario. Quien siga en la zona lo recibe entero.",
+   "duration": "Hasta el inicio de la siguiente fase del usuario"
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 149,
+  "fields": {
+   "name": "Nodachi · slash · 1 mano",
+   "extra": 8,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    9
+   ],
+   "armor_damages": [
+    1
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 150,
+  "fields": {
+   "name": "Nodachi · pierce · 1 mano",
+   "extra": 6,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    9
+   ],
+   "armor_damages": [
+    1
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 151,
+  "fields": {
+   "name": "Nodachi · slash · 2 manos",
+   "extra": 12,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    35
+   ],
+   "armor_damages": [
+    1
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 152,
+  "fields": {
+   "name": "Nodachi · pierce · 2 manos",
+   "extra": 10,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    35
+   ],
+   "armor_damages": [
+    1
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 153,
+  "fields": {
+   "name": "Katana · slash · 1 mano",
+   "extra": 7,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    10
+   ],
+   "armor_damages": [
+    2
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 154,
+  "fields": {
+   "name": "Katana · pierce · 1 mano",
+   "extra": 5,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    10
+   ],
+   "armor_damages": [
+    2
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 155,
+  "fields": {
+   "name": "Katana · blunt · 1 mano",
+   "extra": 5,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    11
+   ],
+   "armor_damages": [
+    2
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 156,
+  "fields": {
+   "name": "Katana · slash · 2 manos",
+   "extra": 8,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    35
+   ],
+   "armor_damages": [
+    2
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 157,
+  "fields": {
+   "name": "Katana · pierce · 2 manos",
+   "extra": 6,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    35
+   ],
+   "armor_damages": [
+    2
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 158,
+  "fields": {
+   "name": "Katana · blunt · 2 manos",
+   "extra": 3,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    10
+   ],
+   "armor_damages": [
+    2
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 159,
+  "fields": {
+   "name": "Wakizashi · slash · 1 mano",
+   "extra": 8,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    1
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 160,
+  "fields": {
+   "name": "Wakizashi · pierce · 1 mano",
+   "extra": 5,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    1
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 161,
+  "fields": {
+   "name": "Wakizashi · slash · 2 manos",
+   "extra": 3,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    10
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 162,
+  "fields": {
+   "name": "Wakizashi · pierce · 2 manos",
+   "extra": 1,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    10
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 163,
+  "fields": {
+   "name": "Kusarikama · pierce · 1 mano",
+   "extra": 5,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    10
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 164,
+  "fields": {
+   "name": "Kusarikama · blunt · 1 mano",
+   "extra": 6,
+   "range": 4,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    11
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 165,
+  "fields": {
+   "name": "Kanabo · blunt · 1 mano",
+   "extra": 2,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    11
+   ],
+   "armor_damages": [
+    3
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 166,
+  "fields": {
+   "name": "Kanabo · blunt · 2 manos",
+   "extra": 10,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    35
+   ],
+   "armor_damages": [
+    3
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 167,
+  "fields": {
+   "name": "Espadón · slash · 1 mano",
+   "extra": 1,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    30
+   ],
+   "armor_damages": [
+    4
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 168,
+  "fields": {
+   "name": "Espadón · pierce · 1 mano",
+   "extra": 1,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    30
+   ],
+   "armor_damages": [
+    4
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 169,
+  "fields": {
+   "name": "Espadón · blunt · 1 mano",
+   "extra": 0,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [],
+   "armor_damages": [
+    4
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 170,
+  "fields": {
+   "name": "Espadón · slash · 2 manos",
+   "extra": 10,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    35
+   ],
+   "armor_damages": [
+    4
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 171,
+  "fields": {
+   "name": "Espadón · pierce · 2 manos",
+   "extra": 12,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    35
+   ],
+   "armor_damages": [
+    4
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 172,
+  "fields": {
+   "name": "Espadón · blunt · 2 manos",
+   "extra": 6,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    35
+   ],
+   "armor_damages": [
+    4
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 173,
+  "fields": {
+   "name": "Espada larga · slash · 1 mano",
+   "extra": 4,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    11
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 174,
+  "fields": {
+   "name": "Espada larga · pierce · 1 mano",
+   "extra": 5,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    11
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 175,
+  "fields": {
+   "name": "Espada larga · slash · 2 manos",
+   "extra": 8,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    35
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 176,
+  "fields": {
+   "name": "Espada larga · pierce · 2 manos",
+   "extra": 9,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    35
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 177,
+  "fields": {
+   "name": "Espada corta · slash · 1 mano",
+   "extra": 5,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    11
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 178,
+  "fields": {
+   "name": "Espada corta · pierce · 1 mano",
+   "extra": 5,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    11
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 179,
+  "fields": {
+   "name": "Espada corta · slash · 2 manos",
+   "extra": 7,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    10
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 180,
+  "fields": {
+   "name": "Espada corta · pierce · 2 manos",
+   "extra": 8,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    10
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 181,
+  "fields": {
+   "name": "Daga · slash · 1 mano",
+   "extra": 5,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    1
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 182,
+  "fields": {
+   "name": "Daga · pierce · 1 mano",
+   "extra": 8,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    1
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 183,
+  "fields": {
+   "name": "Daga · blunt · 1 mano",
+   "extra": 5,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    9
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 184,
+  "fields": {
+   "name": "Daga · slash · 2 manos",
+   "extra": 1,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    10
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 185,
+  "fields": {
+   "name": "Daga · pierce · 2 manos",
+   "extra": 3,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    10
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 186,
+  "fields": {
+   "name": "Daga · blunt · 2 manos",
+   "extra": 3,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    10
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 187,
+  "fields": {
+   "name": "Alfanje · slash · 1 mano",
+   "extra": 6,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    11
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 188,
+  "fields": {
+   "name": "Alfanje · pierce · 1 mano",
+   "extra": 5,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    1
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 189,
+  "fields": {
+   "name": "Alfanje · slash · 2 manos",
+   "extra": 8,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    11
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 190,
+  "fields": {
+   "name": "Alfanje · pierce · 2 manos",
+   "extra": 6,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    11
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 191,
+  "fields": {
+   "name": "Sable occidental · slash · 1 mano",
+   "extra": 8,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    10
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 192,
+  "fields": {
+   "name": "Sable occidental · pierce · 1 mano",
+   "extra": 5,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    11
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 193,
+  "fields": {
+   "name": "Sable occidental · slash · 2 manos",
+   "extra": 10,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    10
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 194,
+  "fields": {
+   "name": "Sable occidental · pierce · 2 manos",
+   "extra": 6,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    35
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 195,
+  "fields": {
+   "name": "Ropera · slash · 1 mano",
+   "extra": 2,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    11
+   ],
+   "armor_damages": [
+    1
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 196,
+  "fields": {
+   "name": "Ropera · pierce · 1 mano",
+   "extra": 5,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    35
+   ],
+   "armor_damages": [
+    1
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 197,
+  "fields": {
+   "name": "Ropera · slash · 2 manos",
+   "extra": 2,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    11
+   ],
+   "armor_damages": [
+    1
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 198,
+  "fields": {
+   "name": "Ropera · pierce · 2 manos",
+   "extra": 7,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    35
+   ],
+   "armor_damages": [
+    1
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 199,
+  "fields": {
+   "name": "Lanza · slash · 1 mano",
+   "extra": 1,
+   "range": 2,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    1
+   ],
+   "armor_damages": [
+    2
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 200,
+  "fields": {
+   "name": "Lanza · pierce · 1 mano",
+   "extra": 10,
+   "range": 2,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    1
+   ],
+   "armor_damages": [
+    2
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 201,
+  "fields": {
+   "name": "Lanza · blunt · 1 mano",
+   "extra": 2,
+   "range": 2,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    9
+   ],
+   "armor_damages": [
+    2
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 202,
+  "fields": {
+   "name": "Lanza · slash · 2 manos",
+   "extra": 2,
+   "range": 2,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    10
+   ],
+   "armor_damages": [
+    2
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 203,
+  "fields": {
+   "name": "Lanza · pierce · 2 manos",
+   "extra": 10,
+   "range": 2,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    35
+   ],
+   "armor_damages": [
+    2
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 204,
+  "fields": {
+   "name": "Lanza · blunt · 2 manos",
+   "extra": 1,
+   "range": 2,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    10
+   ],
+   "armor_damages": [
+    2
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 205,
+  "fields": {
+   "name": "Guja · slash · 1 mano",
+   "extra": 2,
+   "range": 2,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    1
+   ],
+   "armor_damages": [
+    2
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 206,
+  "fields": {
+   "name": "Guja · pierce · 1 mano",
+   "extra": 6,
+   "range": 2,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    1
+   ],
+   "armor_damages": [
+    2
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 207,
+  "fields": {
+   "name": "Guja · blunt · 1 mano",
+   "extra": 2,
+   "range": 2,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    9
+   ],
+   "armor_damages": [
+    2
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 208,
+  "fields": {
+   "name": "Guja · slash · 2 manos",
+   "extra": 8,
+   "range": 2,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    10
+   ],
+   "armor_damages": [
+    2
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 209,
+  "fields": {
+   "name": "Guja · pierce · 2 manos",
+   "extra": 6,
+   "range": 2,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    35
+   ],
+   "armor_damages": [
+    2
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 210,
+  "fields": {
+   "name": "Guja · blunt · 2 manos",
+   "extra": 1,
+   "range": 2,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    10
+   ],
+   "armor_damages": [
+    2
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 211,
+  "fields": {
+   "name": "Naginata · slash · 1 mano",
+   "extra": 1,
+   "range": 2,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    1
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 212,
+  "fields": {
+   "name": "Naginata · slash · 2 manos",
+   "extra": 6,
+   "range": 2,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    35
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 213,
+  "fields": {
+   "name": "Naginata · pierce · 2 manos",
+   "extra": 4,
+   "range": 2,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    10
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 214,
+  "fields": {
+   "name": "Gran mazo · blunt · 1 mano",
+   "extra": 4,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    11
+   ],
+   "armor_damages": [
+    3
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 215,
+  "fields": {
+   "name": "Gran mazo · blunt · 2 manos",
+   "extra": 8,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    35
+   ],
+   "armor_damages": [
+    3
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 216,
+  "fields": {
+   "name": "Mazo pequeño · blunt · 1 mano",
+   "extra": 4,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    11
+   ],
+   "armor_damages": [
+    5
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 217,
+  "fields": {
+   "name": "Mazo pequeño · blunt · 2 manos",
+   "extra": 6,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    10
+   ],
+   "armor_damages": [
+    5
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 218,
+  "fields": {
+   "name": "Mangual · blunt · 1 mano",
+   "extra": 4,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    11
+   ],
+   "armor_damages": [
+    4
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 219,
+  "fields": {
+   "name": "Mangual · blunt · 2 manos",
+   "extra": 6,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    10
+   ],
+   "armor_damages": [
+    4
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 220,
+  "fields": {
+   "name": "Hacha a dos manos · slash · 1 mano",
+   "extra": 3,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    1
+   ],
+   "armor_damages": [
+    4
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 221,
+  "fields": {
+   "name": "Hacha a dos manos · pierce · 1 mano",
+   "extra": 1,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    1
+   ],
+   "armor_damages": [
+    4
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 222,
+  "fields": {
+   "name": "Hacha a dos manos · blunt · 1 mano",
+   "extra": 3,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    9
+   ],
+   "armor_damages": [
+    4
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 223,
+  "fields": {
+   "name": "Hacha a dos manos · slash · 2 manos",
+   "extra": 6,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    35
+   ],
+   "armor_damages": [
+    4
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 224,
+  "fields": {
+   "name": "Hacha a dos manos · pierce · 2 manos",
+   "extra": 2,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    35
+   ],
+   "armor_damages": [
+    4
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 225,
+  "fields": {
+   "name": "Hacha a dos manos · blunt · 2 manos",
+   "extra": 2,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    10
+   ],
+   "armor_damages": [
+    4
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 226,
+  "fields": {
+   "name": "Hachuela · slash · 1 mano",
+   "extra": 3,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    10
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 227,
+  "fields": {
+   "name": "Hachuela · pierce · 1 mano",
+   "extra": 1,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    10
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 228,
+  "fields": {
+   "name": "Hachuela · blunt · 1 mano",
+   "extra": 5,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    9
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 229,
+  "fields": {
+   "name": "Hachuela · slash · 2 manos",
+   "extra": 6,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    10
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 230,
+  "fields": {
+   "name": "Hachuela · pierce · 2 manos",
+   "extra": 2,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    10
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 231,
+  "fields": {
+   "name": "Hachuela · blunt · 2 manos",
+   "extra": 7,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    11
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 232,
+  "fields": {
+   "name": "Escudo ligero · blunt · 1 mano",
+   "extra": 2,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    9
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 233,
+  "fields": {
+   "name": "Escudo ligero · blunt · 2 manos",
+   "extra": 3,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    1
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 234,
+  "fields": {
+   "name": "Escudo de vanguardia · blunt · 1 mano",
+   "extra": 3,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    1
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 235,
+  "fields": {
+   "name": "Escudo de vanguardia · blunt · 2 manos",
+   "extra": 4,
+   "range": 1,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    11
+   ],
+   "armor_damages": []
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 236,
+  "fields": {
+   "name": "Comically big ahh sword · slash · 2 manos",
+   "extra": 12,
+   "range": 2,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    47
+   ],
+   "armor_damages": [
+    6
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 237,
+  "fields": {
+   "name": "Comically big ahh sword · pierce · 2 manos",
+   "extra": 15,
+   "range": 2,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    47
+   ],
+   "armor_damages": [
+    6
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 238,
+  "fields": {
+   "name": "Comically big ahh sword · blunt · 2 manos",
+   "extra": 6,
+   "range": 2,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": "str",
+   "dice": [
+    48
+   ],
+   "armor_damages": [
+    6
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 239,
+  "fields": {
+   "name": "Arco Largo · disparo",
+   "extra": 12,
+   "range": 50,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    48
+   ],
+   "armor_damages": [
+    7
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 240,
+  "fields": {
+   "name": "Arco corto · disparo",
+   "extra": 8,
+   "range": 30,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    35
+   ],
+   "armor_damages": [
+    8
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 241,
+  "fields": {
+   "name": "Ballesta · disparo",
+   "extra": 20,
+   "range": 30,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    10
+   ],
+   "armor_damages": [
+    9
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 242,
+  "fields": {
+   "name": "Revolver · disparo",
+   "extra": 12,
+   "range": 50,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    14
+   ],
+   "armor_damages": [
+    10
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 243,
+  "fields": {
+   "name": "Escopeta · disparo",
+   "extra": 12,
+   "range": 30,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    36
+   ],
+   "armor_damages": [
+    7
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 244,
+  "fields": {
+   "name": "Rifle · disparo",
+   "extra": 24,
+   "range": 50,
+   "area": 0,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    15
+   ],
+   "armor_damages": [
+    11
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 245,
+  "fields": {
+   "name": "Cute plota bombs · explosión",
+   "extra": 12,
+   "range": null,
+   "area": 3,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    43
+   ],
+   "armor_damages": [
+    4
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 246,
+  "fields": {
+   "name": "Bomba · explosión",
+   "extra": 18,
+   "range": null,
+   "area": 5,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    48
+   ],
+   "armor_damages": [
+    3
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.attack",
+  "pk": 247,
+  "fields": {
+   "name": "Powerfull Spark ahh bomb · explosión",
+   "extra": 40,
+   "range": null,
+   "area": 9,
+   "cooldown": 0,
+   "stat_bonus": null,
+   "dice": [
+    47,
+    35
+   ],
+   "armor_damages": [
+    12
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 125,
+  "fields": {
+   "name": "Nodachi",
+   "price": null,
+   "description": "",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 126,
+  "fields": {
+   "name": "Katana",
+   "price": null,
+   "description": "",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 127,
+  "fields": {
+   "name": "Wakizashi",
+   "price": null,
+   "description": "",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 128,
+  "fields": {
+   "name": "Kusarikama",
+   "price": null,
+   "description": "Solo a una mano. El ataque contundente llega hasta 4 m.",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 129,
+  "fields": {
+   "name": "Kanabo",
+   "price": null,
+   "description": "Con FUE ≤ 17: −1 de velocidad y desventaja en acrobacias (acrobacias −2, sigilo −1).",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 130,
+  "fields": {
+   "name": "Espadón",
+   "price": null,
+   "description": "Con FUE ≤ 18: −1 de velocidad. Desventaja en acrobacias.",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 131,
+  "fields": {
+   "name": "Espada larga",
+   "price": null,
+   "description": "",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 132,
+  "fields": {
+   "name": "Espada corta",
+   "price": null,
+   "description": "",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 133,
+  "fields": {
+   "name": "Daga",
+   "price": null,
+   "description": "",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 134,
+  "fields": {
+   "name": "Alfanje",
+   "price": null,
+   "description": "",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 135,
+  "fields": {
+   "name": "Sable occidental",
+   "price": null,
+   "description": "",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 136,
+  "fields": {
+   "name": "Ropera",
+   "price": null,
+   "description": "",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 137,
+  "fields": {
+   "name": "Lanza",
+   "price": null,
+   "description": "Alcance 2. El Empuje solo funciona contra una carga.",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 138,
+  "fields": {
+   "name": "Guja",
+   "price": null,
+   "description": "Alcance 2.",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 139,
+  "fields": {
+   "name": "Naginata",
+   "price": null,
+   "description": "Alcance 2.",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 140,
+  "fields": {
+   "name": "Gran mazo",
+   "price": null,
+   "description": "Con FUE ≤ 17: −1 de velocidad.",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 141,
+  "fields": {
+   "name": "Mazo pequeño",
+   "price": null,
+   "description": "",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 142,
+  "fields": {
+   "name": "Mangual",
+   "price": null,
+   "description": "",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 143,
+  "fields": {
+   "name": "Hacha a dos manos",
+   "price": null,
+   "description": "",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 144,
+  "fields": {
+   "name": "Hachuela",
+   "price": null,
+   "description": "",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 145,
+  "fields": {
+   "name": "Escudo ligero",
+   "price": null,
+   "description": "+1 CA pasiva y +1 CA con postura defensiva. −1 a acrobacias.",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 146,
+  "fields": {
+   "name": "Escudo de vanguardia",
+   "price": null,
+   "description": "+2 CA pasiva y +2 CA con postura defensiva. Si te flanquean, el atacante tiene +3 al golpear y se anula cualquier CA extra. −4 a acrobacias, −1 de velocidad.",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 147,
+  "fields": {
+   "name": "Comically big ahh sword",
+   "price": null,
+   "description": "Solo a dos manos. Ataca a 2 m. Daño completo solo con FUE 18 y CON 16. Con FUE < 19: −2 de movimiento; con 19 o más: −1. Desventaja en sigilo y acrobacias. +3 a intimidación si puedes usar su daño completo. Barrido con el doble de alcance.",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 148,
+  "fields": {
+   "name": "Arco Largo",
+   "price": null,
+   "description": "Solo a dos manos. Alcance 50 m.",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 149,
+  "fields": {
+   "name": "Arco corto",
+   "price": null,
+   "description": "Solo a dos manos. Alcance 30 m.",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 150,
+  "fields": {
+   "name": "Ballesta",
+   "price": null,
+   "description": "",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 151,
+  "fields": {
+   "name": "Revolver",
+   "price": null,
+   "description": "To hit a una mano: -4 + dex x2.",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 152,
+  "fields": {
+   "name": "Escopeta",
+   "price": null,
+   "description": "",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 153,
+  "fields": {
+   "name": "Rifle",
+   "price": null,
+   "description": "",
+   "consumable": false,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 154,
+  "fields": {
+   "name": "Cute plota bombs",
+   "price": null,
+   "description": "Empuje desde el centro. Radio 3.",
+   "consumable": true,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 155,
+  "fields": {
+   "name": "Bomba",
+   "price": null,
+   "description": "Empuje desde el centro. Radio 5.",
+   "consumable": true,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.item",
+  "pk": 156,
+  "fields": {
+   "name": "Powerfull Spark ahh bomb",
+   "price": null,
+   "description": "Empuje desde el centro. Radio 9. 1 por escena.",
+   "consumable": true,
+   "template": null
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 39,
+  "fields": {
+   "item": 125,
+   "to_hit": "dex",
+   "equipped": false,
+   "attacks": [
+    149,
+    150,
+    151,
+    152
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 40,
+  "fields": {
+   "item": 126,
+   "to_hit": "1 + dex",
+   "equipped": false,
+   "attacks": [
+    153,
+    154,
+    155,
+    156,
+    157,
+    158
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 41,
+  "fields": {
+   "item": 127,
+   "to_hit": "2 + dex",
+   "equipped": false,
+   "attacks": [
+    159,
+    160,
+    161,
+    162
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 42,
+  "fields": {
+   "item": 128,
+   "to_hit": "dex",
+   "equipped": false,
+   "attacks": [
+    163,
+    164
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 43,
+  "fields": {
+   "item": 129,
+   "to_hit": "str",
+   "equipped": false,
+   "attacks": [
+    165,
+    166
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 44,
+  "fields": {
+   "item": 130,
+   "to_hit": "str",
+   "equipped": false,
+   "attacks": [
+    167,
+    168,
+    169,
+    170,
+    171,
+    172
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 45,
+  "fields": {
+   "item": 131,
+   "to_hit": "1 + dex",
+   "equipped": false,
+   "attacks": [
+    173,
+    174,
+    175,
+    176
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 46,
+  "fields": {
+   "item": 132,
+   "to_hit": "2 + dex",
+   "equipped": false,
+   "attacks": [
+    177,
+    178,
+    179,
+    180
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 47,
+  "fields": {
+   "item": 133,
+   "to_hit": "2 + dex",
+   "equipped": false,
+   "attacks": [
+    181,
+    182,
+    183,
+    184,
+    185,
+    186
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 48,
+  "fields": {
+   "item": 134,
+   "to_hit": "2 + dex",
+   "equipped": false,
+   "attacks": [
+    187,
+    188,
+    189,
+    190
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 49,
+  "fields": {
+   "item": 135,
+   "to_hit": "2 + dex",
+   "equipped": false,
+   "attacks": [
+    191,
+    192,
+    193,
+    194
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 50,
+  "fields": {
+   "item": 136,
+   "to_hit": "3 + dex",
+   "equipped": false,
+   "attacks": [
+    195,
+    196,
+    197,
+    198
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 51,
+  "fields": {
+   "item": 137,
+   "to_hit": "dex",
+   "equipped": false,
+   "attacks": [
+    199,
+    200,
+    201,
+    202,
+    203,
+    204
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 52,
+  "fields": {
+   "item": 138,
+   "to_hit": "dex",
+   "equipped": false,
+   "attacks": [
+    205,
+    206,
+    207,
+    208,
+    209,
+    210
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 53,
+  "fields": {
+   "item": 139,
+   "to_hit": "1 + dex",
+   "equipped": false,
+   "attacks": [
+    211,
+    212,
+    213
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 54,
+  "fields": {
+   "item": 140,
+   "to_hit": "1 + str",
+   "equipped": false,
+   "attacks": [
+    214,
+    215
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 55,
+  "fields": {
+   "item": 141,
+   "to_hit": "1 + str",
+   "equipped": false,
+   "attacks": [
+    216,
+    217
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 56,
+  "fields": {
+   "item": 142,
+   "to_hit": "str",
+   "equipped": false,
+   "attacks": [
+    218,
+    219
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 57,
+  "fields": {
+   "item": 143,
+   "to_hit": "str",
+   "equipped": false,
+   "attacks": [
+    220,
+    221,
+    222,
+    223,
+    224,
+    225
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 58,
+  "fields": {
+   "item": 144,
+   "to_hit": "2 + str",
+   "equipped": false,
+   "attacks": [
+    226,
+    227,
+    228,
+    229,
+    230,
+    231
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 59,
+  "fields": {
+   "item": 145,
+   "to_hit": "str",
+   "equipped": false,
+   "attacks": [
+    232,
+    233
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 60,
+  "fields": {
+   "item": 146,
+   "to_hit": "str",
+   "equipped": false,
+   "attacks": [
+    234,
+    235
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 61,
+  "fields": {
+   "item": 147,
+   "to_hit": "-3 + str",
+   "equipped": false,
+   "attacks": [
+    236,
+    237,
+    238
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 62,
+  "fields": {
+   "item": 148,
+   "to_hit": "-3 + dex x2",
+   "equipped": false,
+   "attacks": [
+    239
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 63,
+  "fields": {
+   "item": 149,
+   "to_hit": "-2 + dex x2",
+   "equipped": false,
+   "attacks": [
+    240
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 64,
+  "fields": {
+   "item": 150,
+   "to_hit": "-1 + dex x2",
+   "equipped": false,
+   "attacks": [
+    241
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 65,
+  "fields": {
+   "item": 151,
+   "to_hit": "-2 + dex x2",
+   "equipped": false,
+   "attacks": [
+    242
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 66,
+  "fields": {
+   "item": 152,
+   "to_hit": "-2 + dex x2",
+   "equipped": false,
+   "attacks": [
+    243
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 67,
+  "fields": {
+   "item": 153,
+   "to_hit": "-1 + dex x2",
+   "equipped": false,
+   "attacks": [
+    244
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 68,
+  "fields": {
+   "item": 154,
+   "to_hit": "-2 + dex x2",
+   "equipped": false,
+   "attacks": [
+    245
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 69,
+  "fields": {
+   "item": 155,
+   "to_hit": "-2 + dex x2",
+   "equipped": false,
+   "attacks": [
+    246
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.weapon",
+  "pk": 70,
+  "fields": {
+   "item": 156,
+   "to_hit": "-2 + dex x2",
+   "equipped": false,
+   "attacks": [
+    247
+   ]
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 1,
+  "fields": {
+   "item": 125,
+   "effect": 16,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 2,
+  "fields": {
+   "item": 125,
+   "effect": 17,
+   "value": 3
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 3,
+  "fields": {
+   "item": 126,
+   "effect": 18,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 4,
+  "fields": {
+   "item": 126,
+   "effect": 17,
+   "value": 3
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 5,
+  "fields": {
+   "item": 126,
+   "effect": 19,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 6,
+  "fields": {
+   "item": 127,
+   "effect": 18,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 7,
+  "fields": {
+   "item": 127,
+   "effect": 20,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 8,
+  "fields": {
+   "item": 128,
+   "effect": 21,
+   "value": 5
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 9,
+  "fields": {
+   "item": 129,
+   "effect": 22,
+   "value": 3
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 10,
+  "fields": {
+   "item": 129,
+   "effect": 16,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 11,
+  "fields": {
+   "item": 130,
+   "effect": 16,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 12,
+  "fields": {
+   "item": 130,
+   "effect": 22,
+   "value": 1
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 13,
+  "fields": {
+   "item": 131,
+   "effect": 22,
+   "value": 1
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 14,
+  "fields": {
+   "item": 132,
+   "effect": 23,
+   "value": 1
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 15,
+  "fields": {
+   "item": 133,
+   "effect": 20,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 16,
+  "fields": {
+   "item": 133,
+   "effect": 24,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 17,
+  "fields": {
+   "item": 134,
+   "effect": 31,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 18,
+  "fields": {
+   "item": 135,
+   "effect": 25,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 19,
+  "fields": {
+   "item": 135,
+   "effect": 21,
+   "value": 2
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 20,
+  "fields": {
+   "item": 136,
+   "effect": 19,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 21,
+  "fields": {
+   "item": 136,
+   "effect": 21,
+   "value": 5
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 22,
+  "fields": {
+   "item": 137,
+   "effect": 26,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 23,
+  "fields": {
+   "item": 137,
+   "effect": 22,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 24,
+  "fields": {
+   "item": 138,
+   "effect": 27,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 25,
+  "fields": {
+   "item": 138,
+   "effect": 28,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 26,
+  "fields": {
+   "item": 139,
+   "effect": 16,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 27,
+  "fields": {
+   "item": 140,
+   "effect": 22,
+   "value": 2
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 28,
+  "fields": {
+   "item": 141,
+   "effect": 22,
+   "value": 1
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 29,
+  "fields": {
+   "item": 142,
+   "effect": 33,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 30,
+  "fields": {
+   "item": 143,
+   "effect": 27,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 31,
+  "fields": {
+   "item": 143,
+   "effect": 28,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 32,
+  "fields": {
+   "item": 143,
+   "effect": 16,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 33,
+  "fields": {
+   "item": 144,
+   "effect": 20,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 34,
+  "fields": {
+   "item": 144,
+   "effect": 28,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 35,
+  "fields": {
+   "item": 144,
+   "effect": 27,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 36,
+  "fields": {
+   "item": 145,
+   "effect": 29,
+   "value": 1
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 37,
+  "fields": {
+   "item": 146,
+   "effect": 29,
+   "value": 2
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 38,
+  "fields": {
+   "item": 147,
+   "effect": 16,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 39,
+  "fields": {
+   "item": 148,
+   "effect": 30,
+   "value": 3
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 40,
+  "fields": {
+   "item": 149,
+   "effect": 31,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 41,
+  "fields": {
+   "item": 150,
+   "effect": 36,
+   "value": 1
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 42,
+  "fields": {
+   "item": 151,
+   "effect": 18,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 43,
+  "fields": {
+   "item": 152,
+   "effect": 32,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 44,
+  "fields": {
+   "item": 152,
+   "effect": 22,
+   "value": 2
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 45,
+  "fields": {
+   "item": 153,
+   "effect": 36,
+   "value": 1
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 46,
+  "fields": {
+   "item": 154,
+   "effect": 22,
+   "value": 1
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 47,
+  "fields": {
+   "item": 154,
+   "effect": 37,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 48,
+  "fields": {
+   "item": 155,
+   "effect": 22,
+   "value": 3
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 49,
+  "fields": {
+   "item": 155,
+   "effect": 37,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 50,
+  "fields": {
+   "item": 156,
+   "effect": 22,
+   "value": 11
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 51,
+  "fields": {
+   "item": 156,
+   "effect": 37,
+   "value": null
+  }
+ },
+ {
+  "model": "CampaignManager.itemeffect",
+  "pk": 52,
+  "fields": {
+   "item": 156,
+   "effect": 38,
+   "value": null
+  }
+ }
+]

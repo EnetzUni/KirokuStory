@@ -27,12 +27,7 @@
 <h3>Attacks</h3>
 <ul>
     {% for attack in spell.attacks.all %}
-    <li>
-        <strong>{{ attack.name }}</strong>:
-        {% for dice in attack.base_dice %}{{ dice }}{% if not forloop.last %} + {% endif %}{% endfor %}{% if attack.extra %}{% if attack.base_dice.exists %} + {% endif %}{{ attack.extra }}{% endif %} damage{% for dice in attack.scaling_dice %}{% if forloop.first %} (+{% endif %}{{ dice.amount }}d{{ dice.sides }}{% if forloop.last %} per extra level){% else %} +{% endif %}{% endfor %},
-        range {{ attack.range }} m{% if attack.area %}, area {{ attack.area }} m{% endif %}{% if attack.cooldown %}, cooldown {{ attack.cooldown }} rounds{% endif %}
-        {% for armor_damage in attack.armor_damages.all %}{% if forloop.first %}({% endif %}{{ armor_damage }}{% if forloop.last %}){% else %}, {% endif %}{% endfor %}
-    </li>
+    <li>{% include "attack_summary.html" %}</li>
     {% empty %}
     <li>This spell makes no attacks.</li>
     {% endfor %}
