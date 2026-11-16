@@ -1,8 +1,10 @@
+import re
+
 from django.contrib.auth.models import AbstractUser
-from django.core.exceptions import ValidationError
+from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
 from django.core.validators import RegexValidator
 from django.db import models, transaction
-from django.db.models.signals import post_delete, pre_delete
+from django.db.models.signals import m2m_changed, post_delete, pre_delete
 from django.dispatch import receiver
 
 
@@ -101,6 +103,21 @@ class Character(models.Model):
     def is_npc_template(self):
         return self.is_npc and self.template_id is None
 
+    def all_ability_ids(self):
+        """IDs of the abilities held directly or granted by race, subrace, class and subclass."""
+        direct = set(self.abilities.values_list("pk", flat=True)) if self.pk else set()
+        return direct | granted_ability_ids(
+            self.race if self.race_id else None,
+            self.subrace,
+            self.char_class if self.char_class_id else None,
+            self.subclass,
+        )
+
+    def modifier(self, stat):
+        """Modifier of an ability score, "str" or "dex": (score - 10) / 2, rounded down."""
+        score = {Stat.STRENGTH: self.strength, Stat.DEXTERITY: self.dexterity}[stat]
+        return (score - 10) // 2
+
     def clean(self):
         errors = {}
         if self.subrace_id is not None and self.race_id is not None and self.subrace.race_id != self.race_id:
@@ -116,6 +133,12 @@ class Character(models.Model):
                 errors["template"] = "A character cannot be its own template."
             elif self.pk is not None and self.copies.exists():
                 errors["template"] = "This NPC is a template with copies, so it cannot be a copy."
+        # Unique abilities (game rule 6), with the campaigns and abilities already
+        # saved. The admin form checks the ones being saved instead and sets the flag.
+        if self.pk is not None and not getattr(self, "_unique_abilities_checked", False):
+            conflicts = unique_ability_conflicts(self, self.campaigns.all(), self.all_ability_ids())
+            if conflicts:
+                errors[NON_FIELD_ERRORS] = conflicts
         if errors:
             raise ValidationError(errors)
 
@@ -148,7 +171,8 @@ class Character(models.Model):
         for row in self.inventory_set.select_related("item"):
             item = row.item
             if not item.is_template:
-                item = item.make_copy()
+                # The copy carries it right away, so it keeps what the template has equipped.
+                item = item.make_copy(keep_equipped=True)
             Inventory.objects.create(character=copy, item=item, quantity=row.quantity)
 
         for row in self.activeeffect_set.all():
@@ -238,12 +262,16 @@ class Ability(models.Model):
         return self.name
 
     def clean(self):
-        # An NPC with a unique ability cannot have copies.
-        if self.unique and self.pk is not None:
-            if Character.objects.filter(abilities=self, copies__isnull=False).exists():
-                raise ValidationError(
-                    {"unique": "An NPC template with copies has this ability, so it cannot be unique."}
-                )
+        if not self.unique or self.pk is None:
+            return
+        errors = []
+        # An NPC with a unique ability cannot have copies (game rule 11).
+        if Character.objects.filter(abilities=self, copies__isnull=False).exists():
+            errors.append("An NPC template with copies has this ability, so it cannot be unique.")
+        # Only one character per campaign can have a unique ability (game rule 6).
+        errors += campaign_clashes(self, ability_holders(self))
+        if errors:
+            raise ValidationError({"unique": errors})
 
 
 class RaceAbility(models.Model):
@@ -260,6 +288,11 @@ class RaceAbility(models.Model):
     def __str__(self):
         return f"{self.race} - {self.ability} (lvl {self.level_required})"
 
+    def clean(self):
+        # A unique ability granted by a race goes to every character of that race (game rule 6).
+        if self.race_id is not None:
+            validate_granted_ability(self.ability_id, Character.objects.filter(race_id=self.race_id))
+
 
 class ClassAbility(models.Model):
     char_class = models.ForeignKey("CharacterClass", on_delete=models.CASCADE)
@@ -274,6 +307,11 @@ class ClassAbility(models.Model):
 
     def __str__(self):
         return f"{self.char_class} - {self.ability} (lvl {self.level_required})"
+
+    def clean(self):
+        # A unique ability granted by a class goes to every character of that class (game rule 6).
+        if self.char_class_id is not None:
+            validate_granted_ability(self.ability_id, Character.objects.filter(char_class_id=self.char_class_id))
 
 
 class SubraceAbility(models.Model):
@@ -290,6 +328,11 @@ class SubraceAbility(models.Model):
     def __str__(self):
         return f"{self.subrace} - {self.ability} (lvl {self.level_required})"
 
+    def clean(self):
+        # A unique ability granted by a subrace goes to every character of that subrace (game rule 6).
+        if self.subrace_id is not None:
+            validate_granted_ability(self.ability_id, Character.objects.filter(subrace_id=self.subrace_id))
+
 
 class SubclassAbility(models.Model):
     subclass = models.ForeignKey("Subclass", on_delete=models.CASCADE)
@@ -304,6 +347,11 @@ class SubclassAbility(models.Model):
 
     def __str__(self):
         return f"{self.subclass} - {self.ability} (lvl {self.level_required})"
+
+    def clean(self):
+        # A unique ability granted by a subclass goes to every character of that subclass (game rule 6).
+        if self.subclass_id is not None:
+            validate_granted_ability(self.ability_id, Character.objects.filter(subclass_id=self.subclass_id))
 
 
 # ---------------------------------------------------------------------------
@@ -374,6 +422,35 @@ class Attack(models.Model):
     def scaling_dice(self):
         """Dice added once per extra level. Spells only: weapons ignore them."""
         return self.dice.filter(per_extra_level=True)
+
+    def damage(self, character=None, extra_levels=0):
+        """The damage with numbers (game rule 4), as (dice, bonus).
+
+        dice: [(amount, sides)], the base dice plus the dice per extra level rolled
+        `extra_levels` times, adding up dice with the same sides.
+        bonus: `extra` plus `character`'s modifier for `stat_bonus`, if the attack has one.
+        """
+        amounts = {}
+        for roll in self.dice.all():
+            times = extra_levels if roll.per_extra_level else 1
+            if times:
+                amounts[roll.sides] = amounts.get(roll.sides, 0) + roll.amount * times
+        bonus = self.extra
+        if self.stat_bonus:
+            if character is None:
+                raise ValueError(f"{self} adds a {self.get_stat_bonus_display()} modifier: pass the character.")
+            bonus += character.modifier(self.stat_bonus)
+        return [(amount, sides) for sides, amount in amounts.items()], bonus
+
+    def damage_text(self, character=None, extra_levels=0):
+        """The damage with numbers as text, such as "2d10 + 8" or "1d4 - 1"."""
+        dice, bonus = self.damage(character, extra_levels)
+        text = " + ".join(f"{amount}d{sides}" for amount, sides in dice)
+        if not text:
+            return str(bonus)
+        if bonus:
+            text += f" {'+' if bonus > 0 else '-'} {abs(bonus)}"
+        return text
 
 
 class DiceRoll(models.Model):
@@ -478,11 +555,13 @@ class Item(models.Model):
                 raise ValidationError({"template": "This item is a template with copies, so it cannot be a copy."})
 
     @transaction.atomic
-    def make_copy(self):
+    def make_copy(self, keep_equipped=False):
         """Create a new copy of this item, including its Weapon or Armor, and return it.
 
         The copy gets this item's data and points to the template: this item if it
-        is a template, or this item's template if it is itself a copy.
+        is a template, or this item's template if it is itself a copy. It starts
+        unequipped, since no character carries it yet (game rule 5), unless
+        `keep_equipped`, for a copy that is added to an inventory right away.
         """
         new = Item.objects.create(
             name=self.name,
@@ -497,7 +576,7 @@ class Item(models.Model):
         )
         if hasattr(self, "weapon"):
             weapon = Weapon.objects.create(
-                item=new, to_hit=self.weapon.to_hit, equipped=self.weapon.equipped
+                item=new, to_hit=self.weapon.to_hit, equipped=self.weapon.equipped and keep_equipped
             )
             weapon.attacks.set(self.weapon.attacks.all())
         if hasattr(self, "armor"):
@@ -506,7 +585,7 @@ class Item(models.Model):
                 armor_type=self.armor.armor_type,
                 ap=self.armor.ap,
                 magic_ap=self.armor.magic_ap,
-                equipped=self.armor.equipped,
+                equipped=self.armor.equipped and keep_equipped,
             )
         return new
 
@@ -545,24 +624,57 @@ class Inventory(models.Model):
         return f"{self.character} - {self.item} x{self.quantity}"
 
     def clean(self):
-        if self.item_id is not None and self.item.is_template and self.item.is_equipment:
+        if self.item_id is None:
+            return
+        if self.item.is_template and self.item.is_equipment:
             raise ValidationError(
                 {"item": "Weapons and armor are carried as copies: make a copy of this template and carry that."}
             )
+        # Only one armor equipped per character (game rule 5).
+        armor = getattr(self.item, "armor", None)
+        if armor is not None and armor.equipped and self.character_id is not None:
+            other = (
+                Armor.objects.filter(equipped=True, item__inventory__character_id=self.character_id)
+                .exclude(item_id=self.item_id)
+                .first()
+            )
+            if other is not None:
+                raise ValidationError(
+                    {"item": f"This armor is equipped and {self.character} already has {other} equipped: only one armor can be equipped."}
+                )
 
 
-def validate_not_equipped_template(equipment):
-    """A template is a catalog entry, so only its copies can be equipped."""
-    if equipment.equipped and equipment.item_id is not None and equipment.item.is_template:
+def validate_equipped(equipment):
+    """Game rules 5 and 12 for a Weapon or Armor: only copies can be equipped,
+    and only while a character carries them."""
+    if not equipment.equipped or equipment.item_id is None:
+        return
+    if equipment.item.is_template:
         raise ValidationError({"equipped": "A template cannot be equipped: equip one of its copies."})
+    if not Inventory.objects.filter(item_id=equipment.item_id).exists():
+        raise ValidationError({"equipped": "No character carries this item: add it to an inventory before equipping it."})
 
 
 # Optional integer, an ability ("str" or "dex") and an optional multiplier:
 # "dex", "2 + str", "-3 + dex x2" (= -3 + 2 × the Dexterity modifier).
+TO_HIT_FORMULA = rf"^\s*([+-]?\d+\s*\+\s*)?({'|'.join(Stat.values)})(\s*x\s*\d+)?\s*$"
 validate_to_hit = RegexValidator(
-    rf"^\s*([+-]?\d+\s*\+\s*)?({'|'.join(Stat.values)})(\s*x\s*\d+)?\s*$",
+    TO_HIT_FORMULA,
     'Write an optional integer, "str" or "dex", and an optional multiplier: "dex", "2 + str", "-3 + dex x2".',
 )
+
+
+def parse_to_hit(formula):
+    """Split a to-hit formula into (integer, ability, multiplier): "-3 + dex x2" -> (-3, "dex", 2)."""
+    match = re.match(TO_HIT_FORMULA, formula)
+    if match is None:
+        raise ValueError(f"Not a to-hit formula: {formula!r}")
+    integer, stat, multiplier = match.groups()
+    return (
+        int(re.search(r"[+-]?\d+", integer).group()) if integer else 0,
+        stat,
+        int(re.search(r"\d+", multiplier).group()) if multiplier else 1,
+    )
 
 
 class Weapon(models.Model):
@@ -582,8 +694,13 @@ class Weapon(models.Model):
     def __str__(self):
         return str(self.item)
 
+    def to_hit_bonus(self, character):
+        """`to_hit` with numbers for `character`: integer + ability modifier × multiplier (game rule 14)."""
+        integer, stat, multiplier = parse_to_hit(self.to_hit)
+        return integer + multiplier * character.modifier(stat)
+
     def clean(self):
-        validate_not_equipped_template(self)
+        validate_equipped(self)
 
 
 class Armor(models.Model):
@@ -598,7 +715,19 @@ class Armor(models.Model):
         return str(self.item)
 
     def clean(self):
-        validate_not_equipped_template(self)
+        validate_equipped(self)
+        # Only one armor equipped per character (game rule 5).
+        if self.equipped and self.item_id is not None:
+            for character in Character.objects.filter(inventory__item_id=self.item_id):
+                other = (
+                    Armor.objects.filter(equipped=True, item__inventory__character=character)
+                    .exclude(item_id=self.item_id)
+                    .first()
+                )
+                if other is not None:
+                    raise ValidationError(
+                        {"equipped": f"{character} already has {other} equipped: only one armor can be equipped."}
+                    )
 
 
 class ArmorType(models.Model):
@@ -638,3 +767,135 @@ def delete_npc_copy_items(sender, instance, **kwargs):
     if item_ids:
         # The copy's inventory rows are already gone; skip any item another character holds.
         Item.objects.filter(pk__in=item_ids, inventory__isnull=True).delete()
+
+
+@receiver(post_delete, sender=Inventory)
+def unequip_dropped_item(sender, instance, **kwargs):
+    """An item no character carries any more cannot stay equipped (game rule 5)."""
+    if not Inventory.objects.filter(item_id=instance.item_id).exists():
+        Weapon.objects.filter(item_id=instance.item_id, equipped=True).update(equipped=False)
+        Armor.objects.filter(item_id=instance.item_id, equipped=True).update(equipped=False)
+
+
+# ---------------------------------------------------------------------------
+# Unique abilities (game rule 6)
+# ---------------------------------------------------------------------------
+# A unique ability can belong to only one character per campaign. A character's
+# abilities are those held directly plus those granted by its race, subrace,
+# class and subclass. Levels are not calculated yet (rule 7), so every granted
+# ability counts, whatever its level_required. Characters without a campaign
+# never clash with anyone.
+#
+# Checked in the character's admin form and Character.clean(), in Ability.clean()
+# when an ability is made unique, in the clean() of the four ability link tables,
+# and by the signals below when campaigns or abilities are added in code.
+
+def granted_ability_ids(*sources):
+    """IDs of the abilities granted by these races, subraces, classes or subclasses (None is skipped)."""
+    ids = set()
+    for source in sources:
+        if source is not None:
+            ids.update(source.abilities.values_list("pk", flat=True))
+    return ids
+
+
+def ability_holders(ability):
+    """Characters who have `ability`, held directly or granted."""
+    return Character.objects.filter(
+        models.Q(abilities=ability)
+        | models.Q(race__abilities=ability)
+        | models.Q(subrace__abilities=ability)
+        | models.Q(char_class__abilities=ability)
+        | models.Q(subclass__abilities=ability)
+    ).distinct()
+
+
+def join_names(objects):
+    names = sorted(str(obj) for obj in objects)
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def unique_ability_conflicts(character, campaigns, ability_ids):
+    """Messages for each unique ability among `ability_ids` that a character other
+    than `character` already has in one of `campaigns`."""
+    campaign_ids = {campaign.pk for campaign in campaigns}
+    if not campaign_ids:
+        return []
+    messages = []
+    for ability in Ability.objects.filter(pk__in=ability_ids, unique=True):
+        others = ability_holders(ability).filter(campaigns__in=campaign_ids)
+        if character.pk is not None:
+            others = others.exclude(pk=character.pk)
+        for other in others:
+            for campaign in other.campaigns.filter(pk__in=campaign_ids):
+                messages.append(f"{other} already has the unique ability {ability} in {campaign}.")
+    return messages
+
+
+def campaign_clashes(ability, characters, campaigns=None):
+    """Messages for each campaign where more than one of `characters` would have
+    the unique `ability`. `campaigns` limits the campaigns looked at."""
+    by_campaign = {}
+    for character in characters:
+        for campaign in character.campaigns.all() if campaigns is None else campaigns:
+            by_campaign.setdefault(campaign, set()).add(character)
+    return [
+        f"{join_names(members)} would share the unique ability {ability} in {campaign}."
+        for campaign, members in by_campaign.items()
+        if len(members) > 1
+    ]
+
+
+def validate_granted_ability(ability_id, characters):
+    """Granting a unique ability to a race, subrace, class or subclass gives it to
+    all `characters` of it: no campaign can end up with two characters having it."""
+    if ability_id is None:
+        return
+    ability = Ability.objects.get(pk=ability_id)
+    if ability.unique:
+        clashes = campaign_clashes(ability, set(ability_holders(ability)) | set(characters))
+        if clashes:
+            raise ValidationError({"ability": clashes})
+
+
+@receiver(m2m_changed, sender=Character.campaigns.through)
+def check_unique_abilities_on_join(sender, instance, action, reverse, pk_set, **kwargs):
+    """A character cannot join a campaign where another character has one of its unique abilities."""
+    if action != "pre_add" or getattr(instance, "_unique_abilities_checked", False):
+        return
+    if not reverse:  # character.campaigns.add(...)
+        messages = unique_ability_conflicts(
+            instance, Campaign.objects.filter(pk__in=pk_set), instance.all_ability_ids()
+        )
+    else:  # campaign.characters.add(...): also check the characters joining together
+        joining = list(Character.objects.filter(pk__in=pk_set))
+        messages = []
+        held = {}
+        for character in joining:
+            ability_ids = character.all_ability_ids()
+            messages += unique_ability_conflicts(character, [instance], ability_ids)
+            for ability in Ability.objects.filter(pk__in=ability_ids, unique=True):
+                held.setdefault(ability, []).append(character)
+        for ability, characters in held.items():
+            messages += campaign_clashes(ability, characters, campaigns=[instance])
+    if messages:
+        raise ValidationError(messages)
+
+
+@receiver(m2m_changed, sender=Character.abilities.through)
+def check_unique_abilities_on_gain(sender, instance, action, reverse, pk_set, **kwargs):
+    """A character cannot get a unique ability another character has in one of its campaigns."""
+    if action != "pre_add" or getattr(instance, "_unique_abilities_checked", False):
+        return
+    if not reverse:  # character.abilities.add(...)
+        messages = unique_ability_conflicts(instance, instance.campaigns.all(), pk_set)
+    elif instance.unique:  # ability.character_set.add(...): also check the characters getting it together
+        gaining = list(Character.objects.filter(pk__in=pk_set))
+        messages = []
+        for character in gaining:
+            messages += unique_ability_conflicts(character, character.campaigns.all(), [instance.pk])
+        messages += campaign_clashes(instance, gaining)
+    else:
+        return
+    if messages:
+        raise ValidationError(messages)

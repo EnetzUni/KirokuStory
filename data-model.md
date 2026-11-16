@@ -317,7 +317,7 @@ Items work with templates and copies (*es copia de*, Item → Item), like NPCs. 
 
 - **Template:** an item with no `template`, for example "Espada larga" or "Oro". It is a catalog entry, defined once. A template's Weapon or Armor row describes a kind of weapon or armor.
 - **Copy:** an item whose `template` points to the template it was made from. It is one physical piece with its own Weapon or Armor row, so equipping or upgrading it changes only that piece.
-- **Making a copy** duplicates the item's data, effects (with their values) and Weapon or Armor row, including its attacks. A copy made from another copy points to the same template.
+- **Making a copy** duplicates the item's data, effects (with their values) and Weapon or Armor row, including its attacks. A copy made from another copy points to the same template. The new copy starts unequipped, since no character carries it yet; copying an NPC keeps what the template has equipped, because the NPC copy carries its items right away.
 - **Weapons and armor are carried as copies:** characters never carry a weapon or armor template. Generic items (gold, potions…) are templates carried directly; how many a character has is the quantity in Inventory.
 - A template cannot be deleted while it has copies: delete the copies first.
 
@@ -347,7 +347,7 @@ One row per character and item. Weapons and armor in an inventory are always cop
 |---|---|---|
 | item_id | FK → Item | One-to-one |
 | to_hit | string | A formula: an optional integer, an ability (`str` or `dex`) and an optional multiplier (see game rule 14) |
-| equipped | bool | Only copies can be equipped |
+| equipped | bool | Only copies carried by a character can be equipped (see game rule 5) |
 
 Examples of `to_hit`: `dex` (the Dexterity modifier), `2 + str` (2 + the Strength modifier), `-3 + dex x2` (−3 + 2 × the Dexterity modifier). The revolver's one-hand to hit is in its item's description.
 
@@ -363,7 +363,7 @@ A template's Weapon row describes a **kind** of weapon; a copy's Weapon row is a
 | armor_type_id | FK → ArmorType | Required |
 | ap | int | This piece's own AP; raised when the armor is upgraded |
 | magic_ap | int | This piece's own magic AP |
-| equipped | bool | Only copies can be equipped |
+| equipped | bool | Only copies carried by a character can be equipped, one armor per character (see game rule 5) |
 
 A template's Armor row describes a **kind** of armor; a copy's Armor row is an **individual piece**, so upgrading it changes only that piece (see Item templates and copies).
 
@@ -413,21 +413,30 @@ These are house rules or constraints the diagram cannot express.
    - **Triturante:** subtracts `amount` AP, always after the damage is dealt.
    - **Both:** no order is needed. The damage is dealt against the unchanged AP, ignoring the penetrante amount; then the triturante amount is subtracted.
 4. **Attack damage:** the sum of the attack's dice with `per_extra_level = false`, plus `extra`, plus the modifier of its `stat_bonus` ability if it has one, plus its dice with `per_extra_level = true` rolled once per extra level.
-   - **Ability modifier:** (score − 10) / 2, rounded down. For example, Strength 8 → −1 and Dexterity 14 → +2.
+   - **Ability modifier:** (score − 10) / 2, rounded down. For example, Strength 8 → −1 and Dexterity 14 → +2. `Character.modifier("str")` works it out.
+   - **In code:** `Attack.damage(character, extra_levels=0)` returns the dice, with dice of the same sides added together, and the fixed bonus (`extra` + the modifier); `Attack.damage_text()` writes it as "2d10 + 8". The character is needed only when the attack has a `stat_bonus`.
    - **Spells of level 1 or higher:** extra levels = level of the spell slot used − `Spell.level`.
    - **Cantrips** (`Spell.level = 0`): extra levels = how many of the character levels 5, 11 and 17 the character has reached (0 to 3).
    - **Weapons:** dice with `per_extra_level = true` are not used.
 5. **Equipment:**
    - A character can have several weapons equipped but only **one armor** equipped.
    - A character can only equip weapons and armor that are in their Inventory.
-   - Armor and Weapon have no character column, because ownership goes through Inventory → Item. So these rules must be checked in code (model `clean()` or a service layer), not by a database constraint.
+   - Armor and Weapon have no character column, because ownership goes through Inventory → Item. So these rules are checked in code, not by a database constraint:
+     - `Weapon.clean()` and `Armor.clean()`: an equipped piece must be a copy that a character carries. An armor cannot be equipped if a character carrying it already has another armor equipped.
+     - `Inventory.clean()`: a character wearing an armor cannot pick up another armor that is equipped.
+     - When an item leaves the last inventory that held it, it is unequipped.
+     - A new item copy starts unequipped (see Item templates and copies).
 6. **Unique abilities:** an Ability with `unique = true` can belong to only one character per campaign. Characters in different campaigns can each have it.
    - A character in several campaigns must be the only one with that ability in each of them.
    - A character **cannot join** a campaign where another character already has one of its unique abilities.
    - A character cannot get a unique ability that another character already has in any of its campaigns.
    - Characters without a campaign keep their unique abilities, which stay marked as unique, but are not exclusive in any sense: they block no one and nothing blocks them, until they join a campaign.
-   - Campaign membership and abilities are many-to-many links, so this is checked in code, not by a database constraint.
-   - It applies to abilities from any source: race, subrace, class, subclass or held directly.
+   - It applies to abilities from any source: race, subrace, class, subclass or held directly. Until levels exist (rule 7), every granted ability counts, whatever its `level_required`.
+   - Campaign membership and abilities are many-to-many links, so this is checked in code, not by a database constraint:
+     - The character's admin form, on the campaigns, abilities, race, subrace, class and subclass being saved, and `Character.clean()` on the saved ones.
+     - Adding campaigns or abilities in code (`character.campaigns.add()`, `campaign.characters.add()`, `character.abilities.add()`, `ability.character_set.add()`) raises a `ValidationError`, including when several characters joining together share a unique ability.
+     - `Ability.clean()`: an ability cannot be made unique while two characters in a campaign have it.
+     - The `clean()` of RaceAbility, SubraceAbility, ClassAbility and SubclassAbility: a race, subrace, class or subclass cannot grant a unique ability that would leave two characters in a campaign with it.
 7. **Ability levels:** a character gets a race, subrace, class or subclass ability only once their level is at least `level_required`.
 8. **One class per character:** no multiclassing. A character has at most one subclass and at most one subrace.
 9. **Calculated, not stored:** speed comes from the race (subraces have no speed); maximum AP and magic AP come from the equipped armor; initiative and passive perception come from the ability scores; level comes from xp (conversion to be defined later).
@@ -449,6 +458,7 @@ These are house rules or constraints the diagram cannot express.
    - Copying an NPC copies its subrace and subclass too.
 14. **Weapon to hit:** `Weapon.to_hit` is a formula with an optional integer, an ability (`str` or `dex`) and an optional multiplier for that ability's modifier: `-3 + dex x2` = −3 + 2 × the Dexterity modifier (see rule 4 for modifiers).
    - The format is checked by a validator when the weapon is validated (`full_clean()`, the admin). Loading a fixture does not run validators.
+   - **In code:** `Weapon.to_hit_bonus(character)` works it out, and `parse_to_hit()` splits a formula into its integer, ability and multiplier. The character page shows the to hit and damage of every weapon the character carries.
 
 ---
 

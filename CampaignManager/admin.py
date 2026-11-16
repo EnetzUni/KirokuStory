@@ -28,6 +28,8 @@ from .models import (
     SubraceAbility,
     User,
     Weapon,
+    granted_ability_ids,
+    unique_ability_conflicts,
 )
 
 # UserAdmin hashes the password and shows the proper user forms.
@@ -51,6 +53,20 @@ class CharacterAdminForm(forms.ModelForm):
                 "abilities",
                 "This NPC template has copies, so it cannot have a unique ability.",
             )
+        # Unique abilities (game rule 6), on the campaigns, abilities, race and
+        # class as they will be saved. Django saves the links one by one after
+        # this, so the flag skips the checks on each in-between step.
+        if "race" in cleaned_data and "char_class" in cleaned_data:
+            ability_ids = {ability.pk for ability in abilities} | granted_ability_ids(
+                cleaned_data["race"],
+                cleaned_data.get("subrace"),
+                cleaned_data["char_class"],
+                cleaned_data.get("subclass"),
+            )
+            campaigns = cleaned_data.get("campaigns") or []
+            for message in unique_ability_conflicts(self.instance, campaigns, ability_ids):
+                self.add_error(None, message)
+            self.instance._unique_abilities_checked = True
         return cleaned_data
 
 

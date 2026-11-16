@@ -242,12 +242,13 @@ class Command(BaseCommand):
 
         # His dart: a copy of the "Dardo" template, equipped, with the to hit on his
         # sheet. His other items are generic and carried directly.
+        # It goes in his inventory before it is equipped (game rule 5).
         dart = balasar.items.filter(template=dart_template).first() or dart_template.make_copy()
+        Inventory.objects.update_or_create(character=balasar, item=dart, defaults={"quantity": 1})
         Weapon.objects.update_or_create(
             item=dart, defaults={"to_hit": BALASAR_DART_TO_HIT, "equipped": True}
         )
         dart.weapon.attacks.set([dart_attack])
-        Inventory.objects.update_or_create(character=balasar, item=dart, defaults={"quantity": 1})
         for name in OWN_ITEMS:
             item = upsert(Item, {"name": name, "template": None}, price=None)
             Inventory.objects.update_or_create(character=balasar, item=item, defaults={"quantity": 1})

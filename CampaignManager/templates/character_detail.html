@@ -93,6 +93,24 @@
     {% endfor %}
 </ul>
 
+<h3>Weapons</h3>
+<ul>
+    {% for row in weapons %}
+    <li>
+        <a href="{% url 'item_detail' row.weapon.item.pk %}">{{ row.weapon.item.name }}</a>{% if row.weapon.equipped %} (equipped){% endif %}: to hit {{ row.to_hit }}
+        <ul>
+            {% for attack, damage in row.attacks %}
+            <li>{{ attack.name }}: {{ damage }} damage</li>
+            {% empty %}
+            <li>This weapon makes no attacks.</li>
+            {% endfor %}
+        </ul>
+    </li>
+    {% empty %}
+    <li>This character carries no weapons.</li>
+    {% endfor %}
+</ul>
+
 <h3>Active effects</h3>
 <ul>
     {% for row in character.activeeffect_set.all %}

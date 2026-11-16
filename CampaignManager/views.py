@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.views.generic import DetailView, ListView
 
-from .models import Campaign, Character, CharacterClass, Item, Race, Spell, Subclass, Subrace
+from .models import Campaign, Character, CharacterClass, Item, Race, Spell, Subclass, Subrace, Weapon
 
 
 def index(request):
@@ -34,6 +34,20 @@ class CharacterDetailView(DetailView):
     model = Character
     context_object_name = "character"
     template_name = "character_detail.html"
+
+    def get_context_data(self, **kwargs):
+        # The weapons the character carries, with to hit and damage worked out for them.
+        context = super().get_context_data(**kwargs)
+        character = self.object
+        context["weapons"] = [
+            {
+                "weapon": weapon,
+                "to_hit": f"{weapon.to_hit_bonus(character):+d}",
+                "attacks": [(attack, attack.damage_text(character)) for attack in weapon.attacks.all()],
+            }
+            for weapon in Weapon.objects.filter(item__inventory__character=character).select_related("item")
+        ]
+        return context
 
 
 # Races
