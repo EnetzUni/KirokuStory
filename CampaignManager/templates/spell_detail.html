@@ -1,64 +1,32 @@
 {% extends "base.html" %}
-
-{% block title %}{{ spell.name }} | KirokuStory{% endblock %}
-
+{% load i18n %}
+{% block title %}{{ spell.name }} · {% translate "Reglas" %}{% endblock %}
 {% block content %}
-<h2>{{ spell.name }}</h2>
-
-{% if spell.description %}{{ spell.description|linebreaks }}{% endif %}
-
-<dl>
-    <dt>Level</dt>
-    <dd>{% if spell.level == 0 %}Cantrip{% else %}{{ spell.level }}{% endif %}</dd>
-
-    <dt>Casting time</dt>
-    <dd>{{ spell.casting_time }}</dd>
-
-    <dt>Range</dt>
-    <dd>{% if spell.range is None %}—{% else %}{{ spell.range }} m{% endif %}</dd>
-
-    <dt>Duration</dt>
-    <dd>{{ spell.duration }}</dd>
-
-    <dt>Components</dt>
-    <dd>{% for component in spell.components.all %}{{ component.type }}{% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}</dd>
-</dl>
-
-<h3>Attacks</h3>
-<ul>
-    {% for attack in spell.attacks.all %}
-    <li>{% include "attack_summary.html" %}</li>
-    {% empty %}
-    <li>This spell makes no attacks.</li>
-    {% endfor %}
-</ul>
-
-<h3>Effects</h3>
-<ul>
-    {% for effect in spell.effects.all %}
-    <li>{{ effect.name }} ({{ effect.duration }})</li>
-    {% empty %}
-    <li>This spell applies no effects.</li>
-    {% endfor %}
-</ul>
-
-<h3>Classes that can cast it</h3>
-<ul>
-    {% for character_class in spell.characterclass_set.all %}
-    <li><a href="{% url 'character_class_detail' character_class.pk %}">{{ character_class.name }}</a></li>
-    {% empty %}
-    <li>No class can cast this spell.</li>
-    {% endfor %}
-</ul>
-
-<h3>Characters who know it</h3>
-<ul>
-    {% for character in spell.character_set.all %}
-    <li><a href="{% url 'character_detail' character.pk %}">{{ character.name }}</a></li>
-    {% empty %}
-    <li>No character knows this spell.</li>
-    {% endfor %}
-</ul>
-
-<p><a href="{% url 'spell_list' %}">Back to spells</a></p>
+<section class="pila" aria-labelledby="h-reglas">
+    <nav class="migas" aria-label="{% translate 'Ruta' %}"><a href="{% url 'index' %}">{% translate "Reglas" %}</a> <span aria-hidden="true">›</span> <a href="{% url 'spell_list' %}">{% translate "Conjuros" %}</a> <span aria-hidden="true">›</span> <span>{{ spell.name }}</span></nav>
+    <h1 id="h-reglas">{{ spell.name }}</h1>
+    <div class="tarjeta compacta">
+        <p><b>{% translate "Nivel" %}:</b> {% if spell.level == 0 %}{% translate "Truco" %}{% else %}{{ spell.level }}{% endif %}
+            · <b>{% translate "Tiempo de lanzamiento" %}:</b> {{ spell.casting_time }}
+            · <b>{% translate "Alcance" %}:</b> {% if spell.range is None %}—{% else %}{{ spell.range }} m{% endif %}
+            · <b>{% translate "Duración" %}:</b> {{ spell.duration }}
+            · <b>{% translate "Componentes" %}:</b> {% for component in spell.components.all %}{{ component.type }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</p>
+    </div>
+    {% if spell.description %}<div class="lectura-p">{{ spell.description|linebreaks }}</div>{% endif %}
+    <div class="tarjeta compacta">
+        <h2 class="rotulo">{% translate "Ataques" %}</h2>
+        <ul class="lista-limpia" style="gap:4px">{% for attack in spell.attacks.all %}<li>{% include "attack_summary.html" %}</li>{% empty %}<li class="atenuado">{% translate "Este conjuro no ataca." %}</li>{% endfor %}</ul>
+        <h2 class="rotulo">{% translate "Efectos" %}</h2>
+        <ul class="lista-limpia" style="gap:4px">{% for effect in spell.effects.all %}<li>{{ effect.name }}{% if effect.duration %} ({{ effect.duration }}){% endif %}</li>{% empty %}<li class="atenuado">{% translate "Este conjuro no aplica efectos." %}</li>{% endfor %}</ul>
+        <h2 class="rotulo">{% translate "Clases que lo lanzan" %}</h2>
+        <ul class="lista-limpia" style="gap:4px">{% for character_class in spell.characterclass_set.all %}<li><a href="{% url 'character_class_detail' character_class.pk %}">{{ character_class.name }}</a></li>{% empty %}<li class="atenuado">{% translate "Ninguna clase lo lanza." %}</li>{% endfor %}</ul>
+    </div>
+    <div class="tarjeta compacta">
+        <h2 class="rotulo">{% translate "Personajes" %}</h2>
+        <ul class="lista-limpia" style="gap:4px">
+            {% for character in characters %}<li><a href="{% url 'character_detail' character.pk %}">{{ character.name }}</a>{% if character.is_npc %} <span class="pastilla">{% translate "PNJ" %}</span>{% endif %}</li>
+            {% empty %}<li class="atenuado">{% translate "No hay personajes que lo conozcan y que puedas ver." %}</li>{% endfor %}
+        </ul>
+    </div>
+</section>
 {% endblock %}

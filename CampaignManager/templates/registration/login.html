@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Entrar" %} · Mesa de campaña{% endblock %}
+{% block content %}
+<section class="tarjeta" style="max-width:440px;margin:24px auto" aria-labelledby="h-entrar">
+    <h1 id="h-entrar">{% translate "Entrar" %}</h1>
+    <p class="atenuado">{% translate "La mesa de tus campañas: fichas, diario, mundo, mapa y turnos." %}</p>
+    <form method="post" class="pila-s">
+        {% csrf_token %}
+        {% if form.non_field_errors %}<ul class="errorlist">{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+        <div class="campo">
+            <label for="{{ form.username.id_for_label }}">{% translate "Usuario" %}</label>
+            {{ form.username }}
+        </div>
+        <div class="campo">
+            <label for="{{ form.password.id_for_label }}">{% translate "Contraseña" %}</label>
+            {{ form.password }}
+        </div>
+        <input type="hidden" name="next" value="{{ next }}">
+        <button type="submit" class="btn btn-principal">{% translate "Entrar" %}</button>
+    </form>
+</section>
+{% endblock %}

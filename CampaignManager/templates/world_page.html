@@ -1,0 +1,51 @@
+{% extends "world_base.html" %}
+{% load i18n mesa %}
+{% block title %}{{ page.title }} · {{ campaign.name }}{% endblock %}
+{% block world %}
+<nav class="migas" aria-label="{% translate 'Ruta' %}">
+    <a href="{% url 'world' campaign.pk %}">{% translate "Mundo" %}</a><span aria-hidden="true">›</span>
+    <a href="{% url 'world' campaign.pk %}?cat={{ page.category }}">{% translate category_label %}</a>
+    {% for a in ancestors %}<span aria-hidden="true">›</span><a href="{% url 'world_page' campaign.pk a.slug %}">{{ a.title }}</a>{% endfor %}
+    <span aria-hidden="true">›</span><span style="color:var(--text)">{{ page.title }}</span>
+</nav>
+<div class="fila" style="gap:24px">
+    <article class="pila" style="flex:999 1 420px;min-width:0;gap:14px">
+        <div class="fila-s"><span class="pastilla">{% translate category_label %}</span>{% if not page.revealed %}<span class="pastilla p-morado">{% translate "Oculto para el grupo" %}</span>{% endif %}</div>
+        <h1 style="font-size:38px">{{ page.title }}</h1>
+        {% if page.summary %}<p class="atenuado" style="font-size:17px">{{ page.summary }}</p>{% endif %}
+        {% if page.body %}<div class="cronica pila-s" style="gap:12px">{% wiki page.body %}</div>{% else %}<p class="atenuado">{% translate "Esta página está vacía." %}</p>{% endif %}
+        {% if is_master and page.secret %}
+        <div class="secreto"><span class="rotulo">{% translate "Secreto · solo lo ves tú" %}</span>{% wiki page.secret %}</div>
+        {% endif %}
+        {% if children %}
+        <div class="pila-s" style="border-top:1px solid var(--line);padding-top:14px">
+            <h2 class="rotulo">{% translate "Dentro de" %} {{ page.title }}</h2>
+            <div class="rejilla-s">{% for child in children %}<a class="tarjeta compacta tarjeta-enlace" style="gap:0" href="{% url 'world_page' campaign.pk child.slug %}"><b>{{ child.title }}</b><span class="pequeno atenuado">{{ child.get_category_display }}</span></a>{% endfor %}</div>
+        </div>
+        {% endif %}
+        {% if refs %}
+        <div class="pila-s" style="border-top:1px solid var(--line);padding-top:14px">
+            <h2 class="rotulo">{% translate "Aparece en" %}</h2>
+            <div class="fila-s">{% for ref in refs %}<a class="chip" href="{{ ref.url }}">{{ ref.label }}</a>{% endfor %}</div>
+        </div>
+        {% endif %}
+    </article>
+    <aside class="tarjeta sin-relleno" style="flex:1 1 270px;min-width:0">
+        <div class="ficha-pagina cat-{{ page.category }}" style="height:170px;font-size:64px">{% if page.image %}<img src="{{ page.image.url }}" alt="{{ page.title }}">{% else %}{{ page.title|initial }}{% endif %}</div>
+        <div class="pila-s" style="padding:14px 16px;gap:10px">
+            <b style="font-size:19px;text-align:center">{{ page.title }}</b>
+            {% if page.location and location_visible %}
+            <span class="pequeno atenuado" style="text-align:center">{% translate "En el mapa" %}: {{ page.location.map.name }} · {{ page.location.get_status_display|lower }}</span>
+            <a class="btn" href="{% url 'map' campaign.pk %}?mapa={{ page.location.map_id }}&amp;lugar={{ page.location_id }}">{% translate "Ver en el mapa" %}</a>
+            {% endif %}
+            {% if is_master %}
+            <div class="pila-s" style="border-top:1px solid var(--line);padding-top:10px">
+                <a class="btn btn-principal" href="{% url 'world_edit' campaign.pk page.slug %}">{% translate "Editar página" %}</a>
+                <form method="post" action="{% url 'world_toggle' campaign.pk page.slug %}">{% csrf_token %}
+                    <button type="submit" class="btn" style="width:100%">{% if page.revealed %}{% translate "Ocultar al grupo" %}{% else %}{% translate "Revelar al grupo" %}{% endif %}</button></form>
+            </div>
+            {% endif %}
+        </div>
+    </aside>
+</div>
+{% endblock %}

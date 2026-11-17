@@ -1,58 +1,40 @@
 {% extends "base.html" %}
-
-{% block title %}{{ character_class.name }} | KirokuStory{% endblock %}
-
+{% load i18n %}
+{% block title %}{{ character_class.name }} · {% translate "Reglas" %}{% endblock %}
 {% block content %}
-<h2>{{ character_class.name }}</h2>
-
-{% if character_class.description %}{{ character_class.description|linebreaks }}{% endif %}
-
-<dl>
-    <dt>Primary ability</dt>
-    <dd>{{ character_class.primary_ability }}</dd>
-</dl>
-
-<h3>Abilities granted</h3>
-<ul>
-    {% for row in character_class.classability_set.all %}
-    <li>{{ row.ability.name }}{% if row.ability.unique %} (unique){% endif %}, from level {{ row.level_required }}</li>
-    {% empty %}
-    <li>This class grants no abilities.</li>
-    {% endfor %}
-</ul>
-
-<h3>Subclasses</h3>
-{% for subclass in character_class.subclasses.all %}
-<h4><a href="{% url 'subclass_detail' subclass.pk %}">{{ subclass.name }}</a></h4>
-{% if subclass.description %}{{ subclass.description|linebreaks }}{% endif %}
-<ul>
-    {% for row in subclass.subclassability_set.all %}
-    <li>{{ row.ability.name }}{% if row.ability.unique %} (unique){% endif %}, from level {{ row.level_required }}</li>
-    {% empty %}
-    <li>This subclass grants no abilities.</li>
-    {% endfor %}
-</ul>
-{% empty %}
-<p>This class has no subclasses.</p>
-{% endfor %}
-
-<h3>Spells it can cast</h3>
-<ul>
-    {% for spell in character_class.spells.all %}
-    <li><a href="{% url 'spell_detail' spell.pk %}">{{ spell.name }}</a></li>
-    {% empty %}
-    <li>This class cannot cast spells.</li>
-    {% endfor %}
-</ul>
-
-<h3>Characters of this class</h3>
-<ul>
-    {% for character in character_class.character_set.all %}
-    <li><a href="{% url 'character_detail' character.pk %}">{{ character.name }}</a></li>
-    {% empty %}
-    <li>No characters of this class.</li>
-    {% endfor %}
-</ul>
-
-<p><a href="{% url 'character_class_list' %}">Back to classes</a></p>
+<section class="pila" aria-labelledby="h-reglas">
+    <nav class="migas" aria-label="{% translate 'Ruta' %}"><a href="{% url 'index' %}">{% translate "Reglas" %}</a> <span aria-hidden="true">›</span> <a href="{% url 'character_class_list' %}">{% translate "Clases" %}</a> <span aria-hidden="true">›</span> <span>{{ character_class.name }}</span></nav>
+    <h1 id="h-reglas">{{ character_class.name }}</h1>
+    {% if character_class.description %}<div class="lectura-p">{{ character_class.description|linebreaks }}</div>{% endif %}
+    <p><b>{% translate "Característica principal" %}:</b> {{ character_class.primary_ability }}</p>
+    <div class="tarjeta compacta">
+        <h2 class="rotulo">{% translate "Habilidades que otorga" %}</h2>
+        <ul class="lista-limpia" style="gap:4px">
+            {% for row in character_class.classability_set.all %}<li>{{ row.ability.name }}{% if row.ability.unique %} <span class="pastilla p-morado">{% translate "Única" %}</span>{% endif %} <span class="pequeno atenuado">· {% translate "desde el nivel" %} {{ row.level_required }}</span></li>
+            {% empty %}<li class="atenuado">{% translate "Esta clase no otorga habilidades." %}</li>{% endfor %}
+        </ul>
+    </div>
+    <h2 class="rotulo">{% translate "Subclases" %}</h2>
+    {% for subclass in character_class.subclasses.all %}
+    <div class="tarjeta compacta">
+        <h3><a href="{% url 'subclass_detail' subclass.pk %}">{{ subclass.name }}</a></h3>
+        {% if subclass.description %}<div class="pequeno">{{ subclass.description|linebreaks }}</div>{% endif %}
+        <ul class="lista-limpia" style="gap:4px">
+            {% for row in subclass.subclassability_set.all %}<li>{{ row.ability.name }}{% if row.ability.unique %} <span class="pastilla p-morado">{% translate "Única" %}</span>{% endif %} <span class="pequeno atenuado">· {% translate "desde el nivel" %} {{ row.level_required }}</span></li>
+            {% empty %}<li class="atenuado">{% translate "Esta subclase no otorga habilidades." %}</li>{% endfor %}
+        </ul>
+    </div>
+    {% empty %}<p class="atenuado">{% translate "Esta clase no tiene subclases." %}</p>{% endfor %}
+    <div class="tarjeta compacta">
+        <h2 class="rotulo">{% translate "Conjuros que puede lanzar" %}</h2>
+        <ul class="lista-limpia" style="gap:4px">{% for spell in character_class.spells.all %}<li><a href="{% url 'spell_detail' spell.pk %}">{{ spell.name }}</a></li>{% empty %}<li class="atenuado">{% translate "Esta clase no lanza conjuros." %}</li>{% endfor %}</ul>
+    </div>
+    <div class="tarjeta compacta">
+        <h2 class="rotulo">{% translate "Personajes" %}</h2>
+        <ul class="lista-limpia" style="gap:4px">
+            {% for character in characters %}<li><a href="{% url 'character_detail' character.pk %}">{{ character.name }}</a>{% if character.is_npc %} <span class="pastilla">{% translate "PNJ" %}</span>{% endif %}</li>
+            {% empty %}<li class="atenuado">{% translate "No hay personajes de esta clase que puedas ver." %}</li>{% endfor %}
+        </ul>
+    </div>
+</section>
 {% endblock %}

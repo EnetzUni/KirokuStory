@@ -1,0 +1,49 @@
+{% load i18n mesa %}
+<div id="escena" class="pila-s" style="gap:14px">
+    <div class="cabeza-seccion">
+        <div class="pila-s" style="gap:4px">
+            <h2 style="font-size:26px">{{ scene.title }}</h2>
+            <span class="pequeno atenuado">{% if scene.is_open %}{% translate "Abierta" %}{% else %}{% translate "Cerrada · está en la línea del tiempo" %}{% endif %} · {% if scene.location %}<a href="{% url 'world_page' campaign.pk scene.location.slug %}">{{ scene.location.title }}</a>{% else %}{% translate "Sin lugar" %}{% endif %} · {% translate "Participan" %}: {% for c in scene.participants.all %}{{ c.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>
+        </div>
+        {% if is_master %}
+        <form method="post" action="{% url 'diary_scene_toggle' campaign.pk scene.pk %}" data-ajax data-target="#escena" class="en-linea">{% csrf_token %}
+            <button type="submit" class="btn">{% if scene.is_open %}{% translate "Cerrar escena y pasarla a la línea del tiempo" %}{% else %}{% translate "Reabrir escena" %}{% endif %}</button></form>
+        {% endif %}
+    </div>
+    <ol class="lista-limpia">
+        {% for item in posts %}
+        <li class="mensaje-rol {{ item.kind }}{% if item.whisper %} susurro{% endif %}">
+            <span class="avatar" style="width:40px;height:40px;font-size:16px;background:{% if item.kind == 'narrador' %}#5B3E96{% else %}{{ item.color_key|avatar_color }}{% endif %}" aria-hidden="true">{% if item.kind == 'narrador' %}N{% else %}{{ item.name|initial }}{% endif %}</span>
+            <div class="pila-s" style="flex:1;min-width:0;gap:6px">
+                <div class="fila-s" style="align-items:baseline"><b>{{ item.name }}</b><span class="pequeno atenuado">{{ item.sub }}</span>{% if item.whisper %}<span class="pastilla p-morado">{{ item.whisper }}</span>{% endif %}</div>
+                {% if item.post.text %}<p class="texto">{% wiki_inline item.post.text %}</p>{% endif %}
+                {% if item.post.roll %}<span class="tirada"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#606C38" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 21 7v10l-9 5-9-5V7z"></path><path d="M12 2 7.5 14h9z"></path></svg>{{ item.post.roll }}</span>{% endif %}
+            </div>
+        </li>
+        {% empty %}<li class="atenuado">{% translate "Todavía no hay mensajes." %}</li>{% endfor %}
+    </ol>
+    {% if can_post %}
+    <form method="post" action="{% url 'diary_post' campaign.pk scene.pk %}" class="tarjeta compacta" data-ajax data-target="#escena">
+        {% csrf_token %}
+        <div class="fila-s" role="group" aria-label="{% translate 'Escribir como' %}">
+            <span class="pequeno atenuado">{% translate "Escribir como" %}</span>
+            {% for value, label in post_form.fields.as_who.choices %}<label class="chip"><input type="radio" name="as_who" value="{{ value }}" {% if forloop.first %}checked{% endif %}>{{ label }}</label>{% endfor %}
+        </div>
+        <div class="campo"><label for="borrador">{% translate "Mensaje" %}</label>
+            <textarea id="borrador" class="entrada" name="text" rows="4" required placeholder="{% translate 'Escribe /tirar 1d20+3 al principio para tirar dados con el mensaje' %}"></textarea></div>
+        <div class="fila-s" style="justify-content:space-between">
+            {% if is_master %}
+            <label class="campo" style="flex:1 1 220px">{% translate "Susurrar a" %}
+                <select name="whisper_to" class="entrada"><option value="">{% translate "Nadie: lo ve toda la mesa" %}</option>{% for c in post_form.fields.whisper_to.queryset %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}</select></label>
+            {% else %}
+            <label class="casilla"><input type="checkbox" name="whisper"> {% translate "Susurro al máster" %}</label>
+            {% endif %}
+            <button type="submit" class="btn btn-principal" style="margin-left:auto">{% translate "Publicar" %}</button>
+        </div>
+    </form>
+    {% elif not scene.is_open %}
+    <p class="atenuado">{% translate "Escena cerrada. Está en la línea del tiempo." %}</p>
+    {% else %}
+    <p class="atenuado">{% translate "Tu personaje no está en esta escena, así que solo puedes leerla." %}</p>
+    {% endif %}
+</div>

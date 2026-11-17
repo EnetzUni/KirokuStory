@@ -1,0 +1,16 @@
+{% extends "diary_base.html" %}
+{% load i18n %}
+{% block diary %}
+<div class="cabeza-seccion">
+    <p class="atenuado">{% if is_master %}{% translate "Marca los objetivos a medida que el grupo los cumple." %}{% else %}{% translate "El máster marca los objetivos a medida que los cumplís." %}{% endif %}</p>
+    {% if is_master %}<a class="btn btn-principal" href="{% url 'diary_quest_new' campaign.pk %}">+ {% translate "Nueva misión" %}</a>{% endif %}
+</div>
+{% for group in groups %}
+<div class="pila-s" style="gap:12px">
+    <h2 style="font-size:22px">{% translate group.label %}</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(320px,100%),1fr));gap:14px;align-items:start">
+        {% for q in group.items %}{% include "partials/quest_card.html" %}{% endfor %}
+    </div>
+</div>
+{% empty %}<p class="atenuado">{% translate "No hay misiones en esta campaña." %}</p>{% endfor %}
+{% endblock %}

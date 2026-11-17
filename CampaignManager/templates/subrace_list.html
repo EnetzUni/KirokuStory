@@ -1,28 +1,18 @@
 {% extends "base.html" %}
-
-{% block title %}Subraces | KirokuStory{% endblock %}
-
+{% load i18n %}
+{% block title %}{% translate "Linajes" %} · {% translate "Reglas" %}{% endblock %}
 {% block content %}
-<h2>Subraces</h2>
-
-{% if subraces %}
-<table>
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Race</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for subrace in subraces %}
-        <tr>
-            <td><a href="{% url 'subrace_detail' subrace.pk %}">{{ subrace.name }}</a></td>
-            <td><a href="{% url 'race_detail' subrace.race.pk %}">{{ subrace.race.name }}</a></td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-{% else %}
-<p>There are no subraces yet.</p>
-{% endif %}
+<section class="pila" aria-labelledby="h-reglas">
+    <nav class="migas" aria-label="{% translate 'Ruta' %}"><a href="{% url 'index' %}">{% translate "Reglas" %}</a> <span aria-hidden="true">›</span> <span>{% translate "Linajes" %}</span></nav>
+    <h1 id="h-reglas">{% translate "Linajes" %}</h1>
+    <div class="tarjeta sin-relleno tabla-marco">
+        <table class="tabla">
+            <thead><tr><th>{% translate "Nombre" %}</th><th>{% translate "Raza" %}</th></tr></thead>
+            <tbody>
+                {% for subrace in subraces %}<tr><td><a href="{% url 'subrace_detail' subrace.pk %}">{{ subrace.name }}</a></td><td><a href="{% url 'race_detail' subrace.race_id %}">{{ subrace.race.name }}</a></td></tr>
+                {% empty %}<tr><td colspan="2" class="atenuado">{% translate "Todavía no hay linajes." %}</td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
 {% endblock %}

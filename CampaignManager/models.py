@@ -2,10 +2,12 @@ import re
 
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
-from django.core.validators import RegexValidator
+from django.core.validators import MaxValueValidator, RegexValidator
 from django.db import models, transaction
 from django.db.models.signals import m2m_changed, post_delete, pre_delete
 from django.dispatch import receiver
+
+from . import rules
 
 
 # ---------------------------------------------------------------------------
@@ -27,13 +29,50 @@ class Campaign(models.Model):
     description = models.TextField(blank=True)
     start_date = models.DateField()
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.ACTIVA)
+    cover = models.ImageField(upload_to="portadas/", blank=True)
+    notice = models.TextField(blank=True, help_text="«Aviso del máster» on the home page")
+    world_day = models.CharField(max_length=100, blank=True, help_text="Day in the world, e.g. «3 de Brumario»")
+    world_year = models.CharField(max_length=100, blank=True)
 
     # dirige / juega en
     masters = models.ManyToManyField(User, related_name="dm_campaigns")
     players = models.ManyToManyField(User, related_name="player_campaigns", blank=True)
 
+    class Meta:
+        ordering = ["name"]
+        indexes = [models.Index(fields=["status"])]
+
     def __str__(self):
         return self.name
+
+    def _role(self, user):
+        """"master", "player" or None. Remembered on this instance: a request asks many times."""
+        if not user.is_authenticated:
+            return None
+        cache = self.__dict__.setdefault("_roles", {})
+        if user.pk not in cache:
+            if self.masters.filter(pk=user.pk).exists():
+                cache[user.pk] = "master"
+            elif self.players.filter(pk=user.pk).exists():
+                cache[user.pk] = "player"
+            else:
+                cache[user.pk] = None
+        return cache[user.pk]
+
+    def is_master(self, user):
+        return self._role(user) == "master"
+
+    def is_member(self, user):
+        return self._role(user) is not None
+
+    @property
+    def party(self):
+        """Approved player characters of the campaign."""
+        return self.characters.filter(is_npc=False, status=Character.Status.APROBADO)
+
+    @property
+    def last_session(self):
+        return self.sessions.filter(published=True).order_by("-number").first()
 
 
 # ---------------------------------------------------------------------------
@@ -41,6 +80,10 @@ class Campaign(models.Model):
 # ---------------------------------------------------------------------------
 
 class Character(models.Model):
+    class Status(models.TextChoices):
+        PENDIENTE = "pendiente", "Pendiente"
+        APROBADO = "aprobado", "Aprobado"
+
     name = models.CharField(max_length=100)
     xp = models.IntegerField(default=0)
     hp = models.IntegerField(help_text="Maximum hit points")
@@ -54,6 +97,17 @@ class Character(models.Model):
     intelligence = models.IntegerField()
     wisdom = models.IntegerField()
     charisma = models.IntegerField()
+    portrait = models.ImageField(upload_to="retratos/", blank=True)
+    background = models.TextField(blank=True)
+    notes = models.TextField(blank=True, help_text="The player's own notes")
+    # Characters made by a player wait for a master's approval.
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.APROBADO)
+    death_successes = models.PositiveSmallIntegerField(default=0, validators=[MaxValueValidator(rules.DEATH_SAVES)])
+    death_failures = models.PositiveSmallIntegerField(default=0, validators=[MaxValueValidator(rules.DEATH_SAVES)])
+    # Open decision: the maximum is set by a master until there is a formula.
+    # Empty means the character has no magic points.
+    magic_points = models.PositiveIntegerField(default=0)
+    magic_points_max = models.PositiveIntegerField(null=True, blank=True)
 
     # controla (optional), define, pertenece a. The subclass must belong to the
     # character's class and the subrace to its race (checked in clean()).
@@ -81,18 +135,28 @@ class Character(models.Model):
         help_text="Only for NPC copies: the NPC template this character was made from",
     )
 
-    # posee, conoce, lleva, sufre
-    abilities = models.ManyToManyField("Ability", blank=True)
+    # posee (with uses, through CharacterAbility), conoce, lleva, sufre
+    abilities = models.ManyToManyField("Ability", through="CharacterAbility", blank=True)
     spells = models.ManyToManyField("Spell", blank=True)
     items = models.ManyToManyField("Item", through="Inventory")
     effects = models.ManyToManyField("Effect", through="ActiveEffect")
 
     class Meta:
+        ordering = ["name"]
+        indexes = [models.Index(fields=["is_npc", "status"])]
         constraints = [
             models.CheckConstraint(
                 condition=models.Q(template__isnull=True) | models.Q(is_npc=True),
                 name="template_only_for_npcs",
                 violation_error_message="Only NPCs can have a template.",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(death_successes__lte=rules.DEATH_SAVES, death_failures__lte=rules.DEATH_SAVES),
+                name="death_saves_up_to_3",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(magic_points_max__isnull=True) | models.Q(magic_points__lte=models.F("magic_points_max")),
+                name="magic_points_up_to_max",
             ),
         ]
 
@@ -103,20 +167,57 @@ class Character(models.Model):
     def is_npc_template(self):
         return self.is_npc and self.template_id is None
 
+    # ---- Calculated, not stored (game rule 9) ----
+    @property
+    def level(self):
+        return rules.level_for_xp(self.xp)
+
+    @property
+    def speed(self):
+        return self.race.speed
+
+    @property
+    def initiative(self):
+        return rules.ability_modifier(self.dexterity)
+
+    @property
+    def passive_perception(self):
+        return 10 + rules.ability_modifier(self.wisdom)
+
+    @property
+    def equipped_armor(self):
+        return Armor.objects.filter(equipped=True, item__inventory__character=self).select_related("armor_type", "item").first()
+
+    @property
+    def max_ap(self):
+        """Armor.ap + ArmorType.ap of the equipped armor, 0 without armor (game rule 2)."""
+        armor = self.equipped_armor
+        return armor.ap + armor.armor_type.ap if armor else 0
+
+    @property
+    def max_magic_ap(self):
+        armor = self.equipped_armor
+        return armor.magic_ap + armor.armor_type.magic_ap if armor else 0
+
+    @property
+    def has_magic(self):
+        return self.magic_points_max is not None
+
     def all_ability_ids(self):
-        """IDs of the abilities held directly or granted by race, subrace, class and subclass."""
+        """IDs of the abilities held directly or granted by race, subrace, class and
+        subclass at the character's level (game rules 6 and 7)."""
         direct = set(self.abilities.values_list("pk", flat=True)) if self.pk else set()
         return direct | granted_ability_ids(
             self.race if self.race_id else None,
             self.subrace,
             self.char_class if self.char_class_id else None,
             self.subclass,
+            level=self.level,
         )
 
     def modifier(self, stat):
-        """Modifier of an ability score, "str" or "dex": (score - 10) / 2, rounded down."""
-        score = {Stat.STRENGTH: self.strength, Stat.DEXTERITY: self.dexterity}[stat]
-        return (score - 10) // 2
+        """Modifier of an ability score by its code: "str", "dex", "con", "int", "wis" or "cha"."""
+        return rules.ability_modifier(getattr(self, rules.ABILITY_BY_CODE[stat]))
 
     def clean(self):
         errors = {}
@@ -164,7 +265,13 @@ class Character(models.Model):
         copy.name = name or f"{self.name} {self.copies.count() + 1}"
         copy.save()
 
-        copy.abilities.set(self.abilities.all())
+        CharacterAbility.objects.bulk_create(
+            CharacterAbility(
+                character=copy, ability_id=row.ability_id, max_uses=row.max_uses, uses_left=row.uses_left,
+                recharge=row.recharge, cooldown_rounds=row.cooldown_rounds, cooldown_left=row.cooldown_left,
+            )
+            for row in self.characterability_set.all()
+        )
         copy.spells.set(self.spells.all())
         copy.campaigns.set(campaigns)
 
@@ -181,6 +288,95 @@ class Character(models.Model):
             )
 
         return copy
+
+
+class CharacterAbility(models.Model):
+    """An ability a character holds directly (posee), with its uses.
+
+    The master sets the uses and cooldowns (open decision: they are not taken
+    from the SRD text). Abilities granted by race, class... appear on the sheet
+    as traits; give the character a row here too if the ability has uses.
+    """
+
+    class Recharge(models.TextChoices):
+        CORTO = "corto", "Descanso corto"
+        LARGO = "largo", "Descanso largo"
+        NINGUNO = "ninguno", "Ninguno"
+
+    character = models.ForeignKey("Character", on_delete=models.CASCADE)
+    ability = models.ForeignKey("Ability", on_delete=models.CASCADE)
+    max_uses = models.PositiveSmallIntegerField(null=True, blank=True, help_text="Empty: no limited uses")
+    uses_left = models.PositiveSmallIntegerField(default=0)
+    recharge = models.CharField(max_length=10, choices=Recharge.choices, default=Recharge.NINGUNO)
+    cooldown_rounds = models.PositiveSmallIntegerField(null=True, blank=True, help_text="Empty: no cooldown")
+    cooldown_left = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        verbose_name_plural = "character abilities"
+        ordering = ["character", "ability__name"]
+        constraints = [
+            models.UniqueConstraint(fields=["character", "ability"], name="unique_character_ability"),
+            models.CheckConstraint(
+                condition=models.Q(max_uses__isnull=True) | models.Q(uses_left__lte=models.F("max_uses")),
+                name="uses_left_up_to_max",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(cooldown_rounds__isnull=True) | models.Q(cooldown_left__lte=models.F("cooldown_rounds")),
+                name="cooldown_left_up_to_rounds",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.character} - {self.ability}"
+
+    @property
+    def has_uses(self):
+        return self.max_uses is not None
+
+    @property
+    def has_cooldown(self):
+        return self.cooldown_rounds is not None
+
+    @property
+    def tracked(self):
+        """Shown under «Habilidades con usos» on the sheet."""
+        return self.has_uses or self.has_cooldown
+
+    @property
+    def ready(self):
+        if self.has_cooldown and self.cooldown_left > 0:
+            return False
+        if self.has_uses and self.uses_left <= 0:
+            return False
+        return True
+
+    def use(self):
+        """Spend a use and start the cooldown. Raises ValueError if it is not ready."""
+        if not self.ready:
+            raise ValueError(f"{self.ability} is not ready.")
+        if self.has_uses:
+            self.uses_left -= 1
+        if self.has_cooldown:
+            self.cooldown_left = self.cooldown_rounds
+
+    def recover(self, rest):
+        """Short or long rest: cooldowns end. A long rest gives back every use;
+        a short rest only those that recharge with a short rest."""
+        self.cooldown_left = 0
+        if self.has_uses and (rest == self.Recharge.LARGO or self.recharge == self.Recharge.CORTO):
+            self.uses_left = self.max_uses
+
+    def clean(self):
+        if self.character_id is None or self.ability_id is None or not self.ability.unique:
+            return
+        # An NPC with a unique ability cannot have copies (game rule 11).
+        if self.character.copies.exists():
+            raise ValidationError({"ability": "This NPC template has copies, so it cannot have a unique ability."})
+        # Unique abilities (game rule 6), for rows created directly.
+        if self._state.adding:
+            conflicts = unique_ability_conflicts(self.character, self.character.campaigns.all(), [self.ability_id])
+            if conflicts:
+                raise ValidationError({"ability": conflicts})
 
 
 class Race(models.Model):
@@ -291,7 +487,8 @@ class RaceAbility(models.Model):
     def clean(self):
         # A unique ability granted by a race goes to every character of that race (game rule 6).
         if self.race_id is not None:
-            validate_granted_ability(self.ability_id, Character.objects.filter(race_id=self.race_id))
+            gaining = [c for c in Character.objects.filter(race_id=self.race_id) if c.level >= self.level_required]
+            validate_granted_ability(self.ability_id, gaining)
 
 
 class ClassAbility(models.Model):
@@ -311,7 +508,8 @@ class ClassAbility(models.Model):
     def clean(self):
         # A unique ability granted by a class goes to every character of that class (game rule 6).
         if self.char_class_id is not None:
-            validate_granted_ability(self.ability_id, Character.objects.filter(char_class_id=self.char_class_id))
+            gaining = [c for c in Character.objects.filter(char_class_id=self.char_class_id) if c.level >= self.level_required]
+            validate_granted_ability(self.ability_id, gaining)
 
 
 class SubraceAbility(models.Model):
@@ -331,7 +529,8 @@ class SubraceAbility(models.Model):
     def clean(self):
         # A unique ability granted by a subrace goes to every character of that subrace (game rule 6).
         if self.subrace_id is not None:
-            validate_granted_ability(self.ability_id, Character.objects.filter(subrace_id=self.subrace_id))
+            gaining = [c for c in Character.objects.filter(subrace_id=self.subrace_id) if c.level >= self.level_required]
+            validate_granted_ability(self.ability_id, gaining)
 
 
 class SubclassAbility(models.Model):
@@ -351,7 +550,8 @@ class SubclassAbility(models.Model):
     def clean(self):
         # A unique ability granted by a subclass goes to every character of that subclass (game rule 6).
         if self.subclass_id is not None:
-            validate_granted_ability(self.ability_id, Character.objects.filter(subclass_id=self.subclass_id))
+            gaining = [c for c in Character.objects.filter(subclass_id=self.subclass_id) if c.level >= self.level_required]
+            validate_granted_ability(self.ability_id, gaining)
 
 
 # ---------------------------------------------------------------------------
@@ -782,32 +982,45 @@ def unequip_dropped_item(sender, instance, **kwargs):
 # ---------------------------------------------------------------------------
 # A unique ability can belong to only one character per campaign. A character's
 # abilities are those held directly plus those granted by its race, subrace,
-# class and subclass. Levels are not calculated yet (rule 7), so every granted
-# ability counts, whatever its level_required. Characters without a campaign
-# never clash with anyone.
+# class and subclass once its level reaches level_required (rule 7). Characters
+# without a campaign never clash with anyone.
 #
 # Checked in the character's admin form and Character.clean(), in Ability.clean()
 # when an ability is made unique, in the clean() of the four ability link tables,
 # and by the signals below when campaigns or abilities are added in code.
 
-def granted_ability_ids(*sources):
-    """IDs of the abilities granted by these races, subraces, classes or subclasses (None is skipped)."""
+def granted_ability_ids(*sources, level=None):
+    """IDs of the abilities granted by these races, subraces, classes or subclasses
+    (None is skipped), up to `level` if given (game rule 7)."""
+    links = {
+        Race: (RaceAbility, "race"),
+        Subrace: (SubraceAbility, "subrace"),
+        CharacterClass: (ClassAbility, "char_class"),
+        Subclass: (SubclassAbility, "subclass"),
+    }
     ids = set()
     for source in sources:
-        if source is not None:
-            ids.update(source.abilities.values_list("pk", flat=True))
+        if source is None:
+            continue
+        link_model, field = links[type(source)]
+        rows = link_model.objects.filter(**{field: source})
+        if level is not None:
+            rows = rows.filter(level_required__lte=level)
+        ids.update(rows.values_list("ability_id", flat=True))
     return ids
 
 
 def ability_holders(ability):
-    """Characters who have `ability`, held directly or granted."""
-    return Character.objects.filter(
+    """Characters who have `ability`, held directly or granted at their level."""
+    candidates = Character.objects.filter(
         models.Q(abilities=ability)
         | models.Q(race__abilities=ability)
         | models.Q(subrace__abilities=ability)
         | models.Q(char_class__abilities=ability)
         | models.Q(subclass__abilities=ability)
     ).distinct()
+    ids = [character.pk for character in candidates if ability.pk in character.all_ability_ids()]
+    return Character.objects.filter(pk__in=ids)
 
 
 def join_names(objects):
@@ -899,3 +1112,13 @@ def check_unique_abilities_on_gain(sender, instance, action, reverse, pk_set, **
         return
     if messages:
         raise ValidationError(messages)
+
+
+# ---------------------------------------------------------------------------
+# Campaign models (diary, world, quests, board, scenes, maps, turns)
+# ---------------------------------------------------------------------------
+# At the end because they refer to the models above.
+from .campaign_models import (  # noqa: E402,F401
+    BoardCard, BoardLink, Combatant, Encounter, Map, MapLocation, Page, PartyMove,
+    Post, Quest, QuestObjective, Scene, Session, TimelineEvent,
+)

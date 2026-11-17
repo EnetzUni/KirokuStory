@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load i18n mesa %}
+{% block content %}
+<section class="pila" aria-labelledby="h-home">
+    <div class="portada">
+        {% if campaign.cover %}<img src="{{ campaign.cover.url }}" alt="">
+        {% else %}
+        <svg viewBox="0 0 1000 625" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <rect width="1000" height="625" fill="#BCC6B0"></rect>
+            <path d="M230 0 C200 90 260 160 210 240 C170 300 150 360 175 430 C195 490 150 560 190 625 L1000 625 L1000 0 Z" fill="#FEFAE0" stroke="#8C8A52" stroke-width="3"></path>
+            <g fill="#B4BC84" stroke="#606C38" stroke-width="2"><circle cx="520" cy="250" r="34"></circle><circle cx="565" cy="228" r="30"></circle><circle cx="606" cy="262" r="34"></circle><circle cx="548" cy="296" r="30"></circle><circle cx="498" cy="300" r="24"></circle><circle cx="632" cy="306" r="24"></circle></g>
+            <g fill="#ECCFA2" stroke="#BC6C25" stroke-width="2" stroke-linejoin="round"><path d="M720 500 L770 420 L820 500 Z"></path><path d="M790 500 L850 400 L910 500 Z"></path><path d="M870 480 L920 410 L970 480 Z"></path></g>
+            <path d="M850 400 C780 360 700 370 640 390 C560 420 480 470 400 460 C320 450 250 445 195 445" fill="none" stroke="#93A99A" stroke-width="6" stroke-linecap="round"></path>
+            <path d="M190 430 L300 330 L430 380 L560 270 L720 200 L870 110" fill="none" stroke="#BC6C25" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+        {% endif %}
+        <div class="portada-pie">
+            <div class="pila-s" style="gap:4px">
+                <span class="rol">{{ nav_status }} · {{ nav_role }}</span>
+                <h1 id="h-home">{{ campaign.name }}</h1>
+                <span class="mundo">{{ campaign.world_day }}{% if campaign.world_year %}, {{ campaign.world_year }}{% endif %}{% if where %} · {% translate "el grupo está en" %} {{ where.name }}{% endif %}</span>
+            </div>
+            {% if is_master %}<a class="btn" href="{% url 'admin:CampaignManager_campaign_change' campaign.pk %}">{% translate "Cambiar portada" %}</a>{% endif %}
+        </div>
+    </div>
+
+    <div class="fila">
+        <div class="principal pila">
+            {% if last_session %}
+            <article class="tarjeta">
+                <span class="rotulo">{% translate "Lo último" %} · {% translate "Sesión" %} {{ last_session.number }} · {{ last_session.played_on|date:"j M Y" }}</span>
+                <h2>{{ last_session.title }}</h2>
+                <div class="cronica">{% wiki last_session.body|first_paragraph %}</div>
+                <a class="btn" style="align-self:flex-start" href="{% url 'diary' campaign.pk %}">{% translate "Leer el diario" %}</a>
+            </article>
+            {% endif %}
+
+            <article class="tarjeta">
+                <h2 class="rotulo">{% translate "Te toca escribir" %}</h2>
+                {% for scene, last in awaiting %}
+                <a class="escena-item" href="{% url 'diary_scene' campaign.pk scene.pk %}">
+                    <span class="fila-s" style="justify-content:space-between"><b>{{ scene.title }}</b><span class="pequeno" style="color:var(--link);font-weight:700">{% translate "Responder" %}</span></span>
+                    <span class="pequeno atenuado">{% translate "Último mensaje" %}: {% if last.as_character %}{{ last.as_character.name }}{% else %}{% translate "Narrador" %}{% endif %}</span>
+                </a>
+                {% empty %}
+                <p class="atenuado">{% translate "Estás al día en todas las escenas." %}</p>
+                {% endfor %}
+            </article>
+
+            <article class="tarjeta">
+                <h2 class="rotulo">{% translate "Últimos sucesos" %}</h2>
+                <ul class="lista-limpia">
+                    {% for event in events %}
+                    <li class="suceso k-{{ event.kind }}"><span class="punto k-fondo" aria-hidden="true"></span>
+                        <span class="pila-s" style="gap:0"><b>{{ event.title }}</b><span class="pequeno atenuado">{{ event.get_kind_display }} · {{ event.world_day }}{% if event.session %} · {% translate "Sesión" %} {{ event.session.number }}{% endif %}</span></span></li>
+                    {% empty %}<li class="atenuado">{% translate "Todavía no hay sucesos." %}</li>{% endfor %}
+                </ul>
+                <a class="btn" style="align-self:flex-start" href="{% url 'diary_timeline' campaign.pk %}">{% translate "Ver la línea del tiempo" %}</a>
+            </article>
+
+            {% if md %}
+            <article class="tarjeta">
+                <h2 class="rotulo">{% translate "El mapa" %} · {{ md.map.name }}</h2>
+                {% include "partials/map_canvas.html" with link_pins=True %}
+                <a class="btn" style="align-self:flex-start" href="{% url 'map' campaign.pk %}">{% translate "Abrir el mapa" %}</a>
+            </article>
+            {% endif %}
+        </div>
+
+        <aside class="lateral pila">
+            {% if encounter %}
+            <div class="destacado">
+                <span class="rotulo" style="color:var(--accent-soft-text)">{% translate "Combate en marcha" %}</span>
+                <b>{% translate "Ronda" %} {{ encounter.round }}{% if actor %} · {% translate "turno de" %} {{ actor.display_name }}{% endif %}</b>
+                <a class="btn btn-principal" href="{% url 'turns' campaign.pk %}">{% translate "Ir a los turnos" %}</a>
+            </div>
+            {% endif %}
+            {% if campaign.notice %}
+            <div class="aviso"><span class="rotulo">{% translate "Aviso del máster" %}</span><span>{{ campaign.notice }}</span></div>
+            {% endif %}
+            <div class="tarjeta compacta">
+                <h2 class="rotulo">{% translate "El grupo" %}</h2>
+                {% for member in party %}
+                <a class="miembro" href="{% url 'sheet' campaign.pk member.pk %}">
+                    <span class="avatar" style="background:{{ member|avatar_color }}">{% if member.portrait %}<img src="{{ member.portrait.url }}" alt="">{% else %}{{ member.name|initial }}{% endif %}</span>
+                    <span class="miembro-datos">
+                        <span class="fila-s" style="justify-content:space-between;font-size:14px"><b>{{ member.name }}</b><span class="atenuado pequeno">{{ member.temp_hp }}/{{ member.hp }}</span></span>
+                        <span class="barra vida"><span style="width:{% pct member.temp_hp member.hp %}%"></span></span>
+                    </span>
+                </a>
+                {% empty %}<p class="atenuado">{% translate "El grupo todavía no tiene personajes." %}</p>{% endfor %}
+            </div>
+            <div class="tarjeta compacta">
+                <h2 class="rotulo">{% translate "Misiones activas" %}</h2>
+                {% for q in quests %}
+                <div class="pila-s" style="gap:6px">
+                    <div class="fila-s" style="justify-content:space-between;font-size:14px"><b>{{ q.quest.title }}</b><span class="atenuado">{{ q.done }} {% translate "de" %} {{ q.total }}</span></div>
+                    <span class="barra"><span style="width:{% pct q.done q.total %}%"></span></span>
+                </div>
+                {% empty %}<p class="atenuado">{% translate "No hay misiones activas." %}</p>{% endfor %}
+            </div>
+        </aside>
+    </div>
+</section>
+{% endblock %}

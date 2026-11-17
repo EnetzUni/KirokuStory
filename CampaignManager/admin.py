@@ -1,110 +1,154 @@
+"""Admin. Two groups (created by migration 0018): «Reglas» edits the rules
+catalog and «Campañas» edits the campaign models (and only views the catalog)."""
 from django import forms
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
 
+from . import rules
 from .models import (
-    Ability,
-    ActiveEffect,
-    Armor,
-    ArmorDamage,
-    ArmorType,
-    Attack,
-    Campaign,
-    Character,
-    CharacterClass,
-    ClassAbility,
-    Component,
-    DiceRoll,
-    Effect,
-    Inventory,
-    Item,
-    ItemEffect,
-    Race,
-    RaceAbility,
-    Spell,
-    Subclass,
-    SubclassAbility,
-    Subrace,
-    SubraceAbility,
-    User,
-    Weapon,
-    granted_ability_ids,
-    unique_ability_conflicts,
+    Ability, ActiveEffect, Armor, ArmorDamage, ArmorType, Attack, BoardCard, BoardLink, Campaign, Character,
+    CharacterAbility, CharacterClass, ClassAbility, Combatant, Component, DiceRoll, Effect, Encounter, Inventory,
+    Item, ItemEffect, Map, MapLocation, Page, PartyMove, Post, Quest, QuestObjective, Race, RaceAbility, Scene,
+    Session, Spell, Subclass, SubclassAbility, Subrace, SubraceAbility, TimelineEvent, User, Weapon,
+    granted_ability_ids, unique_ability_conflicts,
 )
+
+admin.site.site_header = "Mesa de campaña · administración"
+admin.site.site_title = "Mesa de campaña"
 
 # UserAdmin hashes the password and shows the proper user forms.
 admin.site.register(User, UserAdmin)
 
-admin.site.register(Campaign)
+
+# ---------------------------------------------------------------------------
+# Rules catalog («Reglas»)
+# ---------------------------------------------------------------------------
+
+class RaceAbilityInline(admin.TabularInline):
+    model = RaceAbility
+    extra = 0
+    autocomplete_fields = ["ability"]
 
 
-class CharacterAdminForm(forms.ModelForm):
-    class Meta:
-        model = Character
-        fields = "__all__"
-
-    def clean(self):
-        cleaned_data = super().clean()
-        # An NPC with a unique ability cannot have copies. The abilities chosen in
-        # the form are only saved after the model, so this is checked here.
-        abilities = cleaned_data.get("abilities") or []
-        if self.instance.pk and self.instance.copies.exists() and any(a.unique for a in abilities):
-            self.add_error(
-                "abilities",
-                "This NPC template has copies, so it cannot have a unique ability.",
-            )
-        # Unique abilities (game rule 6), on the campaigns, abilities, race and
-        # class as they will be saved. Django saves the links one by one after
-        # this, so the flag skips the checks on each in-between step.
-        if "race" in cleaned_data and "char_class" in cleaned_data:
-            ability_ids = {ability.pk for ability in abilities} | granted_ability_ids(
-                cleaned_data["race"],
-                cleaned_data.get("subrace"),
-                cleaned_data["char_class"],
-                cleaned_data.get("subclass"),
-            )
-            campaigns = cleaned_data.get("campaigns") or []
-            for message in unique_ability_conflicts(self.instance, campaigns, ability_ids):
-                self.add_error(None, message)
-            self.instance._unique_abilities_checked = True
-        return cleaned_data
+class SubraceAbilityInline(RaceAbilityInline):
+    model = SubraceAbility
 
 
-@admin.register(Character)
-class CharacterAdmin(admin.ModelAdmin):
-    form = CharacterAdminForm
-    list_display = ("name", "is_npc", "template", "player")
-    list_filter = ("is_npc",)
-    actions = ["make_npc_copy"]
-
-    @admin.action(description="Make a copy of the selected NPC templates")
-    def make_npc_copy(self, request, queryset):
-        made = 0
-        for character in queryset:
-            try:
-                character.make_copy()
-                made += 1
-            except ValueError as error:
-                self.message_user(request, f"{character} skipped: {error}", level=messages.WARNING)
-        self.message_user(request, f"{made} NPC copies made.")
+class ClassAbilityInline(RaceAbilityInline):
+    model = ClassAbility
 
 
-admin.site.register(Race)
-admin.site.register(Subrace)
-admin.site.register(CharacterClass)
-admin.site.register(Subclass)
-admin.site.register(Ability)
-admin.site.register(RaceAbility)
-admin.site.register(ClassAbility)
-admin.site.register(SubraceAbility)
-admin.site.register(SubclassAbility)
-admin.site.register(Spell)
-admin.site.register(Component)
-admin.site.register(Attack)
-admin.site.register(DiceRoll)
-admin.site.register(ArmorDamage)
-admin.site.register(Effect)
-admin.site.register(ActiveEffect)
+class SubclassAbilityInline(RaceAbilityInline):
+    model = SubclassAbility
+
+
+class SubraceInline(admin.TabularInline):
+    model = Subrace
+    extra = 0
+    fields = ["name"]
+    show_change_link = True
+
+
+@admin.register(Race)
+class RaceAdmin(admin.ModelAdmin):
+    list_display = ("name", "speed")
+    search_fields = ["name"]
+    inlines = [SubraceInline, RaceAbilityInline]
+
+
+@admin.register(Subrace)
+class SubraceAdmin(admin.ModelAdmin):
+    list_display = ("name", "race")
+    list_filter = ("race",)
+    search_fields = ["name"]
+    inlines = [SubraceAbilityInline]
+
+
+@admin.register(CharacterClass)
+class CharacterClassAdmin(admin.ModelAdmin):
+    list_display = ("name", "primary_ability")
+    search_fields = ["name"]
+    filter_horizontal = ["spells"]
+    inlines = [ClassAbilityInline]
+
+
+@admin.register(Subclass)
+class SubclassAdmin(admin.ModelAdmin):
+    list_display = ("name", "char_class")
+    list_filter = ("char_class",)
+    search_fields = ["name"]
+    inlines = [SubclassAbilityInline]
+
+
+@admin.register(Ability)
+class AbilityAdmin(admin.ModelAdmin):
+    list_display = ("name", "unique")
+    list_filter = ("unique",)
+    search_fields = ["name", "description"]
+    filter_horizontal = ["effects"]
+
+
+@admin.register(RaceAbility, SubraceAbility, ClassAbility, SubclassAbility)
+class AbilityLinkAdmin(admin.ModelAdmin):
+    list_display = ("__str__", "level_required")
+    list_filter = ("level_required",)
+    autocomplete_fields = ["ability"]
+
+
+@admin.register(Spell)
+class SpellAdmin(admin.ModelAdmin):
+    list_display = ("name", "level", "casting_time", "range", "duration")
+    list_filter = ("level", "components")
+    search_fields = ["name", "description"]
+    filter_horizontal = ["components", "attacks", "effects"]
+
+
+@admin.register(Component)
+class ComponentAdmin(admin.ModelAdmin):
+    search_fields = ["type"]
+
+
+class DiceInline(admin.TabularInline):
+    """Dice rolls inside an attack (Attack.dice is many-to-many)."""
+    model = Attack.dice.through
+    extra = 1
+    verbose_name = "dice roll"
+    verbose_name_plural = "dice rolls"
+
+
+class ArmorDamageInline(admin.TabularInline):
+    model = Attack.armor_damages.through
+    extra = 0
+    verbose_name = "armor damage"
+    verbose_name_plural = "armor damages"
+
+
+@admin.register(Attack)
+class AttackAdmin(admin.ModelAdmin):
+    list_display = ("name", "extra", "stat_bonus", "range", "area", "cooldown")
+    list_filter = ("stat_bonus",)
+    search_fields = ["name"]
+    exclude = ["dice", "armor_damages"]
+    filter_horizontal = ["effects"]
+    inlines = [DiceInline, ArmorDamageInline]
+
+
+@admin.register(DiceRoll)
+class DiceRollAdmin(admin.ModelAdmin):
+    list_display = ("__str__", "amount", "sides", "per_extra_level")
+    list_filter = ("sides", "per_extra_level")
+
+
+@admin.register(ArmorDamage)
+class ArmorDamageAdmin(admin.ModelAdmin):
+    list_display = ("__str__", "type", "amount")
+    list_filter = ("type",)
+
+
+@admin.register(Effect)
+class EffectAdmin(admin.ModelAdmin):
+    list_display = ("name", "duration")
+    search_fields = ["name", "description"]
 
 
 class IsTemplateFilter(admin.SimpleListFilter):
@@ -122,10 +166,31 @@ class IsTemplateFilter(admin.SimpleListFilter):
         return queryset
 
 
+class ItemEffectInline(admin.TabularInline):
+    model = ItemEffect
+    extra = 0
+    autocomplete_fields = ["effect"]
+
+
+class WeaponInline(admin.StackedInline):
+    model = Weapon
+    extra = 0
+    filter_horizontal = ["attacks"]
+
+
+class ArmorInline(admin.StackedInline):
+    model = Armor
+    extra = 0
+
+
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
-    list_display = ("name", "template", "price")
-    list_filter = (IsTemplateFilter,)
+    list_display = ("name", "template", "price", "consumable")
+    list_filter = (IsTemplateFilter, "consumable")
+    search_fields = ["name", "description"]
+    list_select_related = ["template"]
+    autocomplete_fields = ["template"]
+    inlines = [ItemEffectInline, WeaponInline, ArmorInline]
     actions = ["make_item_copy"]
 
     @admin.action(description="Make a copy of the selected items")
@@ -138,8 +203,258 @@ class ItemAdmin(admin.ModelAdmin):
         )
 
 
-admin.site.register(ItemEffect)
-admin.site.register(Inventory)
-admin.site.register(Weapon)
-admin.site.register(Armor)
-admin.site.register(ArmorType)
+@admin.register(ItemEffect)
+class ItemEffectAdmin(admin.ModelAdmin):
+    list_display = ("item", "effect", "value")
+    list_select_related = ["item", "effect"]
+    autocomplete_fields = ["item", "effect"]
+
+
+@admin.register(Weapon)
+class WeaponAdmin(admin.ModelAdmin):
+    list_display = ("item", "to_hit", "equipped")
+    list_filter = ("equipped",)
+    search_fields = ["item__name"]
+    list_select_related = ["item"]
+    filter_horizontal = ["attacks"]
+
+
+@admin.register(Armor)
+class ArmorAdmin(admin.ModelAdmin):
+    list_display = ("item", "armor_type", "ap", "magic_ap", "equipped")
+    list_filter = ("armor_type", "equipped")
+    search_fields = ["item__name"]
+    list_select_related = ["item", "armor_type"]
+
+
+@admin.register(ArmorType)
+class ArmorTypeAdmin(admin.ModelAdmin):
+    list_display = ("type", "ap", "magic_ap")
+    filter_horizontal = ["effects"]
+
+
+# ---------------------------------------------------------------------------
+# Campaigns («Campañas»)
+# ---------------------------------------------------------------------------
+
+@admin.register(Campaign)
+class CampaignAdmin(admin.ModelAdmin):
+    list_display = ("name", "status", "start_date", "world_day")
+    list_filter = ("status",)
+    search_fields = ["name", "description"]
+    filter_horizontal = ["masters", "players"]
+
+
+class CharacterAdminForm(forms.ModelForm):
+    class Meta:
+        model = Character
+        fields = "__all__"
+
+    def clean(self):
+        cleaned_data = super().clean()
+        # Unique abilities (game rule 6), on the campaigns, race and class as they
+        # will be saved. The abilities held directly are edited in the inline,
+        # where CharacterAbility.clean() checks each new one. Django saves the
+        # links one by one after this, so the flag skips the in-between checks.
+        if "race" in cleaned_data and "char_class" in cleaned_data:
+            held = set(self.instance.characterability_set.values_list("ability_id", flat=True)) if self.instance.pk else set()
+            ability_ids = held | granted_ability_ids(
+                cleaned_data["race"],
+                cleaned_data.get("subrace"),
+                cleaned_data["char_class"],
+                cleaned_data.get("subclass"),
+                level=rules.level_for_xp(cleaned_data.get("xp") or 0),
+            )
+            campaigns = cleaned_data.get("campaigns") or []
+            for message in unique_ability_conflicts(self.instance, campaigns, ability_ids):
+                self.add_error(None, message)
+            self.instance._unique_abilities_checked = True
+        return cleaned_data
+
+
+class CharacterAbilityInline(admin.TabularInline):
+    model = CharacterAbility
+    extra = 0
+    autocomplete_fields = ["ability"]
+
+
+class InventoryInline(admin.TabularInline):
+    model = Inventory
+    extra = 0
+    autocomplete_fields = ["item"]
+
+
+class ActiveEffectInline(admin.TabularInline):
+    model = ActiveEffect
+    extra = 0
+    autocomplete_fields = ["effect"]
+
+
+@admin.register(Character)
+class CharacterAdmin(admin.ModelAdmin):
+    form = CharacterAdminForm
+    inlines = [CharacterAbilityInline, InventoryInline, ActiveEffectInline]
+    list_display = ("name", "is_npc", "status", "template", "player", "race", "char_class", "xp")
+    list_filter = ("is_npc", "status", "campaigns", "char_class")
+    search_fields = ["name", "background"]
+    list_select_related = ["template", "player", "race", "char_class"]
+    filter_horizontal = ["campaigns", "spells"]
+    autocomplete_fields = ["template"]
+    actions = ["make_npc_copy"]
+
+    @admin.action(description="Make a copy of the selected NPC templates")
+    def make_npc_copy(self, request, queryset):
+        made = 0
+        for character in queryset:
+            try:
+                character.make_copy()
+                made += 1
+            except ValueError as error:
+                self.message_user(request, f"{character} skipped: {error}", level=messages.WARNING)
+        self.message_user(request, f"{made} NPC copies made.")
+
+
+@admin.register(CharacterAbility)
+class CharacterAbilityAdmin(admin.ModelAdmin):
+    list_display = ("character", "ability", "uses_left", "max_uses", "recharge", "cooldown_left", "cooldown_rounds")
+    list_filter = ("recharge",)
+    search_fields = ["character__name", "ability__name"]
+    list_select_related = ["character", "ability"]
+    autocomplete_fields = ["character", "ability"]
+
+
+@admin.register(Inventory)
+class InventoryAdmin(admin.ModelAdmin):
+    list_display = ("character", "item", "quantity")
+    search_fields = ["character__name", "item__name"]
+    list_select_related = ["character", "item"]
+    autocomplete_fields = ["character", "item"]
+
+
+@admin.register(ActiveEffect)
+class ActiveEffectAdmin(admin.ModelAdmin):
+    list_display = ("character", "effect", "remaining_turns")
+    list_select_related = ["character", "effect"]
+    autocomplete_fields = ["character", "effect"]
+
+
+@admin.register(Session)
+class SessionAdmin(admin.ModelAdmin):
+    list_display = ("number", "title", "campaign", "played_on", "xp_awarded", "published")
+    list_filter = ("campaign", "published")
+    search_fields = ["title", "body"]
+    list_select_related = ["campaign"]
+    date_hierarchy = "played_on"
+
+
+@admin.register(TimelineEvent)
+class TimelineEventAdmin(admin.ModelAdmin):
+    list_display = ("title", "campaign", "kind", "session", "world_day", "hidden")
+    list_filter = ("campaign", "kind", "hidden")
+    search_fields = ["title", "description"]
+    list_select_related = ["campaign", "session"]
+    filter_horizontal = ["characters"]
+
+
+@admin.register(Page)
+class PageAdmin(admin.ModelAdmin):
+    list_display = ("title", "campaign", "category", "parent", "revealed")
+    list_filter = ("campaign", "category", "revealed")
+    search_fields = ["title", "summary", "body", "secret"]
+    list_select_related = ["campaign", "parent"]
+    autocomplete_fields = ["parent"]
+
+
+class QuestObjectiveInline(admin.TabularInline):
+    """Objectives inside their quest."""
+    model = QuestObjective
+    extra = 1
+
+
+@admin.register(Quest)
+class QuestAdmin(admin.ModelAdmin):
+    list_display = ("title", "campaign", "status", "giver")
+    list_filter = ("campaign", "status")
+    search_fields = ["title", "description", "objectives__text"]
+    list_select_related = ["campaign", "giver"]
+    inlines = [QuestObjectiveInline]
+
+
+@admin.register(BoardCard)
+class BoardCardAdmin(admin.ModelAdmin):
+    list_display = ("title", "campaign", "author", "classified", "revealed", "x", "y")
+    list_filter = ("campaign", "classified", "revealed")
+    search_fields = ["title", "text"]
+    list_select_related = ["campaign", "author"]
+
+
+@admin.register(BoardLink)
+class BoardLinkAdmin(admin.ModelAdmin):
+    list_display = ("card_a", "card_b")
+    list_select_related = ["card_a", "card_b"]
+
+
+class PostInline(admin.StackedInline):
+    model = Post
+    extra = 0
+    fields = ["author", "as_character", "text", "roll", "whisper_to", "created_at"]
+
+
+@admin.register(Scene)
+class SceneAdmin(admin.ModelAdmin):
+    list_display = ("title", "campaign", "location", "is_open")
+    list_filter = ("campaign", "is_open")
+    search_fields = ["title"]
+    list_select_related = ["campaign", "location"]
+    filter_horizontal = ["participants"]
+    inlines = [PostInline]
+
+
+@admin.register(Post)
+class PostAdmin(admin.ModelAdmin):
+    list_display = ("scene", "author", "as_character", "whisper_to", "created_at")
+    list_filter = ("scene__campaign",)
+    search_fields = ["text"]
+    list_select_related = ["scene", "author", "as_character", "whisper_to"]
+
+
+class MapLocationInline(admin.TabularInline):
+    model = MapLocation
+    extra = 0
+
+
+@admin.register(Map)
+class MapAdmin(admin.ModelAdmin):
+    list_display = ("name", "campaign", "order")
+    list_filter = ("campaign",)
+    list_select_related = ["campaign"]
+    inlines = [MapLocationInline]
+
+
+@admin.register(MapLocation)
+class MapLocationAdmin(admin.ModelAdmin):
+    list_display = ("name", "map", "status", "x", "y")
+    list_filter = ("map__campaign", "status")
+    search_fields = ["name"]
+    list_select_related = ["map"]
+
+
+@admin.register(PartyMove)
+class PartyMoveAdmin(admin.ModelAdmin):
+    list_display = ("map", "order", "location", "session")
+    list_filter = ("map",)
+    list_select_related = ["map", "location", "session"]
+
+
+class CombatantInline(admin.TabularInline):
+    model = Combatant
+    extra = 0
+    autocomplete_fields = ["character"]
+
+
+@admin.register(Encounter)
+class EncounterAdmin(admin.ModelAdmin):
+    list_display = ("campaign", "active", "round", "turn_index")
+    list_filter = ("campaign", "active")
+    list_select_related = ["campaign"]
+    inlines = [CombatantInline]

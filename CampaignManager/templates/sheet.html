@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ character.name }} · {{ campaign.name }}{% endblock %}
+{% block content %}
+<nav class="migas" aria-label="{% translate 'Ruta' %}"><a href="{% url 'characters' campaign.pk %}">{% translate "Personajes" %}</a> <span aria-hidden="true">›</span> <span>{{ character.name }}</span></nav>
+{% include "partials/sheet_panel.html" %}
+<p id="mensaje-ajax" class="mensaje flotante" role="status" hidden></p>
+{% endblock %}

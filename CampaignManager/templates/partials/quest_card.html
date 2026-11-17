@@ -1,0 +1,28 @@
+{% load i18n mesa %}
+<article id="mision-{{ q.quest.pk }}" class="tarjeta compacta">
+    <div class="fila-s" style="justify-content:space-between;align-items:flex-start">
+        <h3>{{ q.quest.title }}</h3>
+        <span class="pastilla {% if q.quest.status == 'activa' %}p-ambar{% elif q.quest.status == 'completada' %}p-verde{% else %}p-coral{% endif %}">{{ q.quest.get_status_display }}</span>
+    </div>
+    {% if q.quest.giver %}<span class="pequeno">{% translate "Encargo de" %} {% if q.quest.giver.revealed or is_master %}<a href="{% url 'world_page' campaign.pk q.quest.giver.slug %}">{{ q.quest.giver.title }}</a>{% else %}{% translate "alguien" %}{% endif %}</span>{% endif %}
+    {% if q.quest.description %}<p class="pequeno" style="color:var(--text2)">{{ q.quest.description }}</p>{% endif %}
+    <ul class="lista-limpia" style="gap:2px">
+        {% for o in q.objectives %}
+        <li>
+            {% if is_master %}
+            <form method="post" action="{% url 'diary_objective_toggle' campaign.pk o.objective.pk %}" data-ajax data-target="#mision-{{ q.quest.pk }}">{% csrf_token %}
+                <button type="submit" class="objetivo{% if o.objective.hidden %} oculto{% endif %}" aria-pressed="{% if o.objective.done %}true{% else %}false{% endif %}">
+            {% else %}
+                <button type="button" class="objetivo{% if o.locked %} oculto{% endif %}" aria-pressed="{% if o.objective.done %}true{% else %}false{% endif %}" disabled>
+            {% endif %}
+                    <span class="marca-casilla" aria-hidden="true">{% if o.objective.done %}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg>{% endif %}</span>
+                    {% if o.locked %}<span class="velado">{% translate "Objetivo oculto" %}</span>{% else %}<span>{{ o.text }}</span>{% endif %}
+                    {% if o.secret %}<span class="pastilla p-morado" style="font-size:10px">{% translate "OCULTO · se revela al marcarlo" %}</span>{% endif %}
+                </button>
+            {% if is_master %}</form>{% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    <span class="barra"><span style="width:{% pct q.done q.total %}%"></span></span>
+    {% if is_master %}<a class="btn btn-pequeno" style="align-self:flex-start" href="{% url 'diary_quest_edit' campaign.pk q.quest.pk %}">{% translate "Editar misión" %}</a>{% endif %}
+</article>

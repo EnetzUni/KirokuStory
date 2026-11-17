@@ -1,0 +1,6 @@
+{% extends "diary_base.html" %}
+{% load i18n %}
+{% block diary %}
+<p class="atenuado lectura">{% translate "La pizarra del grupo para unir pistas con hilo rojo. Pulsa una nota para seleccionarla y, desde el panel, únela con otra, muévela o abre su página. El máster puede clavar notas clasificadas: los jugadores ven que existen, pero no lo que dicen." %}</p>
+{% include "partials/board.html" %}
+{% endblock %}

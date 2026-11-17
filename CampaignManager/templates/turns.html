@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Turnos" %} · {{ campaign.name }}{% endblock %}
+{% block content %}
+<section class="pila" aria-labelledby="h-turnos">
+    <h1 id="h-turnos">{% translate "Turnos de combate" %}</h1>
+    {% include "partials/turns_list.html" %}
+    <p id="mensaje-ajax" class="mensaje flotante" role="status" hidden></p>
+</section>
+{% endblock %}

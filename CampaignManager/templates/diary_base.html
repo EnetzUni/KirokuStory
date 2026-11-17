@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+<section class="pila" aria-labelledby="h-diario">
+    <h1 id="h-diario">{% translate "Diario de campaña" %}</h1>
+    <nav class="pestanas" aria-label="{% translate 'Apartados del diario' %}">
+        {% for tab in diary_tabs %}<a href="{{ tab.url }}" {% if tab.current %}aria-current="page"{% endif %}>{% translate tab.label %}{% if tab.badge %} <span class="insignia">{{ tab.badge }}</span>{% endif %}</a>{% endfor %}
+    </nav>
+    <p id="mensaje-ajax" class="mensaje" role="status" hidden></p>
+    {% block diary %}{% endblock %}
+</section>
+{% endblock %}

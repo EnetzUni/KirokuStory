@@ -1,135 +1,45 @@
 {% extends "base.html" %}
-
-{% block title %}{{ character.name }} | KirokuStory{% endblock %}
-
+{% load i18n %}
+{% block title %}{{ character.name }} · {% translate "Reglas" %}{% endblock %}
 {% block content %}
-<h2>{{ character.name }}</h2>
-
-<dl>
-    <dt>Type</dt>
-    <dd>
-        {% if not character.is_npc %}Player character
-        {% elif character.template %}NPC, copy of <a href="{% url 'character_detail' character.template.pk %}">{{ character.template.name }}</a>
-        {% else %}NPC template
+<section class="pila" aria-labelledby="h-reglas">
+    <nav class="migas" aria-label="{% translate 'Ruta' %}"><a href="{% url 'index' %}">{% translate "Reglas" %}</a> <span aria-hidden="true">›</span> <a href="{% url 'character_list' %}">{% translate "Personajes" %}</a> <span aria-hidden="true">›</span> <span>{{ character.name }}</span></nav>
+    <h1 id="h-reglas">{{ character.name }}</h1>
+    <div class="tarjeta compacta">
+        <p><b>{% translate "Tipo" %}:</b>
+            {% if not character.is_npc %}{% translate "Personaje jugador" %}
+            {% elif character.template_id %}{% translate "PNJ, copia de" %} {% if template_visible %}<a href="{% url 'character_detail' character.template_id %}">{{ character.template.name }}</a>{% else %}{{ character.template.name }}{% endif %}
+            {% else %}{% translate "Plantilla de PNJ" %}{% endif %}</p>
+        <p><b>{% translate "Jugador" %}:</b> {{ character.player|default:"—" }}</p>
+        <p><b>{% translate "Raza" %}:</b> <a href="{% url 'race_detail' character.race_id %}">{{ character.race.name }}</a>{% if character.subrace %} (<a href="{% url 'subrace_detail' character.subrace_id %}">{{ character.subrace.name }}</a>){% endif %}
+            · <b>{% translate "Clase" %}:</b> <a href="{% url 'character_class_detail' character.char_class_id %}">{{ character.char_class.name }}</a>{% if character.subclass %} (<a href="{% url 'subclass_detail' character.subclass_id %}">{{ character.subclass.name }}</a>){% endif %}</p>
+        <p><b>{% translate "Campañas" %}:</b> {% for campaign in campaigns %}<a href="{% url 'sheet' campaign.pk character.pk %}">{{ campaign.name }}</a>{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</p>
+        <p><b>XP:</b> {{ character.xp }} · <b>{% translate "Nivel" %}:</b> {{ character.level }} · <b>{% translate "Vida" %}:</b> {{ character.temp_hp }}/{{ character.hp }} · <b>{% translate "Clase de armadura" %}:</b> {{ character.ac }} · <b>AP:</b> {{ character.temp_ap }} · <b>{% translate "Inspiración" %}:</b> {{ character.inspiration }}</p>
+    </div>
+    <div class="tarjeta sin-relleno tabla-marco">
+        <table class="tabla">
+            <thead><tr><th>FUE</th><th>DES</th><th>CON</th><th>INT</th><th>SAB</th><th>CAR</th></tr></thead>
+            <tbody><tr><td>{{ character.strength }}</td><td>{{ character.dexterity }}</td><td>{{ character.constitution }}</td><td>{{ character.intelligence }}</td><td>{{ character.wisdom }}</td><td>{{ character.charisma }}</td></tr></tbody>
+        </table>
+    </div>
+    <div class="rejilla-s" style="grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr))">
+        <div class="tarjeta compacta"><h2 class="rotulo">{% translate "Habilidades propias" %}</h2>
+            <ul class="lista-limpia" style="gap:4px">{% for ability in character.abilities.all %}<li>{{ ability.name }}{% if ability.unique %} <span class="pastilla p-morado">{% translate "Única" %}</span>{% endif %}</li>{% empty %}<li class="atenuado">{% translate "Ninguna." %}</li>{% endfor %}</ul></div>
+        <div class="tarjeta compacta"><h2 class="rotulo">{% translate "Conjuros" %}</h2>
+            <ul class="lista-limpia" style="gap:4px">{% for spell in character.spells.all %}<li><a href="{% url 'spell_detail' spell.pk %}">{{ spell.name }}</a></li>{% empty %}<li class="atenuado">{% translate "Ninguno." %}</li>{% endfor %}</ul></div>
+        <div class="tarjeta compacta"><h2 class="rotulo">{% translate "Inventario" %}</h2>
+            <ul class="lista-limpia" style="gap:4px">{% for row in character.inventory_set.all %}<li><a href="{% url 'item_detail' row.item_id %}">{{ row.item.name }}</a> × {{ row.quantity }}</li>{% empty %}<li class="atenuado">{% translate "El inventario está vacío." %}</li>{% endfor %}</ul></div>
+        <div class="tarjeta compacta"><h2 class="rotulo">{% translate "Armas" %}</h2>
+            {% for row in weapons %}
+            <p><a href="{% url 'item_detail' row.weapon.item_id %}">{{ row.weapon.item.name }}</a>{% if row.weapon.equipped %} <span class="pastilla p-verde">{% translate "Equipada" %}</span>{% endif %} · {% translate "golpe" %} {{ row.to_hit }}</p>
+            <ul class="lista-limpia pequeno" style="gap:2px">{% for attack, damage in row.attacks %}<li>{{ attack.name }}: {{ damage }}</li>{% empty %}<li class="atenuado">{% translate "Esta arma no tiene ataques." %}</li>{% endfor %}</ul>
+            {% empty %}<p class="atenuado">{% translate "No lleva armas." %}</p>{% endfor %}</div>
+        <div class="tarjeta compacta"><h2 class="rotulo">{% translate "Estados" %}</h2>
+            <ul class="lista-limpia" style="gap:4px">{% for row in character.activeeffect_set.all %}<li>{{ row.effect.name }} · {% blocktranslate count n=row.remaining_turns %}queda {{ n }} ronda{% plural %}quedan {{ n }} rondas{% endblocktranslate %}</li>{% empty %}<li class="atenuado">{% translate "Sin estados activos." %}</li>{% endfor %}</ul></div>
+        {% if character.is_npc_template %}
+        <div class="tarjeta compacta"><h2 class="rotulo">{% translate "Copias" %}</h2>
+            <ul class="lista-limpia" style="gap:4px">{% for copy in copies %}<li><a href="{% url 'character_detail' copy.pk %}">{{ copy.name }}</a></li>{% empty %}<li class="atenuado">{% translate "Este PNJ no tiene copias." %}</li>{% endfor %}</ul></div>
         {% endif %}
-    </dd>
-
-    <dt>Player</dt>
-    <dd>{{ character.player|default:"—" }}</dd>
-
-    <dt>Race</dt>
-    <dd><a href="{% url 'race_detail' character.race.pk %}">{{ character.race.name }}</a>{% if character.subrace %} (<a href="{% url 'subrace_detail' character.subrace.pk %}">{{ character.subrace.name }}</a>){% endif %}</dd>
-
-    <dt>Class</dt>
-    <dd><a href="{% url 'character_class_detail' character.char_class.pk %}">{{ character.char_class.name }}</a>{% if character.subclass %} (<a href="{% url 'subclass_detail' character.subclass.pk %}">{{ character.subclass.name }}</a>){% endif %}</dd>
-
-    <dt>Campaigns</dt>
-    <dd>{% for campaign in character.campaigns.all %}<a href="{% url 'campaign_detail' campaign.pk %}">{{ campaign.name }}</a>{% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}</dd>
-
-    <dt>XP</dt>
-    <dd>{{ character.xp }}</dd>
-
-    <dt>Hit points</dt>
-    <dd>{{ character.temp_hp }} / {{ character.hp }}</dd>
-
-    <dt>Armor class</dt>
-    <dd>{{ character.ac }}</dd>
-
-    <dt>Current armor points</dt>
-    <dd>{{ character.temp_ap }}</dd>
-
-    <dt>Inspiration</dt>
-    <dd>{{ character.inspiration }}</dd>
-</dl>
-
-<h3>Ability scores</h3>
-<table>
-    <thead>
-        <tr>
-            <th>STR</th>
-            <th>DEX</th>
-            <th>CON</th>
-            <th>INT</th>
-            <th>WIS</th>
-            <th>CHA</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td>{{ character.strength }}</td>
-            <td>{{ character.dexterity }}</td>
-            <td>{{ character.constitution }}</td>
-            <td>{{ character.intelligence }}</td>
-            <td>{{ character.wisdom }}</td>
-            <td>{{ character.charisma }}</td>
-        </tr>
-    </tbody>
-</table>
-
-<h3>Abilities</h3>
-<ul>
-    {% for ability in character.abilities.all %}
-    <li>{{ ability.name }}{% if ability.unique %} (unique){% endif %}</li>
-    {% empty %}
-    <li>No abilities.</li>
-    {% endfor %}
-</ul>
-
-<h3>Spells</h3>
-<ul>
-    {% for spell in character.spells.all %}
-    <li><a href="{% url 'spell_detail' spell.pk %}">{{ spell.name }}</a></li>
-    {% empty %}
-    <li>No spells.</li>
-    {% endfor %}
-</ul>
-
-<h3>Inventory</h3>
-<ul>
-    {% for row in character.inventory_set.all %}
-    <li><a href="{% url 'item_detail' row.item.pk %}">{{ row.item.name }}</a> × {{ row.quantity }}</li>
-    {% empty %}
-    <li>The inventory is empty.</li>
-    {% endfor %}
-</ul>
-
-<h3>Weapons</h3>
-<ul>
-    {% for row in weapons %}
-    <li>
-        <a href="{% url 'item_detail' row.weapon.item.pk %}">{{ row.weapon.item.name }}</a>{% if row.weapon.equipped %} (equipped){% endif %}: to hit {{ row.to_hit }}
-        <ul>
-            {% for attack, damage in row.attacks %}
-            <li>{{ attack.name }}: {{ damage }} damage</li>
-            {% empty %}
-            <li>This weapon makes no attacks.</li>
-            {% endfor %}
-        </ul>
-    </li>
-    {% empty %}
-    <li>This character carries no weapons.</li>
-    {% endfor %}
-</ul>
-
-<h3>Active effects</h3>
-<ul>
-    {% for row in character.activeeffect_set.all %}
-    <li>{{ row.effect.name }} ({{ row.remaining_turns }} turns left)</li>
-    {% empty %}
-    <li>No active effects.</li>
-    {% endfor %}
-</ul>
-
-{% if character.is_npc_template %}
-<h3>Copies</h3>
-<ul>
-    {% for copy in character.copies.all %}
-    <li><a href="{% url 'character_detail' copy.pk %}">{{ copy.name }}</a></li>
-    {% empty %}
-    <li>This NPC has no copies.</li>
-    {% endfor %}
-</ul>
-{% endif %}
-
-<p><a href="{% url 'character_list' %}">Back to characters</a></p>
+    </div>
+</section>
 {% endblock %}

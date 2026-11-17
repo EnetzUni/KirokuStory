@@ -1,17 +1,19 @@
 {% extends "base.html" %}
-
+{% load i18n %}
+{% block title %}{% translate "Reglas" %} · Mesa de campaña{% endblock %}
 {% block content %}
-<h2>Welcome to KirokuStory</h2>
-<p>A manager for D&amp;D campaigns. Choose a section:</p>
-
-<ul>
-    <li><a href="{% url 'campaign_list' %}">Campaigns</a>: their masters, players and characters.</li>
-    <li><a href="{% url 'character_list' %}">Characters</a>: player characters and NPCs, with their stats, abilities, spells and inventory.</li>
-    <li><a href="{% url 'race_list' %}">Races</a>: speed and the abilities each race grants.</li>
-    <li><a href="{% url 'subrace_list' %}">Subraces</a>: lineages within a race and the abilities they add.</li>
-    <li><a href="{% url 'character_class_list' %}">Classes</a>: the abilities each class grants and the spells it can cast.</li>
-    <li><a href="{% url 'subclass_list' %}">Subclasses</a>: specializations within a class and the abilities they add.</li>
-    <li><a href="{% url 'spell_list' %}">Spells</a>: components, attacks and effects.</li>
-    <li><a href="{% url 'item_list' %}">Items</a>: equipment, weapons and armor.</li>
-</ul>
+<section class="pila lectura" aria-labelledby="h-reglas">
+    <h1 id="h-reglas">{% translate "Reglas del SRD" %}</h1>
+    <p class="atenuado">{% translate "El catálogo de reglas: lo que cargan los fixtures del SRD 5.2.1 y las armas caseras." %}</p>
+    <div class="rejilla-s" style="grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr))">
+        <a class="tarjeta compacta tarjeta-enlace" href="{% url 'race_list' %}"><b>{% translate "Razas" %}</b><span class="pequeno atenuado">{% translate "Velocidad y las habilidades que otorga cada raza." %}</span></a>
+        <a class="tarjeta compacta tarjeta-enlace" href="{% url 'subrace_list' %}"><b>{% translate "Linajes" %}</b><span class="pequeno atenuado">{% translate "Los linajes de cada raza y lo que añaden." %}</span></a>
+        <a class="tarjeta compacta tarjeta-enlace" href="{% url 'character_class_list' %}"><b>{% translate "Clases" %}</b><span class="pequeno atenuado">{% translate "Las habilidades de cada clase y los conjuros que puede lanzar." %}</span></a>
+        <a class="tarjeta compacta tarjeta-enlace" href="{% url 'subclass_list' %}"><b>{% translate "Subclases" %}</b><span class="pequeno atenuado">{% translate "Las especializaciones de cada clase." %}</span></a>
+        <a class="tarjeta compacta tarjeta-enlace" href="{% url 'spell_list' %}"><b>{% translate "Conjuros" %}</b><span class="pequeno atenuado">{% translate "Componentes, ataques y efectos." %}</span></a>
+        <a class="tarjeta compacta tarjeta-enlace" href="{% url 'item_list' %}"><b>{% translate "Objetos" %}</b><span class="pequeno atenuado">{% translate "Equipo, armas y armaduras." %}</span></a>
+        <a class="tarjeta compacta tarjeta-enlace" href="{% url 'campaign_list' %}"><b>{% translate "Tus campañas" %}</b><span class="pequeno atenuado">{% translate "Sus másteres, jugadores y personajes." %}</span></a>
+        <a class="tarjeta compacta tarjeta-enlace" href="{% url 'character_list' %}"><b>{% translate "Personajes" %}</b><span class="pequeno atenuado">{% translate "Los personajes que puedes ver, con sus datos de reglas." %}</span></a>
+    </div>
+</section>
 {% endblock %}

@@ -1,40 +1,93 @@
-<!DOCTYPE html>
-<html lang="en">
+{% load static i18n %}<!DOCTYPE html>
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}KirokuStory{% endblock %}</title>
+    <title>{% block title %}{% if nav_campaign %}{{ nav_campaign.name }} · {% endif %}Mesa de campaña{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cardo:ital,wght@0,400;0,700;1,400&amp;display=swap">
+    <link rel="stylesheet" href="{% static 'css/mesa.css' %}">
 </head>
-
 <body>
-    <!-- HEADER -->
-    <header>
-        <h1><a href="{% url 'index' %}">KirokuStory</a></h1>
+<a class="saltar" href="#principal">{% translate "Saltar al contenido" %}</a>
 
-        <!-- MENU -->
-        <nav>
-            <ul>
-                <li><a href="{% url 'index' %}">Home</a></li>
-                <li><a href="{% url 'campaign_list' %}">Campaigns</a></li>
-                <li><a href="{% url 'character_list' %}">Characters</a></li>
-                <li><a href="{% url 'race_list' %}">Races</a></li>
-                <li><a href="{% url 'subrace_list' %}">Subraces</a></li>
-                <li><a href="{% url 'character_class_list' %}">Classes</a></li>
-                <li><a href="{% url 'subclass_list' %}">Subclasses</a></li>
-                <li><a href="{% url 'spell_list' %}">Spells</a></li>
-                <li><a href="{% url 'item_list' %}">Items</a></li>
-            </ul>
+<header class="cabecera">
+    <div class="cabecera-inner">
+        <a class="marca" href="{% url 'start' %}">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#DDA15E" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 21 7v10l-9 5-9-5V7z"></path><path d="M12 2 7.5 14h9z"></path><path d="M3 7l4.5 7M21 7l-4.5 7M7.5 14 12 22l4.5-8"></path></svg>
+            <span>Mesa de campaña</span>
+        </a>
+
+        {% if user.is_authenticated and nav_campaigns %}
+        <details class="desplegable">
+            <summary aria-label="{% translate 'Cambiar de campaña' %}">{% if nav_campaign %}{{ nav_campaign.name }}{% else %}{% translate "Tus campañas" %}{% endif %}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></summary>
+            <div class="desplegable-panel">
+                {% for item in nav_campaigns %}
+                <a href="{% url 'home' item.campaign.pk %}" {% if item.campaign == nav_campaign %}class="actual" aria-current="page"{% endif %}>
+                    {{ item.campaign.name }}<small>{{ item.status }} · {% if item.is_master %}{% translate "diriges" %}{% else %}{% translate "juegas" %}{% endif %}</small>
+                </a>
+                {% endfor %}
+            </div>
+        </details>
+        {% endif %}
+
+        {% if nav_items %}
+        <button type="button" class="boton-menu" aria-controls="nav-secciones" aria-expanded="false">{% translate "Menú" %}</button>
+        <nav id="nav-secciones" class="nav" aria-label="{% translate 'Secciones de la campaña' %}">
+            {% for item in nav_items %}
+            <a href="{{ item.url }}" {% if item.current %}aria-current="page"{% endif %}>{{ item.label }}{% if item.badge %} <span class="insignia">{{ item.badge }}</span>{% endif %}</a>
+            {% endfor %}
         </nav>
-    </header>
+        {% else %}
+        <span style="margin-right:auto"></span>
+        {% endif %}
 
-    <!-- MAIN CONTENT -->
-    <main>
-        {% block content %}{% endblock %}
-    </main>
+        {% if user.is_authenticated %}
+        <details class="desplegable">
+            <summary>{{ user.get_short_name|default:user.username }}</summary>
+            <div class="desplegable-panel derecha">
+                {% if user.is_staff %}<a href="{% url 'admin:index' %}">{% translate "Administración" %}</a>{% endif %}
+                <a href="{% url 'index' %}">{% translate "Reglas del SRD" %}</a>
+                <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">{% translate "Cerrar sesión" %}</button></form>
+            </div>
+        </details>
+        {% endif %}
+    </div>
+</header>
 
-    <!-- FOOTER: attribution required by the CC-BY-4.0 license of the SRD 5.2.1 data -->
-    <footer>
+<main id="principal" class="contenido">
+    {% if messages %}
+    <div class="pila-s" role="status">
+        {% for message in messages %}<p class="mensaje{% if message.level_tag == 'error' %} error{% endif %}">{{ message }}</p>{% endfor %}
+    </div>
+    {% endif %}
+    {% block content %}{% endblock %}
+</main>
+
+<footer class="pie">
+    <div class="pie-inner">
         <p lang="es">Esta obra incluye material procedente del documento de referencia del sistema 5.2.1 (“SRD 5.2.1”) de Wizards of the Coast LLC, disponible en <a href="https://www.dndbeyond.com/srd">https://www.dndbeyond.com/srd</a>. La licencia sobre el SRD 5.2.1 se concede de acuerdo con la licencia internacional de atribución/reconocimiento 4.0 de Creative Commons, disponible en <a href="https://creativecommons.org/licenses/by/4.0/legalcode">https://creativecommons.org/licenses/by/4.0/legalcode</a>.</p>
-    </footer>
+        <div class="fila-s" style="justify-content:space-between">
+            <span>{% translate "Compatible con la quinta edición" %}</span>
+            <form action="{% url 'set_language' %}" method="post" class="fila-s">
+                {% csrf_token %}
+                <input name="next" type="hidden" value="{{ request.get_full_path }}">
+                <label for="idioma">{% translate "Idioma" %}</label>
+                <select id="idioma" name="language" class="entrada" style="width:auto">
+                    {% get_available_languages as LANGUAGES %}
+                    {% for code, name in LANGUAGES %}<option value="{{ code }}" {% if code == LANGUAGE_CODE %}selected{% endif %}>{{ name }}</option>{% endfor %}
+                </select>
+                <button type="submit" class="btn">{% translate "Cambiar" %}</button>
+            </form>
+        </div>
+    </div>
+</footer>
+
+<script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
+<script src="{% static 'js/mesa.js' %}"></script>
+{% block scripts %}{% endblock %}
 </body>
 </html>

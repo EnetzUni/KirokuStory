@@ -1,0 +1,14 @@
+{% extends "world_base.html" %}
+{% load i18n %}
+{% block world %}
+<form method="post" enctype="multipart/form-data" class="tarjeta">
+    {% csrf_token %}
+    <h1 style="font-size:26px">{% if object %}{% translate "Editar página" %}{% else %}{% translate "Nueva página" %}{% endif %}</h1>
+    {{ form.non_field_errors }}
+    {% for field in form %}{% include "partials/field.html" %}{% endfor %}
+    <div class="fila-s">
+        <button type="submit" class="btn btn-principal">{% translate "Guardar" %}</button>
+        <a class="btn" href="{% if object %}{% url 'world_page' campaign.pk object.slug %}{% else %}{% url 'world' campaign.pk %}{% endif %}">{% translate "Cancelar" %}</a>
+    </div>
+</form>
+{% endblock %}

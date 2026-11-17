@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+<section class="pila" aria-labelledby="h-mapa">
+    <div class="cabeza-seccion">
+        <div class="pila-s" style="gap:4px"><h1 id="h-mapa">{% translate "Mapa" %}</h1>
+            <p class="atenuado">{% if current_map and md.moves %}{% translate "Mueve la barra para ver por dónde iba el grupo en cada sesión." %}{% else %}{% translate "Pulsa un lugar para ver qué sabe el grupo de él." %}{% endif %}</p></div>
+        {% if maps %}<nav class="pestanas" aria-label="{% translate 'Mapas' %}">{% for m in maps %}<a href="?mapa={{ m.pk }}" {% if m == current_map %}aria-current="page"{% endif %}>{{ m.name }}</a>{% endfor %}</nav>{% endif %}
+    </div>
+    {% if is_master %}
+    <div class="fila-s">
+        {% if current_map %}
+        <form method="post" action="{% url 'map_edit' campaign.pk current_map.pk %}" enctype="multipart/form-data" class="fila-s">
+            {% csrf_token %}
+            <label for="mapa-nombre" class="pequeno atenuado">{% translate "Nombre" %}</label>
+            <input id="mapa-nombre" class="entrada" style="width:170px" type="text" name="name" value="{{ current_map.name }}" required maxlength="100">
+            <input type="hidden" name="order" value="{{ current_map.order }}">
+            <label class="btn" style="position:relative">{% if current_map.image %}{% translate "Cambiar imagen" %}{% else %}{% translate "Subir imagen" %}{% endif %}
+                <input type="file" name="image" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer"></label>
+            <button type="submit" class="btn">{% translate "Guardar mapa" %}</button>
+        </form>
+        <a class="btn" href="?mapa={{ current_map.pk }}&amp;colocar=1" data-ajax-link>{% translate "Añadir lugar" %}</a>
+        {% endif %}
+        <form method="post" action="{% url 'map_new' campaign.pk %}" class="en-linea">{% csrf_token %}<button type="submit" class="btn btn-discreto">+ {% translate "Nuevo mapa" %}</button></form>
+    </div>
+    {% endif %}
+    <p id="mensaje-ajax" class="mensaje" role="status" hidden></p>
+    {% if not maps %}<p class="atenuado">{% translate "Esta campaña todavía no tiene mapa." %}</p>{% else %}{% include "partials/map_section.html" %}{% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "diary_base.html" %}
+{% load i18n mesa %}
+{% block diary %}
+<div class="pila lectura">
+    {% if is_master %}<a class="btn btn-principal" style="align-self:flex-start" href="{% url 'diary_session_new' campaign.pk %}">+ {% translate "Nueva crónica" %}</a>{% endif %}
+    {% for session in sessions %}
+    <article class="tarjeta" style="padding:24px 28px">
+        <span class="rotulo">{% translate "Sesión" %} {{ session.number }} · {{ session.played_on|date:"l j M Y" }}{% if session.world_day %} · {{ session.world_day }}{% endif %}{% if not session.published %} · <span class="pastilla p-morado">{% translate "Sin publicar" %}</span>{% endif %}</span>
+        <h2 style="font-size:28px">{{ session.title }}</h2>
+        <div class="cronica pila-s" style="gap:12px">{% wiki session.body %}</div>
+        <div class="fila-s">
+            <span class="pastilla">{% translate "XP repartida" %}: {{ session.xp_awarded }}</span>
+            {% if session.loot %}<span class="pastilla">{% translate "Botín" %}: {{ session.loot }}</span>{% endif %}
+        </div>
+        {% if is_master %}
+        {% if session.master_notes %}<div class="secreto"><span class="rotulo">{% translate "Notas del máster · solo las ves tú" %}</span><span>{{ session.master_notes }}</span></div>{% endif %}
+        <a class="btn" style="align-self:flex-start" href="{% url 'diary_session_edit' campaign.pk session.pk %}">{% translate "Editar crónica" %}</a>
+        {% endif %}
+    </article>
+    {% empty %}
+    <p class="atenuado">{% translate "Todavía no se ha jugado ninguna sesión." %}</p>
+    {% endfor %}
+</div>
+{% endblock %}

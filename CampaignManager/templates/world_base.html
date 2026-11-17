@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load i18n mesa %}
+{% block content %}
+<section class="fila" style="gap:24px" aria-label="{% translate 'Mundo' %}">
+    <aside class="tarjeta compacta" style="flex:1 1 250px;min-width:0">
+        <form method="get" action="{% url 'world' campaign.pk %}" role="search" class="campo">
+            <label for="buscar-mundo" class="rotulo">{% translate "Buscar en el mundo" %}</label>
+            <input id="buscar-mundo" class="entrada" type="search" name="q" value="{{ q }}" placeholder="{% translate 'Lugar, PNJ, objeto…' %}">
+        </form>
+        <nav class="arbol pila-s" style="gap:10px" aria-label="{% translate 'Páginas del mundo' %}">
+            {% for group in world_groups %}
+            <div>
+                <a class="categoria" href="{% url 'world' campaign.pk %}?cat={{ group.key }}" style="padding-left:8px">{% translate group.label %} <span class="atenuado">{{ group.count }}</span></a>
+                <ul class="lista-limpia" style="gap:0">
+                    {% for item in group.items %}
+                    {% if item.header %}<li class="grupo" style="padding-left:16px">{{ item.header.title }}</li>
+                    {% elif item.character %}<li><a href="{% url 'sheet' campaign.pk item.character.pk %}" style="padding-left:16px">{{ item.character.name }}</a></li>
+                    {% else %}<li><a href="{% url 'world_page' campaign.pk item.page.slug %}" style="padding-left:{{ item.pad }}px" {% if current_page and current_page.pk == item.page.pk %}aria-current="page"{% endif %}>
+                        <span>{{ item.page.title }}</span>{% if not item.page.revealed %}<span class="pastilla p-morado" style="font-size:10px">{% translate "OCULTO" %}</span>{% endif %}</a></li>{% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endfor %}
+        </nav>
+        {% if no_results %}<p class="pequeno atenuado">{% translate "No hay nada con ese nombre." %}</p>{% endif %}
+        {% if is_master %}<a class="btn btn-discreto" href="{% url 'world_new' campaign.pk %}">+ {% translate "Nueva página" %}</a>{% endif %}
+    </aside>
+    <div class="ancho pila">
+        {% block world %}{% endblock %}
+    </div>
+</section>
+{% endblock %}

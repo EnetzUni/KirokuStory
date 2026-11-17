@@ -1,0 +1,14 @@
+{% comment %}A map with its pins, route and party. Needs `md` (mapping.map_data) and `campaign`; `selected` and `link_pins` are optional.{% endcomment %}{% load l10n %}{% localize off %}
+<div class="mapa{% if placing %} colocando{% endif %}" style="aspect-ratio:1.6"{% if placing %} data-colocar="#form-nuevo-lugar" data-unidad="%"{% endif %}>
+    {% if md.map.image %}<img src="{{ md.map.image.url }}" alt="Mapa de {{ md.map.name }}">
+    {% else %}<div class="vacio">{% if is_master %}Este mapa todavía no tiene imagen. Súbela con «Subir imagen».{% else %}El máster todavía no ha subido la imagen de este mapa.{% endif %}</div>{% endif %}
+    {% if md.route %}<svg class="ruta" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ md.route }}" fill="none" stroke="#BC6C25" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline></svg>{% endif %}
+    {% if md.party %}<span class="grupo-aqui" style="left:{{ md.party.x }}%;top:{{ md.party.y }}%" aria-hidden="true"></span>{% endif %}
+    {% for loc in md.locations %}
+    {% if link_pins %}<a class="pin {{ loc.status }}" href="{% url 'map' campaign.pk %}?mapa={{ md.map.pk }}&amp;lugar={{ loc.pk }}"{% if ajax_pins %} data-ajax-link{% endif %} style="left:{{ loc.x }}%;top:{{ loc.y }}%" aria-label="{{ loc.name }}, {{ loc.get_status_display|lower }}" {% if selected == loc %}aria-current="true"{% endif %}><i></i></a>
+    {% else %}<span class="pin {{ loc.status }}" style="left:{{ loc.x }}%;top:{{ loc.y }}%" aria-hidden="true"><i></i></span>{% endif %}
+    <span class="pin-nombre {{ loc.status }}{% if loc.x > 76 %} izquierda{% endif %}" style="left:{{ loc.x }}%;top:{{ loc.y }}%" aria-hidden="true">{{ loc.name }}</span>
+    {% endfor %}
+    {% if draft %}<span class="borrador" style="left:{{ draft.x }}%;top:{{ draft.y }}%" aria-hidden="true"></span>{% endif %}
+</div>
+{% endlocalize %}

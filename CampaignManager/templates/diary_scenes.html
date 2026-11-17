@@ -1,0 +1,25 @@
+{% extends "diary_base.html" %}
+{% load i18n mesa %}
+{% block diary %}
+{% if not scenes and not pc_filter %}
+<p class="atenuado">{% translate "Esta campaña todavía no tiene escenas." %}</p>
+{% if is_master %}<a class="btn btn-principal" style="align-self:flex-start" href="{% url 'diary_scene_new' campaign.pk %}">+ {% translate "Nueva escena" %}</a>{% endif %}
+{% else %}
+<div class="fila">
+    <div class="pila-s" style="flex:1 1 260px;min-width:0">
+        <div class="fila-s" role="group" aria-label="{% translate 'Filtrar por personaje' %}">
+            <a class="chip{% if not pc_filter %} on{% endif %}" href="{% url 'diary_scenes' campaign.pk %}">{% translate "Todas" %}</a>
+            {% for pc in party %}<a class="chip{% if pc_filter == pc.pk|stringformat:'s' %} on{% endif %}" href="{% url 'diary_scenes' campaign.pk %}?pj={{ pc.pk }}">{{ pc.name }}</a>{% endfor %}
+        </div>
+        {% for item in scenes %}
+        <a class="escena-item" href="{% url 'diary_scene' campaign.pk item.scene.pk %}{% if pc_filter %}?pj={{ pc_filter }}{% endif %}" {% if item.scene == scene %}aria-current="page"{% endif %}>
+            <span class="fila-s" style="justify-content:space-between"><b>{{ item.scene.title }}</b>{% if item.turn %}<span class="pastilla p-acento">{% translate "TE TOCA" %}</span>{% endif %}</span>
+            <span class="pequeno atenuado">{% if item.scene.is_open %}{% translate "Abierta" %}{% else %}{% translate "Cerrada" %}{% endif %} · {% if item.scene.location %}{{ item.scene.location.title }}{% else %}{% translate "Sin lugar" %}{% endif %} · {{ item.count }} {% translate "mensajes" %}</span>
+        </a>
+        {% empty %}<p class="atenuado">{% translate "Ninguna escena con ese personaje." %}</p>{% endfor %}
+        {% if is_master %}<a class="btn btn-discreto" href="{% url 'diary_scene_new' campaign.pk %}">+ {% translate "Nueva escena" %}</a>{% endif %}
+    </div>
+    <div class="ancho">{% if scene %}{% include "partials/scene_thread.html" %}{% endif %}</div>
+</div>
+{% endif %}
+{% endblock %}

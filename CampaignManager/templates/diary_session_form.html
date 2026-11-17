@@ -1,0 +1,14 @@
+{% extends "diary_base.html" %}
+{% load i18n %}
+{% block diary %}
+<form method="post" class="tarjeta lectura">
+    {% csrf_token %}
+    <h2>{% if object %}{% translate "Editar crónica" %}{% else %}{% translate "Nueva crónica" %}{% endif %}</h2>
+    {{ form.non_field_errors }}
+    {% for field in form %}{% include "partials/field.html" %}{% endfor %}
+    <div class="fila-s">
+        <button type="submit" class="btn btn-principal">{% translate "Guardar" %}</button>
+        <a class="btn" href="{% url 'diary' campaign.pk %}">{% translate "Cancelar" %}</a>
+    </div>
+</form>
+{% endblock %}

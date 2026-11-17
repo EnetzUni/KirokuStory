@@ -1,0 +1,107 @@
+{% load i18n l10n %}
+<div id="pizarra" class="pila-s" style="gap:12px">
+    {% if mode %}
+    <div class="aviso" role="status" style="flex-direction:row;flex-wrap:wrap;justify-content:space-between;align-items:center">
+        <b style="color:var(--warn-text)">{% if mode == "unir" %}{% translate "Pulsa otra nota para unirla con un hilo rojo." %}{% else %}{% translate "Pulsa en la pizarra donde quieras dejar la nota." %}{% endif %}</b>
+        <a class="btn" href="?nota={{ detail.card.pk }}" data-ajax-link>{% translate "Cancelar" %}</a>
+    </div>
+    {% endif %}
+    <div class="fila" style="gap:16px">
+        {% localize off %}
+        <div class="corcho-marco">
+            <div class="corcho{% if mode == 'mover' %} colocando{% endif %}" style="width:{{ board_w }}px;height:{{ board_h }}px"
+                 {% if mode == "mover" %}data-colocar="#form-mover" data-unidad="px"{% endif %}>
+                {% for item in board_items %}
+                {% if item.can_target %}
+                <form method="post" action="{% url 'diary_card_action' campaign.pk detail.card.pk %}" data-ajax data-target="#pizarra" class="en-linea">
+                    {% csrf_token %}<input type="hidden" name="accion" value="unir"><input type="hidden" name="otra" value="{{ item.card.pk }}">
+                    <button type="submit" class="nota{% if item.locked %} bloqueada{% elif item.card.classified and not item.card.revealed %} clasificada{% endif %}" style="left:{{ item.card.x }}px;top:{{ item.card.y }}px;transform:rotate({{ item.rot }}deg);cursor:copy">
+                {% else %}
+                <a class="nota{% if item.locked %} bloqueada{% elif item.card.classified and not item.card.revealed %} clasificada{% endif %}" href="?nota={{ item.card.pk }}" data-ajax-link
+                   style="left:{{ item.card.x }}px;top:{{ item.card.y }}px;transform:rotate({{ item.rot }}deg)" {% if item.current %}aria-current="true"{% endif %}>
+                {% endif %}
+                    {% if item.stamp %}<span class="sello">{{ item.stamp }}</span>{% endif %}
+                    {% if item.locked %}
+                    <strong>???</strong><span>{% translate "Pista clasificada. El máster la revelará cuando toque." %}</span>
+                    {% else %}
+                    <strong>{{ item.card.title }}</strong><span>{{ item.card.text }}</span>
+                    <small>{% if item.card.author %}{% translate "Apuntada por" %} {{ item.card.author.get_short_name|default:item.card.author.username }}{% endif %}</small>
+                    {% endif %}
+                {% if item.can_target %}</button></form>{% else %}</a>{% endif %}
+                {% endfor %}
+                {% for line in board_lines %}<span class="hilo" style="left:{{ line.x }}px;top:{{ line.y }}px;width:{{ line.len }}px;transform:rotate({{ line.ang }}deg)" aria-hidden="true"></span>{% endfor %}
+                {% for x, y in board_pins %}<span class="chincheta" style="left:{{ x }}px;top:{{ y }}px" aria-hidden="true"></span>{% endfor %}
+            </div>
+        </div>
+        {% endlocalize %}
+
+        <aside class="lateral pila" style="flex:1 1 280px">
+            <div class="tarjeta compacta">
+                {% if not detail %}
+                <p class="atenuado">{% blocktranslate %}Pulsa una nota de la pizarra. Hay {{ hidden_count }} pistas clasificadas sin revelar.{% endblocktranslate %}</p>
+                {% else %}
+                {% if detail.locked %}
+                <h2 style="font-size:22px">{% translate "Nota clasificada" %}</h2>
+                <p class="atenuado">{% translate "El máster todavía no ha revelado esta pista." %}</p>
+                {% else %}
+                <h2 style="font-size:22px">{{ detail.card.title }}</h2>
+                <p class="lectura-p">{{ detail.card.text }}</p>
+                <span class="pequeno atenuado">{% if detail.card.author %}{% translate "Apuntada por" %} {{ detail.card.author.get_short_name|default:detail.card.author.username }} · {% endif %}{{ detail.n_links }} {% if detail.n_links == 1 %}{% translate "hilo" %}{% else %}{% translate "hilos" %}{% endif %}</span>
+                {% endif %}
+                <div class="fila-s">
+                    {% if detail.page %}<a class="btn btn-principal" href="{% url 'world_page' campaign.pk detail.page.slug %}">{% translate "Abrir su página" %}</a>{% endif %}
+                    {% if detail.can_edit %}
+                    <a class="btn" href="?nota={{ detail.card.pk }}&amp;modo=unir" data-ajax-link>{% translate "Unir con otra nota" %}</a>
+                    <a class="btn" href="?nota={{ detail.card.pk }}&amp;modo=mover" data-ajax-link>{% translate "Mover" %}</a>
+                    {% endif %}
+                    {% if is_master and detail.card.classified %}
+                    <form method="post" action="{% url 'diary_card_action' campaign.pk detail.card.pk %}" data-ajax data-target="#pizarra" class="en-linea">{% csrf_token %}
+                        <button type="submit" name="accion" value="revelar" class="btn btn-secreto">{% if detail.card.revealed %}{% translate "Volver a clasificar" %}{% else %}{% translate "Revelar a los jugadores" %}{% endif %}</button></form>
+                    {% endif %}
+                    {% if is_master %}
+                    <form method="post" action="{% url 'diary_card_action' campaign.pk detail.card.pk %}" data-ajax data-target="#pizarra" class="en-linea">{% csrf_token %}
+                        <button type="submit" name="accion" value="clasificar" class="btn">{% if detail.card.classified %}{% translate "Quitar la clasificación" %}{% else %}{% translate "Clasificar" %}{% endif %}</button></form>
+                    {% endif %}
+                    {% if detail.can_delete %}
+                    <form method="post" action="{% url 'diary_card_action' campaign.pk detail.card.pk %}" data-ajax data-target="#pizarra" class="en-linea">{% csrf_token %}
+                        <button type="submit" name="accion" value="quitar" class="btn" style="color:var(--danger-text)">{% translate "Quitar de la pizarra" %}</button></form>
+                    {% endif %}
+                </div>
+                {% if detail.can_edit %}
+                {% if mode == "mover" %}
+                <form id="form-mover" method="post" action="{% url 'diary_card_action' campaign.pk detail.card.pk %}" data-ajax data-target="#pizarra" data-enviar="1" class="fila-s">
+                    {% csrf_token %}<input type="hidden" name="accion" value="mover">
+                    <label class="campo" style="width:96px">X <input class="entrada" type="number" name="x" value="{{ detail.card.x }}" min="0" max="900"></label>
+                    <label class="campo" style="width:96px">Y <input class="entrada" type="number" name="y" value="{{ detail.card.y }}" min="0" max="520"></label>
+                    <button type="submit" class="btn">{% translate "Mover aquí" %}</button>
+                </form>
+                {% endif %}
+                {% if mode == "unir" %}
+                <form method="post" action="{% url 'diary_card_action' campaign.pk detail.card.pk %}" data-ajax data-target="#pizarra" class="fila-s">
+                    {% csrf_token %}<input type="hidden" name="accion" value="unir">
+                    <label class="campo" style="flex:1">{% translate "Unir con" %}
+                        <select name="otra" class="entrada">{% for other in detail.targets %}<option value="{{ other.pk }}">{% if other.classified and not other.revealed and not is_master %}???{% else %}{{ other.title }}{% endif %}</option>{% endfor %}</select></label>
+                    <button type="submit" class="btn">{% translate "Unir" %}</button>
+                </form>
+                {% endif %}
+                <form method="post" action="{% url 'diary_card_action' campaign.pk detail.card.pk %}" data-ajax data-target="#pizarra" class="fila-s">
+                    {% csrf_token %}<input type="hidden" name="accion" value="pagina">
+                    <label class="campo" style="flex:1">{% translate "Enlazar a una página" %}
+                        <select name="pagina" class="entrada"><option value="">{% translate "Ninguna" %}</option>{% for page in visible_pages %}<option value="{{ page.pk }}" {% if detail.card.page_id == page.pk %}selected{% endif %}>{{ page.title }}</option>{% endfor %}</select></label>
+                    <button type="submit" class="btn">{% translate "Guardar" %}</button>
+                </form>
+                {% endif %}
+                {% endif %}
+            </div>
+
+            <form method="post" action="{% url 'diary_card_add' campaign.pk %}" class="tarjeta compacta" data-ajax data-target="#pizarra">
+                {% csrf_token %}
+                <h2 style="font-size:20px">{% translate "Nueva nota" %}</h2>
+                <div class="campo"><label for="bn-titulo">{% translate "Título" %}</label><input id="bn-titulo" class="entrada" type="text" name="title" required maxlength="120"></div>
+                <div class="campo"><label for="bn-texto">{% translate "Texto" %}</label><textarea id="bn-texto" class="entrada" name="text" rows="3"></textarea></div>
+                {% if is_master %}<label class="casilla"><input type="checkbox" name="classified"> {% translate "Clasificada: los jugadores la verán oculta hasta que la reveles" %}</label>{% endif %}
+                <button type="submit" class="btn btn-principal">{% translate "Clavar en la pizarra" %}</button>
+            </form>
+        </aside>
+    </div>
+</div>

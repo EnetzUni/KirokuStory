@@ -1,82 +1,39 @@
 {% extends "base.html" %}
-
-{% block title %}{{ item.name }} | KirokuStory{% endblock %}
-
+{% load i18n %}
+{% block title %}{{ item.name }} · {% translate "Reglas" %}{% endblock %}
 {% block content %}
-<h2>{{ item.name }}</h2>
-
-{% if item.description %}{{ item.description|linebreaks }}{% endif %}
-
-<dl>
-    <dt>Type</dt>
-    <dd>{% if item.template %}Copy of <a href="{% url 'item_detail' item.template.pk %}">{{ item.template.name }}</a>{% else %}Template{% endif %}</dd>
-
-    <dt>Price</dt>
-    <dd>{{ item.price|default_if_none:"—" }}</dd>
-
-    <dt>Consumable</dt>
-    <dd>{{ item.consumable|yesno:"Yes,No" }}</dd>
-
-    <dt>Effects</dt>
-    <dd>{% for row in item.itemeffect_set.all %}{{ row.effect.name }}{% if row.value is not None %} {{ row.value }}{% endif %}{% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}</dd>
-</dl>
-
-{% if item.weapon %}
-<h3>Weapon</h3>
-<dl>
-    <dt>To hit</dt>
-    <dd>{{ item.weapon.to_hit }}</dd>
-
-    <dt>Equipped</dt>
-    <dd>{{ item.weapon.equipped|yesno:"Yes,No" }}</dd>
-</dl>
-
-<h4>Attacks</h4>
-<ul>
-    {% for attack in item.weapon.attacks.all %}
-    <li>{% include "attack_summary.html" %}</li>
-    {% empty %}
-    <li>This weapon makes no attacks.</li>
-    {% endfor %}
-</ul>
-{% endif %}
-
-{% if item.armor %}
-<h3>Armor</h3>
-<dl>
-    <dt>Armor type</dt>
-    <dd>{{ item.armor.armor_type.type }}</dd>
-
-    <dt>AP</dt>
-    <dd>{{ item.armor.ap }}</dd>
-
-    <dt>Magic AP</dt>
-    <dd>{{ item.armor.magic_ap }}</dd>
-
-    <dt>Equipped</dt>
-    <dd>{{ item.armor.equipped|yesno:"Yes,No" }}</dd>
-</dl>
-{% endif %}
-
-{% if not item.template %}
-<h3>Copies</h3>
-<ul>
-    {% for copy in item.copies.all %}
-    <li><a href="{% url 'item_detail' copy.pk %}">{{ copy.name }}</a>{% for row in copy.inventory_set.all %}{% if forloop.first %}, carried by {% endif %}{{ row.character.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</li>
-    {% empty %}
-    <li>This template has no copies.</li>
-    {% endfor %}
-</ul>
-{% endif %}
-
-<h3>Carried by</h3>
-<ul>
-    {% for row in item.inventory_set.all %}
-    <li><a href="{% url 'character_detail' row.character.pk %}">{{ row.character.name }}</a> × {{ row.quantity }}</li>
-    {% empty %}
-    <li>No character carries this item.</li>
-    {% endfor %}
-</ul>
-
-<p><a href="{% url 'item_list' %}">Back to items</a></p>
+<section class="pila" aria-labelledby="h-reglas">
+    <nav class="migas" aria-label="{% translate 'Ruta' %}"><a href="{% url 'index' %}">{% translate "Reglas" %}</a> <span aria-hidden="true">›</span> <a href="{% url 'item_list' %}">{% translate "Objetos" %}</a> <span aria-hidden="true">›</span> <span>{{ item.name }}</span></nav>
+    <h1 id="h-reglas">{{ item.name }}</h1>
+    {% if item.description %}<div class="lectura-p">{{ item.description|linebreaks }}</div>{% endif %}
+    <div class="tarjeta compacta">
+        <p><b>{% translate "Tipo" %}:</b> {% if item.template %}{% translate "Copia de" %} <a href="{% url 'item_detail' item.template_id %}">{{ item.template.name }}</a>{% else %}{% translate "Plantilla" %}{% endif %}
+            · <b>{% translate "Precio" %}:</b> {{ item.price|default_if_none:"—" }}
+            · <b>{% translate "Consumible" %}:</b> {% if item.consumable %}{% translate "Sí" %}{% else %}{% translate "No" %}{% endif %}</p>
+        <p><b>{% translate "Rasgos" %}:</b> {% for row in item.itemeffect_set.all %}<span class="rasgo" title="{{ row.effect.description }}">{{ row.effect.name }}{% if row.value is not None %} {{ row.value }}{% endif %}</span> {% empty %}—{% endfor %}</p>
+    </div>
+    {% if item.weapon %}
+    <div class="tarjeta compacta">
+        <h2 class="rotulo">{% translate "Arma" %}</h2>
+        <p><b>{% translate "Golpe" %}:</b> {{ item.weapon.to_hit }}{% if item.template %} · <b>{% translate "Equipada" %}:</b> {% if item.weapon.equipped %}{% translate "Sí" %}{% else %}{% translate "No" %}{% endif %}{% endif %}</p>
+        <ul class="lista-limpia" style="gap:4px">{% for attack in item.weapon.attacks.all %}<li>{% include "attack_summary.html" %}</li>{% empty %}<li class="atenuado">{% translate "Esta arma no tiene ataques." %}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+    {% if item.armor %}
+    <div class="tarjeta compacta">
+        <h2 class="rotulo">{% translate "Armadura" %}</h2>
+        <p><b>{% translate "Tipo de armadura" %}:</b> {{ item.armor.armor_type.type }} · <b>AP:</b> {{ item.armor.ap }} · <b>{% translate "AP mágico" %}:</b> {{ item.armor.magic_ap }}{% if item.template %} · <b>{% translate "Equipada" %}:</b> {% if item.armor.equipped %}{% translate "Sí" %}{% else %}{% translate "No" %}{% endif %}{% endif %}</p>
+    </div>
+    {% endif %}
+    {% if not item.template %}
+    <div class="tarjeta compacta">
+        <h2 class="rotulo">{% translate "Copias" %}</h2>
+        <ul class="lista-limpia" style="gap:4px">{% for copy in copies %}<li><a href="{% url 'item_detail' copy.pk %}">{{ copy.name }}</a>{% for row in copy.visible_rows %}{% if forloop.first %} · {% translate "la lleva" %} {% endif %}{{ row.character.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</li>{% empty %}<li class="atenuado">{% translate "Ninguno de los personajes que puedes ver lleva una copia." %}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+    <div class="tarjeta compacta">
+        <h2 class="rotulo">{% translate "Lo llevan" %}</h2>
+        <ul class="lista-limpia" style="gap:4px">{% for row in carriers %}<li><a href="{% url 'character_detail' row.character_id %}">{{ row.character.name }}</a> × {{ row.quantity }}</li>{% empty %}<li class="atenuado">{% translate "Ninguno de los personajes que puedes ver lo lleva." %}</li>{% endfor %}</ul>
+    </div>
+</section>
 {% endblock %}

@@ -1,0 +1,70 @@
+{% load i18n l10n %}
+<div id="mapa-seccion" class="fila">
+    <div class="ancho pila-s" style="gap:12px">
+        {% include "partials/map_canvas.html" with link_pins=True ajax_pins=True %}
+        {% if placing %}<p class="mensaje" style="color:var(--link)">{% translate "Pulsa en el mapa donde quieras poner el lugar." %}</p>{% endif %}
+        {% if md.moves %}
+        <form method="get" class="tarjeta compacta" data-ajax-get data-target="#mapa-seccion" style="gap:4px">
+            <input type="hidden" name="mapa" value="{{ current_map.pk }}">
+            <label for="mapa-sesion">{% translate "Recorrido hasta la sesión" %} <strong>{{ until }}</strong>{% if until_session %} <span class="atenuado">· {{ until_session.title }}</span>{% endif %}</label>
+            <input id="mapa-sesion" type="range" name="hasta" min="1" max="{{ max_session }}" step="1" value="{{ until }}" style="width:100%;min-height:40px;accent-color:var(--accent)">
+            <noscript><button type="submit" class="btn">{% translate "Ver" %}</button></noscript>
+        </form>
+        {% endif %}
+    </div>
+    <aside class="lateral pila">
+        <div class="tarjeta compacta">
+            {% if placing %}
+            <form id="form-nuevo-lugar" method="post" action="{% url 'map_location_add' campaign.pk current_map.pk %}" class="pila-s" data-ajax data-target="#mapa-seccion">
+                {% csrf_token %}
+                <h2 style="font-size:22px">{% translate "Nuevo lugar" %}</h2>
+                <div class="campo"><label for="lugar-nombre">{% translate "Nombre" %}</label><input id="lugar-nombre" class="entrada" type="text" name="name" required maxlength="100"></div>
+                {% localize off %}
+                <div class="fila-s">
+                    <label class="campo" style="width:96px">X (%) <input class="entrada" type="number" name="x" value="50" min="0" max="100" step="0.1" required></label>
+                    <label class="campo" style="width:96px">Y (%) <input class="entrada" type="number" name="y" value="50" min="0" max="100" step="0.1" required></label>
+                </div>
+                {% endlocalize %}
+                <div class="fila-s" role="group" aria-label="{% translate 'Estado del lugar' %}">
+                    {% for value, label in location_form.fields.status.choices %}<label class="chip"><input type="radio" name="status" value="{{ value }}" {% if value == "conocido" %}checked{% endif %}>{{ label }}</label>{% endfor %}
+                </div>
+                <p class="ayuda">{% translate "Se crea también su página en el Mundo." %}</p>
+                <div class="fila-s"><button type="submit" class="btn btn-principal">{% translate "Guardar" %}</button>
+                    <a class="btn" href="?mapa={{ current_map.pk }}" data-ajax-link>{% translate "Cancelar" %}</a></div>
+            </form>
+            {% elif detail %}
+            <span class="pastilla {% if detail.location.status == 'visitado' %}p-coral{% elif detail.location.status == 'oculto' %}p-morado{% endif %}" style="align-self:flex-start">{{ detail.location.get_status_display }}{% if detail.location.status == "oculto" %} · {% translate "solo máster" %}{% endif %}</span>
+            <h2 style="font-size:24px">{{ detail.location.name }}</h2>
+            {% if detail.description %}<p class="lectura-p">{{ detail.description }}</p>{% endif %}
+            {% if detail.visits %}<span class="pequeno atenuado">{% translate "El grupo pasó por aquí en la sesión" %} {{ detail.visits|join:", " }}</span>{% endif %}
+            {% if detail.page %}<a class="btn btn-principal" style="align-self:flex-start" href="{% url 'world_page' campaign.pk detail.page.slug %}">{% translate "Abrir su página" %}</a>{% endif %}
+            {% if detail.events %}
+            <div class="pila-s" style="border-top:1px solid var(--line);padding-top:8px;gap:4px">
+                <span class="rotulo">{% translate "Pasó aquí" %}</span>
+                {% for event in detail.events %}<span class="pequeno">{{ event.title }}{% if event.session %} <span class="atenuado">· {% translate "Sesión" %} {{ event.session.number }}</span>{% endif %}</span>{% endfor %}
+            </div>
+            {% endif %}
+            {% if is_master and detail.actions %}
+            <div class="pila-s" style="border-top:1px solid var(--line);padding-top:8px;gap:6px">
+                <span class="rotulo">{% translate "Solo máster" %}</span>
+                {% for action, value, label in detail.actions %}
+                <form method="post" action="{% url 'map_location_action' campaign.pk detail.location.pk %}" data-ajax data-target="#mapa-seccion">
+                    {% csrf_token %}<input type="hidden" name="accion" value="{{ action }}"><input type="hidden" name="valor" value="{{ value }}">
+                    <button type="submit" class="btn" style="width:100%;justify-content:flex-start">{% translate label %}</button></form>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% else %}
+            <p class="atenuado">{% translate "Pulsa un lugar del mapa." %}</p>
+            {% endif %}
+        </div>
+        <div class="tarjeta compacta" style="gap:2px">
+            <span class="rotulo" style="padding:4px 6px">{% translate "Lugares de" %} {{ current_map.name }}</span>
+            {% for loc in places %}
+            <a class="lugar-fila" href="?mapa={{ current_map.pk }}&amp;lugar={{ loc.pk }}{% if query_session %}&amp;hasta={{ query_session }}{% endif %}" data-ajax-link {% if selected == loc %}aria-current="true"{% endif %}>
+                <span class="pin {{ loc.status }}" style="position:static;transform:none;width:auto;height:auto"><i style="width:12px;height:12px"></i></span>
+                <span style="flex:1">{{ loc.name }}</span><span class="pequeno atenuado">{{ loc.get_status_display }}</span></a>
+            {% empty %}<p class="pequeno atenuado">{% translate "Todavía no hay lugares." %}</p>{% endfor %}
+        </div>
+    </aside>
+</div>

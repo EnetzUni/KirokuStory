@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 625" width="1000" height="625">
+<rect x="0" y="0" width="1000" height="625" fill="#BCC6B0"/>
+<path d="M230 0 C200 90 260 160 210 240 C170 300 150 360 175 430 C195 490 150 560 190 625 L1000 625 L1000 0 Z" fill="#FEFAE0" stroke="#8C8A52" stroke-width="3"/>
+<g fill="#B4BC84" stroke="#606C38" stroke-width="2"><circle cx="520" cy="250" r="34"/><circle cx="565" cy="228" r="30"/><circle cx="606" cy="262" r="34"/><circle cx="548" cy="296" r="30"/><circle cx="498" cy="300" r="24"/><circle cx="632" cy="306" r="24"/></g>
+<g fill="#ECCFA2" stroke="#BC6C25" stroke-width="2" stroke-linejoin="round"><path d="M720 500 L770 420 L820 500 Z"/><path d="M790 500 L850 400 L910 500 Z"/><path d="M870 480 L920 410 L970 480 Z"/><path d="M830 565 L875 492 L920 565 Z"/></g>
+<path d="M850 400 C780 360 700 370 640 390 C560 420 480 470 400 460 C320 450 250 445 195 445" fill="none" stroke="#93A99A" stroke-width="6" stroke-linecap="round"/>
+<path d="M190 430 L300 330 L430 380 L560 270 L720 200 L870 110 M430 380 L790 430" fill="none" stroke="#A0875A" stroke-width="2.5" stroke-dasharray="7 7"/>
+<text x="40" y="570" font-size="20" font-style="italic" fill="#3E4E34" font-family="Cardo, Georgia, serif">Mar de las Brumas</text>
+<text x="800" y="600" font-size="18" font-style="italic" fill="#5A4A22" font-family="Cardo, Georgia, serif">Sierra Gris</text>
+</svg>

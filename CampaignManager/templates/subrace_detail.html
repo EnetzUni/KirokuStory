@@ -1,33 +1,24 @@
 {% extends "base.html" %}
-
-{% block title %}{{ subrace.name }} | KirokuStory{% endblock %}
-
+{% load i18n %}
+{% block title %}{{ subrace.name }} · {% translate "Reglas" %}{% endblock %}
 {% block content %}
-<h2>{{ subrace.name }}</h2>
-
-{% if subrace.description %}{{ subrace.description|linebreaks }}{% endif %}
-
-<dl>
-    <dt>Race</dt>
-    <dd><a href="{% url 'race_detail' subrace.race.pk %}">{{ subrace.race.name }}</a></dd>
-</dl>
-
-<h3>Abilities granted</h3>
-{% for row in subrace.subraceability_set.all %}
-<h4>{{ row.ability.name }}{% if row.ability.unique %} (unique){% endif %}, from level {{ row.level_required }}</h4>
-{% if row.ability.description %}{{ row.ability.description|linebreaks }}{% endif %}
-{% empty %}
-<p>This subrace grants no abilities.</p>
-{% endfor %}
-
-<h3>Characters of this subrace</h3>
-<ul>
-    {% for character in subrace.character_set.all %}
-    <li><a href="{% url 'character_detail' character.pk %}">{{ character.name }}</a></li>
-    {% empty %}
-    <li>No characters of this subrace.</li>
-    {% endfor %}
-</ul>
-
-<p><a href="{% url 'subrace_list' %}">Back to subraces</a></p>
+<section class="pila" aria-labelledby="h-reglas">
+    <nav class="migas" aria-label="{% translate 'Ruta' %}"><a href="{% url 'index' %}">{% translate "Reglas" %}</a> <span aria-hidden="true">›</span> <a href="{% url 'subrace_list' %}">{% translate "Linajes" %}</a> <span aria-hidden="true">›</span> <span>{{ subrace.name }}</span></nav>
+    <h1 id="h-reglas">{{ subrace.name }}</h1>
+    {% if subrace.description %}<div class="lectura-p">{{ subrace.description|linebreaks }}</div>{% endif %}
+    <p><b>{% translate "Raza" %}:</b> <a href="{% url 'race_detail' subrace.race_id %}">{{ subrace.race.name }}</a></p>
+    <div class="tarjeta compacta">
+        <h2 class="rotulo">{% translate "Habilidades que otorga" %}</h2>
+        {% for row in subrace.subraceability_set.all %}
+        <details><summary><b>{{ row.ability.name }}</b>{% if row.ability.unique %} <span class="pastilla p-morado">{% translate "Única" %}</span>{% endif %} <span class="pequeno atenuado">· {% translate "desde el nivel" %} {{ row.level_required }}</span></summary>{{ row.ability.description|linebreaks }}</details>
+        {% empty %}<p class="atenuado">{% translate "Este linaje no otorga habilidades." %}</p>{% endfor %}
+    </div>
+    <div class="tarjeta compacta">
+        <h2 class="rotulo">{% translate "Personajes" %}</h2>
+        <ul class="lista-limpia" style="gap:4px">
+            {% for character in characters %}<li><a href="{% url 'character_detail' character.pk %}">{{ character.name }}</a>{% if character.is_npc %} <span class="pastilla">{% translate "PNJ" %}</span>{% endif %}</li>
+            {% empty %}<li class="atenuado">{% translate "No hay personajes de este linaje que puedas ver." %}</li>{% endfor %}
+        </ul>
+    </div>
+</section>
 {% endblock %}

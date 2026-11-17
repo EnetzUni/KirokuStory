@@ -1,0 +1,3705 @@
+[
+{
+ "model": "CampaignManager.user",
+ "pk": 1,
+ "fields": {
+  "password": "pbkdf2_sha256$1500000$3sGRMThweP5UpXbNvgfhRy$mUWmThTFO77M/SEnXFgvSBt5eNEhvLwPjZjH+TCs0ow=",
+  "last_login": null,
+  "is_superuser": false,
+  "username": "carlos",
+  "first_name": "Carlos",
+  "last_name": "",
+  "email": "carlos@example.com",
+  "is_staff": true,
+  "is_active": true,
+  "date_joined": "2026-11-17T12:12:28.682Z",
+  "groups": [
+   [
+    "Reglas"
+   ],
+   [
+    "Campañas"
+   ]
+  ],
+  "user_permissions": []
+ }
+},
+{
+ "model": "CampaignManager.user",
+ "pk": 2,
+ "fields": {
+  "password": "pbkdf2_sha256$1500000$XxonGZKtPcDL0dD6I6SIAw$9kdsNPCsTKRjQjozTycD+3ApmmEWi3ENAYdQXINWukE=",
+  "last_login": null,
+  "is_superuser": false,
+  "username": "lucia",
+  "first_name": "Lucía",
+  "last_name": "",
+  "email": "lucia@example.com",
+  "is_staff": false,
+  "is_active": true,
+  "date_joined": "2026-11-17T12:12:29.054Z",
+  "groups": [],
+  "user_permissions": []
+ }
+},
+{
+ "model": "CampaignManager.user",
+ "pk": 3,
+ "fields": {
+  "password": "pbkdf2_sha256$1500000$TiKgY8xvfofF3Y2Iyx8sXx$cKkecmFeJuFosGaM/sDoJUSCJans6VZ28ZhO4SYE1WQ=",
+  "last_login": null,
+  "is_superuser": false,
+  "username": "iker",
+  "first_name": "Iker",
+  "last_name": "",
+  "email": "iker@example.com",
+  "is_staff": false,
+  "is_active": true,
+  "date_joined": "2026-11-17T12:12:29.419Z",
+  "groups": [],
+  "user_permissions": []
+ }
+},
+{
+ "model": "CampaignManager.user",
+ "pk": 4,
+ "fields": {
+  "password": "pbkdf2_sha256$1500000$910sN94PbL68L9v8caJ81y$3wnI9JgoVUQOG35eEVzCVQvK7SGB1BlZGuEUlpnVkAo=",
+  "last_login": null,
+  "is_superuser": false,
+  "username": "ane",
+  "first_name": "Ane",
+  "last_name": "",
+  "email": "ane@example.com",
+  "is_staff": false,
+  "is_active": true,
+  "date_joined": "2026-11-17T12:12:29.780Z",
+  "groups": [],
+  "user_permissions": []
+ }
+},
+{
+ "model": "CampaignManager.user",
+ "pk": 5,
+ "fields": {
+  "password": "pbkdf2_sha256$1500000$0dh1WuVLxNO49xf9NAJx6Q$NvBoxW3UhAGw63bqm9Y1zaL4t8it5hF82ruI4mrtDcQ=",
+  "last_login": null,
+  "is_superuser": false,
+  "username": "unai",
+  "first_name": "Unai",
+  "last_name": "",
+  "email": "unai@example.com",
+  "is_staff": false,
+  "is_active": true,
+  "date_joined": "2026-11-17T12:12:30.146Z",
+  "groups": [],
+  "user_permissions": []
+ }
+},
+{
+ "model": "CampaignManager.campaign",
+ "pk": 1,
+ "fields": {
+  "name": "La Corona de Ceniza",
+  "description": "Una corona partida en dos, un mercader que paga demasiado y una torre que vigila desde las ruinas.",
+  "start_date": "2026-09-12",
+  "status": "activa",
+  "cover": "",
+  "notice": "Traed la ficha al día: la sesión 7 empieza subiendo a nivel 5.",
+  "world_day": "Día 9 de Brumaluz",
+  "world_year": "año 1203",
+  "masters": [
+   [
+    "carlos"
+   ]
+  ],
+  "players": [
+   [
+    "lucia"
+   ],
+   [
+    "iker"
+   ],
+   [
+    "ane"
+   ],
+   [
+    "unai"
+   ]
+  ]
+ }
+},
+{
+ "model": "CampaignManager.campaign",
+ "pk": 2,
+ "fields": {
+  "name": "Ecos de Kioto",
+  "description": "",
+  "start_date": "2026-03-07",
+  "status": "pausada",
+  "cover": "",
+  "notice": "En pausa hasta enero.",
+  "world_day": "Festival de las linternas",
+  "world_year": "año del Tigre",
+  "masters": [
+   [
+    "carlos"
+   ],
+   [
+    "iker"
+   ]
+  ],
+  "players": [
+   [
+    "lucia"
+   ],
+   [
+    "ane"
+   ]
+  ]
+ }
+},
+{
+ "model": "CampaignManager.campaign",
+ "pk": 3,
+ "fields": {
+  "name": "Prólogo en Puerto Gris",
+  "description": "",
+  "start_date": "2025-11-02",
+  "status": "terminada",
+  "cover": "",
+  "notice": "",
+  "world_day": "Último día de otoño",
+  "world_year": "año 1202",
+  "masters": [
+   [
+    "carlos"
+   ]
+  ],
+  "players": [
+   [
+    "iker"
+   ],
+   [
+    "ane"
+   ]
+  ]
+ }
+},
+{
+ "model": "CampaignManager.character",
+ "pk": 1,
+ "fields": {
+  "name": "Aria",
+  "xp": 6500,
+  "hp": 28,
+  "temp_hp": 24,
+  "ac": 12,
+  "temp_ap": 1,
+  "inspiration": 0,
+  "strength": 8,
+  "dexterity": 14,
+  "constitution": 13,
+  "intelligence": 17,
+  "wisdom": 12,
+  "charisma": 10,
+  "portrait": "",
+  "background": "Aprendiz expulsada de la Academia de Puerto Gris por leer libros prohibidos. Busca a quien escribió las runas del pacto.",
+  "notes": "Preguntar a Oswin qué hay en la caja.",
+  "status": "aprobado",
+  "death_successes": 0,
+  "death_failures": 0,
+  "magic_points": 9,
+  "magic_points_max": 12,
+  "player": [
+   "lucia"
+  ],
+  "char_class": 9,
+  "subclass": 9,
+  "race": 2,
+  "subrace": 11,
+  "is_npc": false,
+  "template": null,
+  "campaigns": [
+   2,
+   1
+  ],
+  "spells": [
+   18,
+   31,
+   99,
+   111,
+   123,
+   196,
+   201,
+   261,
+   266,
+   267,
+   319
+  ]
+ }
+},
+{
+ "model": "CampaignManager.character",
+ "pk": 2,
+ "fields": {
+  "name": "Brom",
+  "xp": 2700,
+  "hp": 40,
+  "temp_hp": 33,
+  "ac": 16,
+  "temp_ap": 3,
+  "inspiration": 1,
+  "strength": 18,
+  "dexterity": 12,
+  "constitution": 16,
+  "intelligence": 9,
+  "wisdom": 11,
+  "charisma": 10,
+  "portrait": "",
+  "background": "Herrero de Robleda. Su hermano desapareció en el incendio de los muelles de Puerto Gris.",
+  "notes": "Le debo 20 po a Kaida.",
+  "status": "aprobado",
+  "death_successes": 0,
+  "death_failures": 0,
+  "magic_points": 0,
+  "magic_points_max": null,
+  "player": [
+   "iker"
+  ],
+  "char_class": 7,
+  "subclass": 7,
+  "race": 3,
+  "subrace": null,
+  "is_npc": false,
+  "template": null,
+  "campaigns": [
+   1,
+   3
+  ],
+  "spells": []
+ }
+},
+{
+ "model": "CampaignManager.character",
+ "pk": 3,
+ "fields": {
+  "name": "Kaida",
+  "xp": 2700,
+  "hp": 27,
+  "temp_hp": 19,
+  "ac": 14,
+  "temp_ap": 2,
+  "inspiration": 0,
+  "strength": 10,
+  "dexterity": 17,
+  "constitution": 12,
+  "intelligence": 13,
+  "wisdom": 10,
+  "charisma": 14,
+  "portrait": "",
+  "background": "Ladrona con deudas en los muelles. Dice que la corona no le importa; nadie la cree.",
+  "notes": "",
+  "status": "aprobado",
+  "death_successes": 0,
+  "death_failures": 0,
+  "magic_points": 0,
+  "magic_points_max": null,
+  "player": [
+   "ane"
+  ],
+  "char_class": 12,
+  "subclass": 12,
+  "race": 9,
+  "subrace": 24,
+  "is_npc": false,
+  "template": null,
+  "campaigns": [
+   1,
+   3
+  ],
+  "spells": []
+ }
+},
+{
+ "model": "CampaignManager.character",
+ "pk": 4,
+ "fields": {
+  "name": "Hana",
+  "xp": 900,
+  "hp": 22,
+  "temp_hp": 22,
+  "ac": 15,
+  "temp_ap": 0,
+  "inspiration": 0,
+  "strength": 12,
+  "dexterity": 16,
+  "constitution": 13,
+  "intelligence": 10,
+  "wisdom": 15,
+  "charisma": 8,
+  "portrait": "",
+  "background": "Monja del templo del río. Busca al ladrón que se llevó las linternas sagradas.",
+  "notes": "",
+  "status": "aprobado",
+  "death_successes": 0,
+  "death_failures": 0,
+  "magic_points": 0,
+  "magic_points_max": null,
+  "player": [
+   "ane"
+  ],
+  "char_class": 10,
+  "subclass": 10,
+  "race": 6,
+  "subrace": null,
+  "is_npc": false,
+  "template": null,
+  "campaigns": [
+   2
+  ],
+  "spells": []
+ }
+},
+{
+ "model": "CampaignManager.character",
+ "pk": 5,
+ "fields": {
+  "name": "Saqueador orco",
+  "xp": 300,
+  "hp": 15,
+  "temp_hp": 15,
+  "ac": 13,
+  "temp_ap": 2,
+  "inspiration": 0,
+  "strength": 16,
+  "dexterity": 12,
+  "constitution": 16,
+  "intelligence": 7,
+  "wisdom": 11,
+  "charisma": 10,
+  "portrait": "",
+  "background": "",
+  "notes": "",
+  "status": "aprobado",
+  "death_successes": 0,
+  "death_failures": 0,
+  "magic_points": 0,
+  "magic_points_max": null,
+  "player": null,
+  "char_class": 7,
+  "subclass": null,
+  "race": 8,
+  "subrace": null,
+  "is_npc": true,
+  "template": null,
+  "campaigns": [],
+  "spells": []
+ }
+},
+{
+ "model": "CampaignManager.character",
+ "pk": 6,
+ "fields": {
+  "name": "Oswin, el mercader",
+  "xp": 0,
+  "hp": 9,
+  "temp_hp": 9,
+  "ac": 10,
+  "temp_ap": 0,
+  "inspiration": 0,
+  "strength": 9,
+  "dexterity": 11,
+  "constitution": 10,
+  "intelligence": 14,
+  "wisdom": 13,
+  "charisma": 15,
+  "portrait": "",
+  "background": "",
+  "notes": "",
+  "status": "aprobado",
+  "death_successes": 0,
+  "death_failures": 0,
+  "magic_points": 4,
+  "magic_points_max": 4,
+  "player": null,
+  "char_class": 2,
+  "subclass": null,
+  "race": 7,
+  "subrace": null,
+  "is_npc": true,
+  "template": null,
+  "campaigns": [
+   1
+  ],
+  "spells": []
+ }
+},
+{
+ "model": "CampaignManager.character",
+ "pk": 7,
+ "fields": {
+  "name": "Lady Morwen",
+  "xp": 14000,
+  "hp": 44,
+  "temp_hp": 44,
+  "ac": 15,
+  "temp_ap": 3,
+  "inspiration": 0,
+  "strength": 10,
+  "dexterity": 14,
+  "constitution": 14,
+  "intelligence": 12,
+  "wisdom": 13,
+  "charisma": 18,
+  "portrait": "",
+  "background": "",
+  "notes": "",
+  "status": "aprobado",
+  "death_successes": 0,
+  "death_failures": 0,
+  "magic_points": 10,
+  "magic_points_max": 10,
+  "player": null,
+  "char_class": 3,
+  "subclass": 3,
+  "race": 9,
+  "subrace": 22,
+  "is_npc": true,
+  "template": null,
+  "campaigns": [
+   1
+  ],
+  "spells": []
+ }
+},
+{
+ "model": "CampaignManager.character",
+ "pk": 8,
+ "fields": {
+  "name": "Saqueador orco 1",
+  "xp": 300,
+  "hp": 15,
+  "temp_hp": 15,
+  "ac": 13,
+  "temp_ap": 2,
+  "inspiration": 0,
+  "strength": 16,
+  "dexterity": 12,
+  "constitution": 16,
+  "intelligence": 7,
+  "wisdom": 11,
+  "charisma": 10,
+  "portrait": "",
+  "background": "",
+  "notes": "",
+  "status": "aprobado",
+  "death_successes": 0,
+  "death_failures": 0,
+  "magic_points": 0,
+  "magic_points_max": null,
+  "player": null,
+  "char_class": 7,
+  "subclass": null,
+  "race": 8,
+  "subrace": null,
+  "is_npc": true,
+  "template": 5,
+  "campaigns": [
+   1
+  ],
+  "spells": []
+ }
+},
+{
+ "model": "CampaignManager.character",
+ "pk": 9,
+ "fields": {
+  "name": "Saqueador orco 2",
+  "xp": 300,
+  "hp": 15,
+  "temp_hp": 15,
+  "ac": 13,
+  "temp_ap": 2,
+  "inspiration": 0,
+  "strength": 16,
+  "dexterity": 12,
+  "constitution": 16,
+  "intelligence": 7,
+  "wisdom": 11,
+  "charisma": 10,
+  "portrait": "",
+  "background": "",
+  "notes": "",
+  "status": "aprobado",
+  "death_successes": 0,
+  "death_failures": 0,
+  "magic_points": 0,
+  "magic_points_max": null,
+  "player": null,
+  "char_class": 7,
+  "subclass": null,
+  "race": 8,
+  "subrace": null,
+  "is_npc": true,
+  "template": 5,
+  "campaigns": [
+   1
+  ],
+  "spells": []
+ }
+},
+{
+ "model": "CampaignManager.characterability",
+ "pk": 1,
+ "fields": {
+  "character": 1,
+  "ability": 144,
+  "max_uses": 1,
+  "uses_left": 1,
+  "recharge": "largo",
+  "cooldown_rounds": null,
+  "cooldown_left": 0
+ }
+},
+{
+ "model": "CampaignManager.characterability",
+ "pk": 2,
+ "fields": {
+  "character": 1,
+  "ability": 263,
+  "max_uses": null,
+  "uses_left": 0,
+  "recharge": "ninguno",
+  "cooldown_rounds": 3,
+  "cooldown_left": 1
+ }
+},
+{
+ "model": "CampaignManager.characterability",
+ "pk": 3,
+ "fields": {
+  "character": 2,
+  "ability": 110,
+  "max_uses": 2,
+  "uses_left": 1,
+  "recharge": "corto",
+  "cooldown_rounds": null,
+  "cooldown_left": 0
+ }
+},
+{
+ "model": "CampaignManager.characterability",
+ "pk": 4,
+ "fields": {
+  "character": 2,
+  "ability": 111,
+  "max_uses": 1,
+  "uses_left": 1,
+  "recharge": "corto",
+  "cooldown_rounds": null,
+  "cooldown_left": 0
+ }
+},
+{
+ "model": "CampaignManager.characterability",
+ "pk": 5,
+ "fields": {
+  "character": 2,
+  "ability": 287,
+  "max_uses": null,
+  "uses_left": 0,
+  "recharge": "ninguno",
+  "cooldown_rounds": 3,
+  "cooldown_left": 0
+ }
+},
+{
+ "model": "CampaignManager.characterability",
+ "pk": 6,
+ "fields": {
+  "character": 3,
+  "ability": 209,
+  "max_uses": null,
+  "uses_left": 0,
+  "recharge": "ninguno",
+  "cooldown_rounds": 2,
+  "cooldown_left": 0
+ }
+},
+{
+ "model": "CampaignManager.characterability",
+ "pk": 7,
+ "fields": {
+  "character": 3,
+  "ability": 285,
+  "max_uses": 1,
+  "uses_left": 0,
+  "recharge": "largo",
+  "cooldown_rounds": null,
+  "cooldown_left": 0
+ }
+},
+{
+ "model": "CampaignManager.characterability",
+ "pk": 8,
+ "fields": {
+  "character": 4,
+  "ability": 165,
+  "max_uses": null,
+  "uses_left": 0,
+  "recharge": "ninguno",
+  "cooldown_rounds": 1,
+  "cooldown_left": 0
+ }
+},
+{
+ "model": "CampaignManager.characterability",
+ "pk": 9,
+ "fields": {
+  "character": 5,
+  "ability": 288,
+  "max_uses": null,
+  "uses_left": 0,
+  "recharge": "ninguno",
+  "cooldown_rounds": 3,
+  "cooldown_left": 0
+ }
+},
+{
+ "model": "CampaignManager.characterability",
+ "pk": 10,
+ "fields": {
+  "character": 7,
+  "ability": 289,
+  "max_uses": 1,
+  "uses_left": 1,
+  "recharge": "largo",
+  "cooldown_rounds": null,
+  "cooldown_left": 0
+ }
+},
+{
+ "model": "CampaignManager.characterability",
+ "pk": 11,
+ "fields": {
+  "character": 8,
+  "ability": 288,
+  "max_uses": null,
+  "uses_left": 0,
+  "recharge": "ninguno",
+  "cooldown_rounds": 3,
+  "cooldown_left": 0
+ }
+},
+{
+ "model": "CampaignManager.characterability",
+ "pk": 12,
+ "fields": {
+  "character": 9,
+  "ability": 288,
+  "max_uses": null,
+  "uses_left": 0,
+  "recharge": "ninguno",
+  "cooldown_rounds": 3,
+  "cooldown_left": 0
+ }
+},
+{
+ "model": "CampaignManager.ability",
+ "pk": 287,
+ "fields": {
+  "name": "Grito de guerra",
+  "unique": false,
+  "description": "Habilidad casera de prueba: los aliados adyacentes tienen +1 to hit hasta tu siguiente turno.",
+  "effects": []
+ }
+},
+{
+ "model": "CampaignManager.ability",
+ "pk": 288,
+ "fields": {
+  "name": "Grito salvaje",
+  "unique": false,
+  "description": "Habilidad casera de prueba: +2 al daño en este turno.",
+  "effects": []
+ }
+},
+{
+ "model": "CampaignManager.ability",
+ "pk": 289,
+ "fields": {
+  "name": "Pacto de la Ceniza",
+  "unique": true,
+  "description": "Habilidad única de Lady Morwen.",
+  "effects": []
+ }
+},
+{
+ "model": "CampaignManager.activeeffect",
+ "pk": 1,
+ "fields": {
+  "character": 3,
+  "effect": 9,
+  "remaining_turns": 2
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 157,
+ "fields": {
+  "name": "Gambesón",
+  "price": null,
+  "description": "Armadura ligera.",
+  "consumable": false,
+  "template": null
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 158,
+ "fields": {
+  "name": "Cuero tachonado",
+  "price": null,
+  "description": "Armadura ligera.",
+  "consumable": false,
+  "template": null
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 159,
+ "fields": {
+  "name": "Brigantina",
+  "price": null,
+  "description": "Armadura media.",
+  "consumable": false,
+  "template": null
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 160,
+ "fields": {
+  "name": "Cota de mallas",
+  "price": null,
+  "description": "Armadura pesada.",
+  "consumable": false,
+  "template": null
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 161,
+ "fields": {
+  "name": "Túnica rúnica",
+  "price": null,
+  "description": "Armadura ligera.",
+  "consumable": false,
+  "template": null
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 162,
+ "fields": {
+  "name": "Libro de conjuros",
+  "price": null,
+  "description": "Las páginas de Aria, con sus conjuros copiados a mano.",
+  "consumable": false,
+  "template": null
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 163,
+ "fields": {
+  "name": "Tiza",
+  "price": null,
+  "description": "Para marcar paredes y copiar runas.",
+  "consumable": false,
+  "template": null
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 164,
+ "fields": {
+  "name": "Flechas",
+  "price": null,
+  "description": "Munición para arcos.",
+  "consumable": false,
+  "template": null
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 165,
+ "fields": {
+  "name": "Anillo de plata con runa",
+  "price": null,
+  "description": "Lo encontró Kaida en las ruinas de Vel-Ithar.",
+  "consumable": false,
+  "template": null
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 166,
+ "fields": {
+  "name": "Daga",
+  "price": null,
+  "description": "",
+  "consumable": false,
+  "template": 133
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 167,
+ "fields": {
+  "name": "Túnica rúnica",
+  "price": null,
+  "description": "Armadura ligera.",
+  "consumable": false,
+  "template": 161
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 168,
+ "fields": {
+  "name": "Gran mazo",
+  "price": null,
+  "description": "Con FUE ≤ 17: −1 de velocidad.",
+  "consumable": false,
+  "template": 140
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 169,
+ "fields": {
+  "name": "Katana",
+  "price": null,
+  "description": "",
+  "consumable": false,
+  "template": 126
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 170,
+ "fields": {
+  "name": "Cota de mallas",
+  "price": null,
+  "description": "Armadura pesada.",
+  "consumable": false,
+  "template": 160
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 171,
+ "fields": {
+  "name": "Brigantina",
+  "price": null,
+  "description": "Armadura media.",
+  "consumable": false,
+  "template": 159
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 172,
+ "fields": {
+  "name": "Arco corto",
+  "price": null,
+  "description": "Solo a dos manos. Alcance 30 m.",
+  "consumable": false,
+  "template": 149
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 173,
+ "fields": {
+  "name": "Daga",
+  "price": null,
+  "description": "",
+  "consumable": false,
+  "template": 133
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 174,
+ "fields": {
+  "name": "Revolver",
+  "price": null,
+  "description": "To hit a una mano: -4 + dex x2.",
+  "consumable": false,
+  "template": 151
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 175,
+ "fields": {
+  "name": "Cuero tachonado",
+  "price": null,
+  "description": "Armadura ligera.",
+  "consumable": false,
+  "template": 158
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 176,
+ "fields": {
+  "name": "Lanza",
+  "price": null,
+  "description": "Alcance 2. El Empuje solo funciona contra una carga.",
+  "consumable": false,
+  "template": 137
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 177,
+ "fields": {
+  "name": "Hachuela",
+  "price": null,
+  "description": "",
+  "consumable": false,
+  "template": 144
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 178,
+ "fields": {
+  "name": "Cuero tachonado",
+  "price": null,
+  "description": "Armadura ligera.",
+  "consumable": false,
+  "template": 158
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 179,
+ "fields": {
+  "name": "Revolver",
+  "price": null,
+  "description": "To hit a una mano: -4 + dex x2.",
+  "consumable": false,
+  "template": 151
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 180,
+ "fields": {
+  "name": "Brigantina",
+  "price": null,
+  "description": "Armadura media.",
+  "consumable": false,
+  "template": 159
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 181,
+ "fields": {
+  "name": "Hachuela",
+  "price": null,
+  "description": "",
+  "consumable": false,
+  "template": 144
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 182,
+ "fields": {
+  "name": "Cuero tachonado",
+  "price": null,
+  "description": "Armadura ligera.",
+  "consumable": false,
+  "template": 158
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 183,
+ "fields": {
+  "name": "Hachuela",
+  "price": null,
+  "description": "",
+  "consumable": false,
+  "template": 144
+ }
+},
+{
+ "model": "CampaignManager.item",
+ "pk": 184,
+ "fields": {
+  "name": "Cuero tachonado",
+  "price": null,
+  "description": "Armadura ligera.",
+  "consumable": false,
+  "template": 158
+ }
+},
+{
+ "model": "CampaignManager.itemeffect",
+ "pk": 53,
+ "fields": {
+  "item": 166,
+  "effect": 20,
+  "value": null
+ }
+},
+{
+ "model": "CampaignManager.itemeffect",
+ "pk": 54,
+ "fields": {
+  "item": 166,
+  "effect": 24,
+  "value": null
+ }
+},
+{
+ "model": "CampaignManager.itemeffect",
+ "pk": 55,
+ "fields": {
+  "item": 168,
+  "effect": 22,
+  "value": 2
+ }
+},
+{
+ "model": "CampaignManager.itemeffect",
+ "pk": 56,
+ "fields": {
+  "item": 169,
+  "effect": 18,
+  "value": null
+ }
+},
+{
+ "model": "CampaignManager.itemeffect",
+ "pk": 57,
+ "fields": {
+  "item": 169,
+  "effect": 17,
+  "value": 3
+ }
+},
+{
+ "model": "CampaignManager.itemeffect",
+ "pk": 58,
+ "fields": {
+  "item": 169,
+  "effect": 19,
+  "value": null
+ }
+},
+{
+ "model": "CampaignManager.itemeffect",
+ "pk": 59,
+ "fields": {
+  "item": 172,
+  "effect": 31,
+  "value": null
+ }
+},
+{
+ "model": "CampaignManager.itemeffect",
+ "pk": 60,
+ "fields": {
+  "item": 173,
+  "effect": 20,
+  "value": null
+ }
+},
+{
+ "model": "CampaignManager.itemeffect",
+ "pk": 61,
+ "fields": {
+  "item": 173,
+  "effect": 24,
+  "value": null
+ }
+},
+{
+ "model": "CampaignManager.itemeffect",
+ "pk": 62,
+ "fields": {
+  "item": 174,
+  "effect": 18,
+  "value": null
+ }
+},
+{
+ "model": "CampaignManager.itemeffect",
+ "pk": 63,
+ "fields": {
+  "item": 176,
+  "effect": 26,
+  "value": null
+ }
+},
+{
+ "model": "CampaignManager.itemeffect",
+ "pk": 64,
+ "fields": {
+  "item": 176,
+  "effect": 22,
+  "value": null
+ }
+},
+{
+ "model": "CampaignManager.itemeffect",
+ "pk": 65,
+ "fields": {
+  "item": 177,
+  "effect": 20,
+  "value": null
+ }
+},
+{
+ "model": "CampaignManager.itemeffect",
+ "pk": 66,
+ "fields": {
+  "item": 177,
+  "effect": 28,
+  "value": null
+ }
+},
+{
+ "model": "CampaignManager.itemeffect",
+ "pk": 67,
+ "fields": {
+  "item": 177,
+  "effect": 27,
+  "value": null
+ }
+},
+{
+ "model": "CampaignManager.itemeffect",
+ "pk": 68,
+ "fields": {
+  "item": 179,
+  "effect": 18,
+  "value": null
+ }
+},
+{
+ "model": "CampaignManager.itemeffect",
+ "pk": 69,
+ "fields": {
+  "item": 181,
+  "effect": 20,
+  "value": null
+ }
+},
+{
+ "model": "CampaignManager.itemeffect",
+ "pk": 70,
+ "fields": {
+  "item": 181,
+  "effect": 28,
+  "value": null
+ }
+},
+{
+ "model": "CampaignManager.itemeffect",
+ "pk": 71,
+ "fields": {
+  "item": 181,
+  "effect": 27,
+  "value": null
+ }
+},
+{
+ "model": "CampaignManager.itemeffect",
+ "pk": 72,
+ "fields": {
+  "item": 183,
+  "effect": 20,
+  "value": null
+ }
+},
+{
+ "model": "CampaignManager.itemeffect",
+ "pk": 73,
+ "fields": {
+  "item": 183,
+  "effect": 28,
+  "value": null
+ }
+},
+{
+ "model": "CampaignManager.itemeffect",
+ "pk": 74,
+ "fields": {
+  "item": 183,
+  "effect": 27,
+  "value": null
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 1,
+ "fields": {
+  "character": 1,
+  "item": 166,
+  "quantity": 1
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 2,
+ "fields": {
+  "character": 1,
+  "item": 167,
+  "quantity": 1
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 3,
+ "fields": {
+  "character": 1,
+  "item": 123,
+  "quantity": 57
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 4,
+ "fields": {
+  "character": 1,
+  "item": 98,
+  "quantity": 1
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 5,
+ "fields": {
+  "character": 1,
+  "item": 162,
+  "quantity": 1
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 6,
+ "fields": {
+  "character": 1,
+  "item": 163,
+  "quantity": 4
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 7,
+ "fields": {
+  "character": 2,
+  "item": 168,
+  "quantity": 1
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 8,
+ "fields": {
+  "character": 2,
+  "item": 169,
+  "quantity": 1
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 9,
+ "fields": {
+  "character": 2,
+  "item": 170,
+  "quantity": 1
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 10,
+ "fields": {
+  "character": 2,
+  "item": 171,
+  "quantity": 1
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 11,
+ "fields": {
+  "character": 2,
+  "item": 123,
+  "quantity": 124
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 12,
+ "fields": {
+  "character": 2,
+  "item": 98,
+  "quantity": 2
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 13,
+ "fields": {
+  "character": 2,
+  "item": 45,
+  "quantity": 3
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 14,
+ "fields": {
+  "character": 3,
+  "item": 172,
+  "quantity": 1
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 15,
+ "fields": {
+  "character": 3,
+  "item": 173,
+  "quantity": 1
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 16,
+ "fields": {
+  "character": 3,
+  "item": 174,
+  "quantity": 1
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 17,
+ "fields": {
+  "character": 3,
+  "item": 175,
+  "quantity": 1
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 18,
+ "fields": {
+  "character": 3,
+  "item": 123,
+  "quantity": 210
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 19,
+ "fields": {
+  "character": 3,
+  "item": 164,
+  "quantity": 18
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 20,
+ "fields": {
+  "character": 3,
+  "item": 165,
+  "quantity": 1
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 21,
+ "fields": {
+  "character": 4,
+  "item": 176,
+  "quantity": 1
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 22,
+ "fields": {
+  "character": 4,
+  "item": 123,
+  "quantity": 30
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 23,
+ "fields": {
+  "character": 5,
+  "item": 177,
+  "quantity": 1
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 24,
+ "fields": {
+  "character": 5,
+  "item": 178,
+  "quantity": 1
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 25,
+ "fields": {
+  "character": 6,
+  "item": 123,
+  "quantity": 900
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 26,
+ "fields": {
+  "character": 6,
+  "item": 98,
+  "quantity": 6
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 27,
+ "fields": {
+  "character": 7,
+  "item": 179,
+  "quantity": 1
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 28,
+ "fields": {
+  "character": 7,
+  "item": 180,
+  "quantity": 1
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 29,
+ "fields": {
+  "character": 8,
+  "item": 181,
+  "quantity": 1
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 30,
+ "fields": {
+  "character": 8,
+  "item": 182,
+  "quantity": 1
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 31,
+ "fields": {
+  "character": 9,
+  "item": 183,
+  "quantity": 1
+ }
+},
+{
+ "model": "CampaignManager.inventory",
+ "pk": 32,
+ "fields": {
+  "character": 9,
+  "item": 184,
+  "quantity": 1
+ }
+},
+{
+ "model": "CampaignManager.weapon",
+ "pk": 71,
+ "fields": {
+  "item": 166,
+  "to_hit": "2 + dex",
+  "equipped": true,
+  "attacks": [
+   181,
+   182,
+   183,
+   184,
+   185,
+   186
+  ]
+ }
+},
+{
+ "model": "CampaignManager.weapon",
+ "pk": 72,
+ "fields": {
+  "item": 168,
+  "to_hit": "1 + str",
+  "equipped": true,
+  "attacks": [
+   214,
+   215
+  ]
+ }
+},
+{
+ "model": "CampaignManager.weapon",
+ "pk": 73,
+ "fields": {
+  "item": 169,
+  "to_hit": "1 + dex",
+  "equipped": false,
+  "attacks": [
+   153,
+   154,
+   155,
+   156,
+   157,
+   158
+  ]
+ }
+},
+{
+ "model": "CampaignManager.weapon",
+ "pk": 74,
+ "fields": {
+  "item": 172,
+  "to_hit": "-2 + dex x2",
+  "equipped": true,
+  "attacks": [
+   240
+  ]
+ }
+},
+{
+ "model": "CampaignManager.weapon",
+ "pk": 75,
+ "fields": {
+  "item": 173,
+  "to_hit": "2 + dex",
+  "equipped": true,
+  "attacks": [
+   181,
+   182,
+   183,
+   184,
+   185,
+   186
+  ]
+ }
+},
+{
+ "model": "CampaignManager.weapon",
+ "pk": 76,
+ "fields": {
+  "item": 174,
+  "to_hit": "-2 + dex x2",
+  "equipped": false,
+  "attacks": [
+   242
+  ]
+ }
+},
+{
+ "model": "CampaignManager.weapon",
+ "pk": 77,
+ "fields": {
+  "item": 176,
+  "to_hit": "dex",
+  "equipped": true,
+  "attacks": [
+   199,
+   200,
+   201,
+   202,
+   203,
+   204
+  ]
+ }
+},
+{
+ "model": "CampaignManager.weapon",
+ "pk": 78,
+ "fields": {
+  "item": 177,
+  "to_hit": "2 + str",
+  "equipped": true,
+  "attacks": [
+   226,
+   227,
+   228,
+   229,
+   230,
+   231
+  ]
+ }
+},
+{
+ "model": "CampaignManager.weapon",
+ "pk": 79,
+ "fields": {
+  "item": 179,
+  "to_hit": "-2 + dex x2",
+  "equipped": true,
+  "attacks": [
+   242
+  ]
+ }
+},
+{
+ "model": "CampaignManager.weapon",
+ "pk": 80,
+ "fields": {
+  "item": 181,
+  "to_hit": "2 + str",
+  "equipped": true,
+  "attacks": [
+   226,
+   227,
+   228,
+   229,
+   230,
+   231
+  ]
+ }
+},
+{
+ "model": "CampaignManager.weapon",
+ "pk": 81,
+ "fields": {
+  "item": 183,
+  "to_hit": "2 + str",
+  "equipped": true,
+  "attacks": [
+   226,
+   227,
+   228,
+   229,
+   230,
+   231
+  ]
+ }
+},
+{
+ "model": "CampaignManager.armor",
+ "pk": 1,
+ "fields": {
+  "item": 157,
+  "armor_type": 1,
+  "ap": 0,
+  "magic_ap": 0,
+  "equipped": false
+ }
+},
+{
+ "model": "CampaignManager.armor",
+ "pk": 2,
+ "fields": {
+  "item": 158,
+  "armor_type": 1,
+  "ap": 1,
+  "magic_ap": 1,
+  "equipped": false
+ }
+},
+{
+ "model": "CampaignManager.armor",
+ "pk": 3,
+ "fields": {
+  "item": 159,
+  "armor_type": 2,
+  "ap": 1,
+  "magic_ap": 0,
+  "equipped": false
+ }
+},
+{
+ "model": "CampaignManager.armor",
+ "pk": 4,
+ "fields": {
+  "item": 160,
+  "armor_type": 3,
+  "ap": 2,
+  "magic_ap": 0,
+  "equipped": false
+ }
+},
+{
+ "model": "CampaignManager.armor",
+ "pk": 5,
+ "fields": {
+  "item": 161,
+  "armor_type": 1,
+  "ap": 0,
+  "magic_ap": 3,
+  "equipped": false
+ }
+},
+{
+ "model": "CampaignManager.armor",
+ "pk": 6,
+ "fields": {
+  "item": 167,
+  "armor_type": 1,
+  "ap": 0,
+  "magic_ap": 3,
+  "equipped": true
+ }
+},
+{
+ "model": "CampaignManager.armor",
+ "pk": 7,
+ "fields": {
+  "item": 170,
+  "armor_type": 3,
+  "ap": 2,
+  "magic_ap": 0,
+  "equipped": true
+ }
+},
+{
+ "model": "CampaignManager.armor",
+ "pk": 8,
+ "fields": {
+  "item": 171,
+  "armor_type": 2,
+  "ap": 1,
+  "magic_ap": 0,
+  "equipped": false
+ }
+},
+{
+ "model": "CampaignManager.armor",
+ "pk": 9,
+ "fields": {
+  "item": 175,
+  "armor_type": 1,
+  "ap": 1,
+  "magic_ap": 1,
+  "equipped": true
+ }
+},
+{
+ "model": "CampaignManager.armor",
+ "pk": 10,
+ "fields": {
+  "item": 178,
+  "armor_type": 1,
+  "ap": 1,
+  "magic_ap": 1,
+  "equipped": true
+ }
+},
+{
+ "model": "CampaignManager.armor",
+ "pk": 11,
+ "fields": {
+  "item": 180,
+  "armor_type": 2,
+  "ap": 1,
+  "magic_ap": 0,
+  "equipped": true
+ }
+},
+{
+ "model": "CampaignManager.armor",
+ "pk": 12,
+ "fields": {
+  "item": 182,
+  "armor_type": 1,
+  "ap": 1,
+  "magic_ap": 1,
+  "equipped": true
+ }
+},
+{
+ "model": "CampaignManager.armor",
+ "pk": 13,
+ "fields": {
+  "item": 184,
+  "armor_type": 1,
+  "ap": 1,
+  "magic_ap": 1,
+  "equipped": true
+ }
+},
+{
+ "model": "CampaignManager.armortype",
+ "pk": 1,
+ "fields": {
+  "type": "Ligera",
+  "ap": 1,
+  "magic_ap": 1,
+  "effects": []
+ }
+},
+{
+ "model": "CampaignManager.armortype",
+ "pk": 2,
+ "fields": {
+  "type": "Media",
+  "ap": 2,
+  "magic_ap": 1,
+  "effects": []
+ }
+},
+{
+ "model": "CampaignManager.armortype",
+ "pk": 3,
+ "fields": {
+  "type": "Pesada",
+  "ap": 3,
+  "magic_ap": 0,
+  "effects": []
+ }
+},
+{
+ "model": "CampaignManager.session",
+ "pk": 1,
+ "fields": {
+  "campaign": 1,
+  "number": 1,
+  "title": "Humo en Puerto Gris",
+  "played_on": "2026-09-12",
+  "world_day": "Días 2 y 3 de Brumaluz",
+  "body": "Aria, Brom y Kaida coincidieron en [[El Ancla Rota]] la noche en que ardieron los muelles. Brom buscaba a su hermano entre el humo; Kaida, a alguien que le debía dinero.\n\nA la mañana siguiente, [[Oswin, el mercader]] les ofreció 2.000 piezas de oro por recuperar [[La Corona de Ceniza]].",
+  "xp_awarded": 300,
+  "loot": "40 po",
+  "master_notes": "Oswin miente sobre de dónde salió la corona.",
+  "published": true
+ }
+},
+{
+ "model": "CampaignManager.session",
+ "pk": 2,
+ "fields": {
+  "campaign": 1,
+  "number": 2,
+  "title": "El camino del faro",
+  "played_on": "2026-09-26",
+  "world_day": "Días 4 y 5 de Brumaluz",
+  "body": "Salieron de [[Puerto Gris]] por la costa. En el faro abandonado les esperaban los [[Saqueadores orcos]], con un emblema que nadie supo reconocer.\n\nLlegaron a [[Robleda]] al anochecer, con una hachuela de más y menos paciencia.",
+  "xp_awarded": 450,
+  "loot": "Una hachuela y 25 po",
+  "master_notes": "Los orcos llevan el emblema de la torre.",
+  "published": true
+ }
+},
+{
+ "model": "CampaignManager.session",
+ "pk": 3,
+ "fields": {
+  "campaign": 1,
+  "number": 3,
+  "title": "La boda de Robleda",
+  "played_on": "2026-10-10",
+  "world_day": "Día 6 de Brumaluz",
+  "body": "El [[Alcalde Bertrán]] casaba a su hija y el grupo estaba invitado. Kaida brindó con él; poco después, el sello del alcalde ya no estaba en su bolsillo.\n\nLa novia habló de luces que se ven de noche en el [[Bosque de Ceniza]].",
+  "xp_awarded": 300,
+  "loot": "Sello del alcalde",
+  "master_notes": "Bertrán sospecha de Kaida.",
+  "published": true
+ }
+},
+{
+ "model": "CampaignManager.session",
+ "pk": 4,
+ "fields": {
+  "campaign": 1,
+  "number": 4,
+  "title": "Entre los árboles quemados",
+  "played_on": "2026-10-24",
+  "world_day": "Día 7 de Brumaluz",
+  "body": "El bosque no termina de caer. [[Aria]] copió las runas grabadas en los troncos y descubrió que juntas forman una llave.",
+  "xp_awarded": 450,
+  "loot": "Nada",
+  "master_notes": "Las runas son las mismas que las del pacto de Morwen.",
+  "published": true
+ }
+},
+{
+ "model": "CampaignManager.session",
+ "pk": 5,
+ "fields": {
+  "campaign": 1,
+  "number": 5,
+  "title": "Las puertas de Vel-Ithar",
+  "played_on": "2026-11-07",
+  "world_day": "Día 8 de Brumaluz",
+  "body": "Las runas abrieron la primera puerta de las [[Ruinas de Vel-Ithar]]. Desde lo alto de la escalera se veía la [[Torre de Morwen]].",
+  "xp_awarded": 600,
+  "loot": "Llave de hueso",
+  "master_notes": "Morwen ya sabe que están aquí.",
+  "published": true
+ }
+},
+{
+ "model": "CampaignManager.session",
+ "pk": 6,
+ "fields": {
+  "campaign": 1,
+  "number": 6,
+  "title": "Lo que duerme bajo las ruinas",
+  "played_on": "2026-11-14",
+  "world_day": "Día 9 de Brumaluz",
+  "body": "Los guardianes de ceniza cayeron uno a uno. En la cámara central encontraron la primera mitad de [[La Corona de Ceniza]].\n\nEsa noche, [[Kaida]] no le contó a nadie lo del anillo.",
+  "xp_awarded": 700,
+  "loot": "Mitad de la Corona de Ceniza",
+  "master_notes": "Si investigan el pozo, pista hacia el Santuario hundido.",
+  "published": true
+ }
+},
+{
+ "model": "CampaignManager.session",
+ "pk": 7,
+ "fields": {
+  "campaign": 2,
+  "number": 1,
+  "title": "Linternas en el río",
+  "played_on": "2026-03-07",
+  "world_day": "Festival de las linternas",
+  "body": "Hana y Aria llegaron a la ciudad durante el festival de las linternas.",
+  "xp_awarded": 300,
+  "loot": "Nada",
+  "master_notes": "",
+  "published": true
+ }
+},
+{
+ "model": "CampaignManager.session",
+ "pk": 8,
+ "fields": {
+  "campaign": 3,
+  "number": 1,
+  "title": "Niebla en el puerto",
+  "played_on": "2025-11-02",
+  "world_day": "Último día de otoño",
+  "body": "Brom y Kaida escaparon de Puerto Gris la noche del primer incendio.",
+  "xp_awarded": 300,
+  "loot": "10 po",
+  "master_notes": "",
+  "published": true
+ }
+},
+{
+ "model": "CampaignManager.timelineevent",
+ "pk": 1,
+ "fields": {
+  "campaign": 1,
+  "session": 1,
+  "title": "El grupo se conoce en El Ancla Rota",
+  "description": "",
+  "world_day": "Día 2 de Brumaluz",
+  "kind": "social",
+  "location": 9,
+  "hidden": false,
+  "characters": [
+   1,
+   2,
+   3
+  ]
+ }
+},
+{
+ "model": "CampaignManager.timelineevent",
+ "pk": 2,
+ "fields": {
+  "campaign": 1,
+  "session": 1,
+  "title": "Arden los muelles",
+  "description": "",
+  "world_day": "Día 2 de Brumaluz",
+  "kind": "combate",
+  "location": 11,
+  "hidden": false,
+  "characters": [
+   2,
+   3
+  ]
+ }
+},
+{
+ "model": "CampaignManager.timelineevent",
+ "pk": 3,
+ "fields": {
+  "campaign": 1,
+  "session": 1,
+  "title": "Oswin les encarga recuperar la Corona de Ceniza",
+  "description": "",
+  "world_day": "Día 3 de Brumaluz",
+  "kind": "mision",
+  "location": 10,
+  "hidden": false,
+  "characters": [
+   1,
+   2,
+   3
+  ]
+ }
+},
+{
+ "model": "CampaignManager.timelineevent",
+ "pk": 4,
+ "fields": {
+  "campaign": 1,
+  "session": 2,
+  "title": "Salen por el Camino del Faro",
+  "description": "",
+  "world_day": "Día 4 de Brumaluz",
+  "kind": "viaje",
+  "location": 2,
+  "hidden": false,
+  "characters": [
+   1,
+   2,
+   3
+  ]
+ }
+},
+{
+ "model": "CampaignManager.timelineevent",
+ "pk": 5,
+ "fields": {
+  "campaign": 1,
+  "session": 2,
+  "title": "Emboscada de saqueadores orcos",
+  "description": "",
+  "world_day": "Día 5 de Brumaluz",
+  "kind": "combate",
+  "location": 2,
+  "hidden": false,
+  "characters": [
+   1,
+   2,
+   3
+  ]
+ }
+},
+{
+ "model": "CampaignManager.timelineevent",
+ "pk": 6,
+ "fields": {
+  "campaign": 1,
+  "session": 3,
+  "title": "Escena: La boda de Robleda",
+  "description": "",
+  "world_day": "Día 6 de Brumaluz",
+  "kind": "social",
+  "location": 3,
+  "hidden": false,
+  "characters": [
+   1,
+   2,
+   3
+  ]
+ }
+},
+{
+ "model": "CampaignManager.timelineevent",
+ "pk": 7,
+ "fields": {
+  "campaign": 1,
+  "session": 3,
+  "title": "El sello del alcalde desaparece",
+  "description": "",
+  "world_day": "Día 6 de Brumaluz",
+  "kind": "descubrimiento",
+  "location": 3,
+  "hidden": false,
+  "characters": [
+   3
+  ]
+ }
+},
+{
+ "model": "CampaignManager.timelineevent",
+ "pk": 8,
+ "fields": {
+  "campaign": 1,
+  "session": 4,
+  "title": "Aria copia las runas del bosque",
+  "description": "",
+  "world_day": "Día 7 de Brumaluz",
+  "kind": "descubrimiento",
+  "location": 4,
+  "hidden": false,
+  "characters": [
+   1
+  ]
+ }
+},
+{
+ "model": "CampaignManager.timelineevent",
+ "pk": 9,
+ "fields": {
+  "campaign": 1,
+  "session": 5,
+  "title": "Se abre la primera puerta de Vel-Ithar",
+  "description": "",
+  "world_day": "Día 8 de Brumaluz",
+  "kind": "descubrimiento",
+  "location": 5,
+  "hidden": false,
+  "characters": [
+   1,
+   2,
+   3
+  ]
+ }
+},
+{
+ "model": "CampaignManager.timelineevent",
+ "pk": 10,
+ "fields": {
+  "campaign": 1,
+  "session": 5,
+  "title": "Lady Morwen sabe que el grupo ha llegado",
+  "description": "",
+  "world_day": "Día 8 de Brumaluz",
+  "kind": "secreto",
+  "location": 6,
+  "hidden": true,
+  "characters": []
+ }
+},
+{
+ "model": "CampaignManager.timelineevent",
+ "pk": 11,
+ "fields": {
+  "campaign": 1,
+  "session": 6,
+  "title": "Combate contra los guardianes de ceniza",
+  "description": "",
+  "world_day": "Día 9 de Brumaluz",
+  "kind": "combate",
+  "location": 5,
+  "hidden": false,
+  "characters": [
+   1,
+   2,
+   3
+  ]
+ }
+},
+{
+ "model": "CampaignManager.timelineevent",
+ "pk": 12,
+ "fields": {
+  "campaign": 1,
+  "session": 6,
+  "title": "Encuentran la primera mitad de la corona",
+  "description": "",
+  "world_day": "Día 9 de Brumaluz",
+  "kind": "mision",
+  "location": 5,
+  "hidden": false,
+  "characters": [
+   1,
+   2,
+   3
+  ]
+ }
+},
+{
+ "model": "CampaignManager.timelineevent",
+ "pk": 13,
+ "fields": {
+  "campaign": 1,
+  "session": 6,
+  "title": "El pozo de las ruinas lleva al Santuario hundido",
+  "description": "",
+  "world_day": "Día 9 de Brumaluz",
+  "kind": "descubrimiento",
+  "location": 8,
+  "hidden": true,
+  "characters": []
+ }
+},
+{
+ "model": "CampaignManager.timelineevent",
+ "pk": 14,
+ "fields": {
+  "campaign": 2,
+  "session": 7,
+  "title": "Hana y Aria se conocen en el puente",
+  "description": "",
+  "world_day": "Festival de las linternas",
+  "kind": "social",
+  "location": null,
+  "hidden": false,
+  "characters": [
+   1,
+   4
+  ]
+ }
+},
+{
+ "model": "CampaignManager.timelineevent",
+ "pk": 15,
+ "fields": {
+  "campaign": 3,
+  "session": 8,
+  "title": "Brom y Kaida escapan del puerto en llamas",
+  "description": "",
+  "world_day": "Último día de otoño",
+  "kind": "viaje",
+  "location": null,
+  "hidden": false,
+  "characters": [
+   2,
+   3
+  ]
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 1,
+ "fields": {
+  "campaign": 1,
+  "title": "Valcendra",
+  "slug": "valcendra",
+  "category": "lugar",
+  "parent": null,
+  "summary": "Región costera donde transcurre la campaña, entre el Mar de las Brumas y la Sierra Gris.",
+  "body": "Región costera donde transcurre la campaña, entre el Mar de las Brumas y la Sierra Gris. Su capital es [[Puerto Gris]].",
+  "secret": "",
+  "image": "",
+  "revealed": true,
+  "location": null
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 2,
+ "fields": {
+  "campaign": 1,
+  "title": "Puerto Gris",
+  "slug": "puerto-gris",
+  "category": "lugar",
+  "parent": 1,
+  "summary": "Ciudad portuaria en la costa de Valcendra y punto de partida del grupo.",
+  "body": "Ciudad portuaria en la costa de Valcendra y punto de partida del grupo. Desde el incendio, la mitad de los muelles son tablones negros.\n\nAquí están [[El Ancla Rota]] y la tienda de [[Oswin, el mercader]]. Los sacerdotes del [[Templo de la Llama]] curan a quien puede pagar.",
+  "secret": "En el Barrio Alto vive quien compró la corona hace años.",
+  "image": "",
+  "revealed": true,
+  "location": 1
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 3,
+ "fields": {
+  "campaign": 1,
+  "title": "El Ancla Rota",
+  "slug": "el-ancla-rota",
+  "category": "lugar",
+  "parent": 2,
+  "summary": "Taberna junto al puerto de Puerto Gris.",
+  "body": "Taberna junto al puerto de [[Puerto Gris]]. Buena sopa, peores clientes. Aquí se conoció el grupo.",
+  "secret": "",
+  "image": "",
+  "revealed": true,
+  "location": 9
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 4,
+ "fields": {
+  "campaign": 1,
+  "title": "Robleda",
+  "slug": "robleda",
+  "category": "lugar",
+  "parent": 1,
+  "summary": "Aldea de leñadores a medio camino entre la costa y el Bosque de Ceniza.",
+  "body": "Aldea de leñadores a medio camino entre la costa y el [[Bosque de Ceniza]]. La gobierna el [[Alcalde Bertrán]].",
+  "secret": "",
+  "image": "",
+  "revealed": true,
+  "location": 3
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 5,
+ "fields": {
+  "campaign": 1,
+  "title": "Bosque de Ceniza",
+  "slug": "bosque-de-ceniza",
+  "category": "lugar",
+  "parent": 1,
+  "summary": "Árboles quemados que no terminan de caer.",
+  "body": "Árboles quemados que no terminan de caer. En los troncos hay runas élficas que [[Aria]] copió en la sesión 4.",
+  "secret": "Las runas son las mismas que las del pacto de [[Lady Morwen]].",
+  "image": "",
+  "revealed": true,
+  "location": 4
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 6,
+ "fields": {
+  "campaign": 1,
+  "title": "Ruinas de Vel-Ithar",
+  "slug": "ruinas-de-vel-ithar",
+  "category": "lugar",
+  "parent": 1,
+  "summary": "Ciudad élfica enterrada en ceniza.",
+  "body": "Ciudad élfica enterrada en ceniza. El grupo abrió su primera puerta con las runas del [[Bosque de Ceniza]] y acampa entre sus columnas desde la sesión 6.\n\nAquí encontraron la primera mitad de [[La Corona de Ceniza]].",
+  "secret": "El pozo central baja hasta el [[Santuario hundido]].",
+  "image": "",
+  "revealed": true,
+  "location": 5
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 7,
+ "fields": {
+  "campaign": 1,
+  "title": "Torre de Morwen",
+  "slug": "torre-de-morwen",
+  "category": "lugar",
+  "parent": 1,
+  "summary": "Se ve desde las ruinas.",
+  "body": "Se ve desde las ruinas. En [[Robleda]] nadie se acerca a ella. Es la casa de [[Lady Morwen]].",
+  "secret": "",
+  "image": "",
+  "revealed": true,
+  "location": 6
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 8,
+ "fields": {
+  "campaign": 1,
+  "title": "Santuario hundido",
+  "slug": "santuario-hundido",
+  "category": "lugar",
+  "parent": 1,
+  "summary": "Un templo bajo el mar, frente a la costa.",
+  "body": "Un templo bajo el mar, frente a la costa. Lo guarda [[Ithra]].",
+  "secret": "Aquí está la otra mitad de [[La Corona de Ceniza]].",
+  "image": "",
+  "revealed": false,
+  "location": 8
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 9,
+ "fields": {
+  "campaign": 1,
+  "title": "Oswin, el mercader",
+  "slug": "oswin-el-mercader",
+  "category": "pnj",
+  "parent": 2,
+  "summary": "Mercader de Puerto Gris.",
+  "body": "Mercader de [[Puerto Gris]]. Paga bien y pregunta poco. Fue quien encargó al grupo recuperar [[La Corona de Ceniza]].",
+  "secret": "Él mismo vendió la corona al ladrón hace años.",
+  "image": "",
+  "revealed": true,
+  "location": null
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 10,
+ "fields": {
+  "campaign": 1,
+  "title": "Lady Morwen",
+  "slug": "lady-morwen",
+  "category": "pnj",
+  "parent": 7,
+  "summary": "Señora de la Torre de Morwen.",
+  "body": "Señora de la [[Torre de Morwen]]. En [[Robleda]] bajan la voz al decir su nombre.",
+  "secret": "Sabe que el grupo tiene media corona y busca la otra mitad bajo el agua. Tiene una habilidad única: el Pacto de la Ceniza.",
+  "image": "",
+  "revealed": true,
+  "location": null
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 11,
+ "fields": {
+  "campaign": 1,
+  "title": "Alcalde Bertrán",
+  "slug": "alcalde-bertran",
+  "category": "pnj",
+  "parent": 4,
+  "summary": "Alcalde de Robleda.",
+  "body": "Alcalde de [[Robleda]]. Pagó al grupo por limpiar el camino del faro y desde la boda de su hija busca su sello.",
+  "secret": "Sospecha de Kaida.",
+  "image": "",
+  "revealed": true,
+  "location": null
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 12,
+ "fields": {
+  "campaign": 1,
+  "title": "Ithra",
+  "slug": "ithra",
+  "category": "pnj",
+  "parent": 8,
+  "summary": "Guardiana del Santuario hundido.",
+  "body": "Guardiana del [[Santuario hundido]].",
+  "secret": "Lleva siglos esperando bajo el agua.",
+  "image": "",
+  "revealed": false,
+  "location": null
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 13,
+ "fields": {
+  "campaign": 1,
+  "title": "Saqueadores orcos",
+  "slug": "saqueadores-orcos",
+  "category": "pnj",
+  "parent": null,
+  "summary": "Banda que asalta caravanas entre Puerto Gris y Robleda.",
+  "body": "Banda que asalta caravanas entre [[Puerto Gris]] y [[Robleda]]. El grupo se los encontró en el faro abandonado.",
+  "secret": "Trabajan para [[Lady Morwen]].",
+  "image": "",
+  "revealed": true,
+  "location": null
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 14,
+ "fields": {
+  "campaign": 1,
+  "title": "Templo de la Llama",
+  "slug": "templo-de-la-llama",
+  "category": "faccion",
+  "parent": 2,
+  "summary": "Sacerdotes de Puerto Gris que curan heridas, por un precio.",
+  "body": "Sacerdotes de [[Puerto Gris]] que curan heridas, por un precio.",
+  "secret": "",
+  "image": "",
+  "revealed": true,
+  "location": null
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 15,
+ "fields": {
+  "campaign": 1,
+  "title": "La Corona de Ceniza",
+  "slug": "la-corona-de-ceniza",
+  "category": "objeto",
+  "parent": null,
+  "summary": "Una corona partida en dos.",
+  "body": "Una corona partida en dos. El grupo recuperó la primera mitad en las [[Ruinas de Vel-Ithar]] y [[Oswin, el mercader]] paga por ella.",
+  "secret": "La otra mitad está en el [[Santuario hundido]].",
+  "image": "",
+  "revealed": true,
+  "location": null
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 16,
+ "fields": {
+  "campaign": 1,
+  "title": "Anillo de plata con runa",
+  "slug": "anillo-de-plata-con-runa",
+  "category": "objeto",
+  "parent": null,
+  "summary": "Kaida lo encontró en las ruinas y no se lo ha dicho a nadie.",
+  "body": "[[Kaida]] lo encontró en las ruinas y no se lo ha dicho a nadie.",
+  "secret": "",
+  "image": "",
+  "revealed": false,
+  "location": null
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 17,
+ "fields": {
+  "campaign": 1,
+  "title": "Hespern",
+  "slug": "hespern",
+  "category": "lugar",
+  "parent": null,
+  "summary": "Reino al otro lado de la Sierra Gris.",
+  "body": "Reino al otro lado de la Sierra Gris. Sus ciudades principales son [[Rontal]] y [[Pirella]].",
+  "secret": "",
+  "image": "",
+  "revealed": true,
+  "location": null
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 18,
+ "fields": {
+  "campaign": 1,
+  "title": "Rontal",
+  "slug": "rontal",
+  "category": "lugar",
+  "parent": 17,
+  "summary": "Capital de Hespern, famosa por sus forjas.",
+  "body": "Capital de [[Hespern]], famosa por sus forjas.",
+  "secret": "",
+  "image": "",
+  "revealed": true,
+  "location": null
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 19,
+ "fields": {
+  "campaign": 1,
+  "title": "Pirella",
+  "slug": "pirella",
+  "category": "lugar",
+  "parent": 17,
+  "summary": "Puerto fluvial de Hespern.",
+  "body": "Puerto fluvial de [[Hespern]].",
+  "secret": "",
+  "image": "",
+  "revealed": true,
+  "location": null
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 20,
+ "fields": {
+  "campaign": 1,
+  "title": "Sokoku",
+  "slug": "sokoku",
+  "category": "lugar",
+  "parent": null,
+  "summary": "Islas al otro lado del Mar de las Brumas.",
+  "body": "Islas al otro lado del Mar de las Brumas. Se llega en barco desde [[Puerto Gris]]. Sus ciudades son [[Koto]] e [[Iga]].",
+  "secret": "",
+  "image": "",
+  "revealed": true,
+  "location": null
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 21,
+ "fields": {
+  "campaign": 1,
+  "title": "Koto",
+  "slug": "koto",
+  "category": "lugar",
+  "parent": 20,
+  "summary": "Ciudad de templos de Sokoku.",
+  "body": "Ciudad de templos de [[Sokoku]].",
+  "secret": "",
+  "image": "",
+  "revealed": true,
+  "location": null
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 22,
+ "fields": {
+  "campaign": 1,
+  "title": "Iga",
+  "slug": "iga",
+  "category": "lugar",
+  "parent": 20,
+  "summary": "Aldea de montaña de Sokoku.",
+  "body": "Aldea de montaña de [[Sokoku]].",
+  "secret": "Esconde una escuela de espías.",
+  "image": "",
+  "revealed": true,
+  "location": null
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 23,
+ "fields": {
+  "campaign": 1,
+  "title": "Academia de magia",
+  "slug": "academia-de-magia",
+  "category": "faccion",
+  "parent": 2,
+  "summary": "Escuela de magia de Puerto Gris.",
+  "body": "Escuela de magia de [[Puerto Gris]]. Expulsó a [[Aria]] por leer libros prohibidos. La dirigen [[LaPlace]] y [[Hopgkings]].",
+  "secret": "",
+  "image": "",
+  "revealed": true,
+  "location": null
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 24,
+ "fields": {
+  "campaign": 1,
+  "title": "LaPlace",
+  "slug": "laplace",
+  "category": "pnj",
+  "parent": 23,
+  "summary": "Rectora de la Academia de magia.",
+  "body": "Rectora de la [[Academia de magia]]. Firmó la expulsión de Aria.",
+  "secret": "",
+  "image": "",
+  "revealed": true,
+  "location": null
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 25,
+ "fields": {
+  "campaign": 1,
+  "title": "Hopgkings",
+  "slug": "hopgkings",
+  "category": "pnj",
+  "parent": 23,
+  "summary": "Profesor de runas de la Academia de magia.",
+  "body": "Profesor de runas de la [[Academia de magia]]. Quizá sepa leer élfico antiguo.",
+  "secret": "Fue él quien escribió las runas del pacto.",
+  "image": "",
+  "revealed": true,
+  "location": null
+ }
+},
+{
+ "model": "CampaignManager.page",
+ "pk": 26,
+ "fields": {
+  "campaign": 2,
+  "title": "El puente de las linternas",
+  "slug": "el-puente-de-las-linternas",
+  "category": "lugar",
+  "parent": null,
+  "summary": "Puente sobre el río donde se conocieron Hana y Aria.",
+  "body": "Puente sobre el río donde se conocieron Hana y Aria.",
+  "secret": "",
+  "image": "",
+  "revealed": true,
+  "location": null
+ }
+},
+{
+ "model": "CampaignManager.quest",
+ "pk": 1,
+ "fields": {
+  "campaign": 1,
+  "title": "La Corona de Ceniza",
+  "description": "Misión principal. Recompensa: 2.000 po.",
+  "status": "activa",
+  "giver": 9
+ }
+},
+{
+ "model": "CampaignManager.quest",
+ "pk": 2,
+ "fields": {
+  "campaign": 1,
+  "title": "Las runas del pacto",
+  "description": "Misión personal de Aria. Recompensa: respuestas.",
+  "status": "activa",
+  "giver": null
+ }
+},
+{
+ "model": "CampaignManager.quest",
+ "pk": 3,
+ "fields": {
+  "campaign": 1,
+  "title": "Saqueadores en el Camino del Faro",
+  "description": "Misión secundaria. Recompensa: 300 po.",
+  "status": "completada",
+  "giver": 11
+ }
+},
+{
+ "model": "CampaignManager.quest",
+ "pk": 4,
+ "fields": {
+  "campaign": 1,
+  "title": "Una deuda en los muelles",
+  "description": "Misión personal de Kaida, por encargo de un contrabandista. Recompensa: que la dejen en paz. El contrabandista huyó de Puerto Gris.",
+  "status": "fallida",
+  "giver": null
+ }
+},
+{
+ "model": "CampaignManager.quest",
+ "pk": 5,
+ "fields": {
+  "campaign": 2,
+  "title": "El ladrón de linternas",
+  "description": "Misión principal, por encargo de la dama del río. Recompensa: un favor.",
+  "status": "activa",
+  "giver": null
+ }
+},
+{
+ "model": "CampaignManager.questobjective",
+ "pk": 1,
+ "fields": {
+  "quest": 1,
+  "text": "Encontrar el rastro del ladrón",
+  "done": true,
+  "hidden": false,
+  "order": 0
+ }
+},
+{
+ "model": "CampaignManager.questobjective",
+ "pk": 2,
+ "fields": {
+  "quest": 1,
+  "text": "Llegar a las Ruinas de Vel-Ithar",
+  "done": true,
+  "hidden": false,
+  "order": 1
+ }
+},
+{
+ "model": "CampaignManager.questobjective",
+ "pk": 3,
+ "fields": {
+  "quest": 1,
+  "text": "Recuperar la primera mitad de la corona",
+  "done": true,
+  "hidden": false,
+  "order": 2
+ }
+},
+{
+ "model": "CampaignManager.questobjective",
+ "pk": 4,
+ "fields": {
+  "quest": 1,
+  "text": "Descubrir dónde está la otra mitad",
+  "done": false,
+  "hidden": false,
+  "order": 3
+ }
+},
+{
+ "model": "CampaignManager.questobjective",
+ "pk": 5,
+ "fields": {
+  "quest": 1,
+  "text": "Averiguar qué esconde Oswin",
+  "done": false,
+  "hidden": true,
+  "order": 4
+ }
+},
+{
+ "model": "CampaignManager.questobjective",
+ "pk": 6,
+ "fields": {
+  "quest": 1,
+  "text": "Entregar la corona a Oswin",
+  "done": false,
+  "hidden": false,
+  "order": 5
+ }
+},
+{
+ "model": "CampaignManager.questobjective",
+ "pk": 7,
+ "fields": {
+  "quest": 2,
+  "text": "Copiar las runas del bosque",
+  "done": true,
+  "hidden": false,
+  "order": 0
+ }
+},
+{
+ "model": "CampaignManager.questobjective",
+ "pk": 8,
+ "fields": {
+  "quest": 2,
+  "text": "Encontrar a alguien que lea élfico antiguo",
+  "done": false,
+  "hidden": false,
+  "order": 1
+ }
+},
+{
+ "model": "CampaignManager.questobjective",
+ "pk": 9,
+ "fields": {
+  "quest": 2,
+  "text": "Descubrir quién escribió las runas",
+  "done": false,
+  "hidden": true,
+  "order": 2
+ }
+},
+{
+ "model": "CampaignManager.questobjective",
+ "pk": 10,
+ "fields": {
+  "quest": 3,
+  "text": "Limpiar el camino",
+  "done": true,
+  "hidden": false,
+  "order": 0
+ }
+},
+{
+ "model": "CampaignManager.questobjective",
+ "pk": 11,
+ "fields": {
+  "quest": 4,
+  "text": "Pagar 200 po antes de la sesión 3",
+  "done": false,
+  "hidden": false,
+  "order": 0
+ }
+},
+{
+ "model": "CampaignManager.questobjective",
+ "pk": 12,
+ "fields": {
+  "quest": 5,
+  "text": "Encontrar al ladrón",
+  "done": false,
+  "hidden": false,
+  "order": 0
+ }
+},
+{
+ "model": "CampaignManager.boardcard",
+ "pk": 1,
+ "fields": {
+  "campaign": 1,
+  "title": "La Corona de Ceniza",
+  "text": "Partida en dos. Tenemos una mitad.",
+  "x": 440,
+  "y": 30,
+  "page": 15,
+  "classified": false,
+  "revealed": false,
+  "author": [
+   "carlos"
+  ]
+ }
+},
+{
+ "model": "CampaignManager.boardcard",
+ "pk": 2,
+ "fields": {
+  "campaign": 1,
+  "title": "Oswin, el mercader",
+  "text": "¿Por qué paga tanto por ella?",
+  "x": 80,
+  "y": 50,
+  "page": 9,
+  "classified": false,
+  "revealed": false,
+  "author": [
+   "lucia"
+  ]
+ }
+},
+{
+ "model": "CampaignManager.boardcard",
+ "pk": 3,
+ "fields": {
+  "campaign": 1,
+  "title": "Lady Morwen",
+  "text": "En Robleda bajan la voz al nombrarla.",
+  "x": 820,
+  "y": 40,
+  "page": 10,
+  "classified": false,
+  "revealed": false,
+  "author": [
+   "iker"
+  ]
+ }
+},
+{
+ "model": "CampaignManager.boardcard",
+ "pk": 4,
+ "fields": {
+  "campaign": 1,
+  "title": "Saqueadores orcos",
+  "text": "Llevan un emblema que no reconocemos.",
+  "x": 830,
+  "y": 300,
+  "page": 13,
+  "classified": false,
+  "revealed": false,
+  "author": [
+   "iker"
+  ]
+ }
+},
+{
+ "model": "CampaignManager.boardcard",
+ "pk": 5,
+ "fields": {
+  "campaign": 1,
+  "title": "Las runas del bosque",
+  "text": "Juntas forman una llave. ¿Quién las escribió?",
+  "x": 450,
+  "y": 270,
+  "page": null,
+  "classified": false,
+  "revealed": false,
+  "author": [
+   "lucia"
+  ]
+ }
+},
+{
+ "model": "CampaignManager.boardcard",
+ "pk": 6,
+ "fields": {
+  "campaign": 1,
+  "title": "Barrio Alto",
+  "text": "Alguien de allí compró la corona.",
+  "x": 90,
+  "y": 225,
+  "page": null,
+  "classified": false,
+  "revealed": false,
+  "author": [
+   "ane"
+  ]
+ }
+},
+{
+ "model": "CampaignManager.boardcard",
+ "pk": 7,
+ "fields": {
+  "campaign": 1,
+  "title": "El vendedor",
+  "text": "Oswin vendió la corona al ladrón hace años.",
+  "x": 70,
+  "y": 420,
+  "page": null,
+  "classified": true,
+  "revealed": false,
+  "author": [
+   "carlos"
+  ]
+ }
+},
+{
+ "model": "CampaignManager.boardcard",
+ "pk": 8,
+ "fields": {
+  "campaign": 1,
+  "title": "La otra mitad",
+  "text": "Está bajo el mar, en el Santuario hundido.",
+  "x": 450,
+  "y": 470,
+  "page": null,
+  "classified": true,
+  "revealed": false,
+  "author": [
+   "carlos"
+  ]
+ }
+},
+{
+ "model": "CampaignManager.boardcard",
+ "pk": 9,
+ "fields": {
+  "campaign": 1,
+  "title": "La torre vigila",
+  "text": "Morwen sabe que estamos en las ruinas.",
+  "x": 830,
+  "y": 480,
+  "page": null,
+  "classified": true,
+  "revealed": true,
+  "author": [
+   "carlos"
+  ]
+ }
+},
+{
+ "model": "CampaignManager.boardlink",
+ "pk": 1,
+ "fields": {
+  "card_a": 1,
+  "card_b": 2
+ }
+},
+{
+ "model": "CampaignManager.boardlink",
+ "pk": 2,
+ "fields": {
+  "card_a": 1,
+  "card_b": 3
+ }
+},
+{
+ "model": "CampaignManager.boardlink",
+ "pk": 3,
+ "fields": {
+  "card_a": 3,
+  "card_b": 4
+ }
+},
+{
+ "model": "CampaignManager.boardlink",
+ "pk": 4,
+ "fields": {
+  "card_a": 1,
+  "card_b": 5
+ }
+},
+{
+ "model": "CampaignManager.boardlink",
+ "pk": 5,
+ "fields": {
+  "card_a": 3,
+  "card_b": 5
+ }
+},
+{
+ "model": "CampaignManager.boardlink",
+ "pk": 6,
+ "fields": {
+  "card_a": 2,
+  "card_b": 7
+ }
+},
+{
+ "model": "CampaignManager.boardlink",
+ "pk": 7,
+ "fields": {
+  "card_a": 1,
+  "card_b": 8
+ }
+},
+{
+ "model": "CampaignManager.boardlink",
+ "pk": 8,
+ "fields": {
+  "card_a": 2,
+  "card_b": 6
+ }
+},
+{
+ "model": "CampaignManager.boardlink",
+ "pk": 9,
+ "fields": {
+  "card_a": 3,
+  "card_b": 9
+ }
+},
+{
+ "model": "CampaignManager.scene",
+ "pk": 1,
+ "fields": {
+  "campaign": 1,
+  "title": "Guardia en las ruinas",
+  "location": 6,
+  "is_open": true,
+  "participants": [
+   1,
+   2,
+   3
+  ]
+ }
+},
+{
+ "model": "CampaignManager.scene",
+ "pk": 2,
+ "fields": {
+  "campaign": 1,
+  "title": "Carta para Oswin",
+  "location": 2,
+  "is_open": true,
+  "participants": [
+   1
+  ]
+ }
+},
+{
+ "model": "CampaignManager.scene",
+ "pk": 3,
+ "fields": {
+  "campaign": 1,
+  "title": "La boda de Robleda",
+  "location": 4,
+  "is_open": false,
+  "participants": [
+   1,
+   2,
+   3
+  ]
+ }
+},
+{
+ "model": "CampaignManager.scene",
+ "pk": 4,
+ "fields": {
+  "campaign": 2,
+  "title": "El puente de las linternas",
+  "location": 26,
+  "is_open": true,
+  "participants": [
+   1,
+   4
+  ]
+ }
+},
+{
+ "model": "CampaignManager.post",
+ "pk": 1,
+ "fields": {
+  "scene": 1,
+  "author": [
+   "carlos"
+  ],
+  "as_character": null,
+  "text": "Cae la noche sobre Vel-Ithar. El fuego apenas calienta y algo cruje entre las columnas.",
+  "roll": "",
+  "whisper_to": null,
+  "created_at": "2026-11-15T19:07:00Z"
+ }
+},
+{
+ "model": "CampaignManager.post",
+ "pk": 2,
+ "fields": {
+  "scene": 1,
+  "author": [
+   "iker"
+  ],
+  "as_character": 2,
+  "text": "Yo hago la primera guardia. Si eso que cruje tiene dientes, que venga.",
+  "roll": "",
+  "whisper_to": null,
+  "created_at": "2026-11-15T19:14:00Z"
+ }
+},
+{
+ "model": "CampaignManager.post",
+ "pk": 3,
+ "fields": {
+  "scene": 1,
+  "author": [
+   "ane"
+  ],
+  "as_character": 3,
+  "text": "¿Puedo mirar si hay huellas junto a las columnas?",
+  "roll": "",
+  "whisper_to": null,
+  "created_at": "2026-11-15T19:21:00Z"
+ }
+},
+{
+ "model": "CampaignManager.post",
+ "pk": 4,
+ "fields": {
+  "scene": 1,
+  "author": [
+   "carlos"
+  ],
+  "as_character": null,
+  "text": "Claro. Tira Sabiduría (Percepción).",
+  "roll": "",
+  "whisper_to": null,
+  "created_at": "2026-11-15T19:28:00Z"
+ }
+},
+{
+ "model": "CampaignManager.post",
+ "pk": 5,
+ "fields": {
+  "scene": 1,
+  "author": [
+   "ane"
+  ],
+  "as_character": 3,
+  "text": "Me agacho junto a la columna más cercana y paso los dedos por la ceniza.",
+  "roll": "1d20 → 14",
+  "whisper_to": null,
+  "created_at": "2026-11-15T19:35:00Z"
+ }
+},
+{
+ "model": "CampaignManager.post",
+ "pk": 6,
+ "fields": {
+  "scene": 1,
+  "author": [
+   "ane"
+  ],
+  "as_character": 3,
+  "text": "Si encuentro algo brillante, me lo guardo sin decir nada.",
+  "roll": "",
+  "whisper_to": 3,
+  "created_at": "2026-11-15T19:42:00Z"
+ }
+},
+{
+ "model": "CampaignManager.post",
+ "pk": 7,
+ "fields": {
+  "scene": 1,
+  "author": [
+   "carlos"
+  ],
+  "as_character": null,
+  "text": "Encuentras un anillo de plata con una runa. Nadie te ha visto.",
+  "roll": "",
+  "whisper_to": 3,
+  "created_at": "2026-11-15T19:49:00Z"
+ }
+},
+{
+ "model": "CampaignManager.post",
+ "pk": 8,
+ "fields": {
+  "scene": 1,
+  "author": [
+   "iker"
+  ],
+  "as_character": 2,
+  "text": "Aria, ¿tú no dormías? Llevas toda la noche con ese libro.",
+  "roll": "",
+  "whisper_to": null,
+  "created_at": "2026-11-15T19:56:00Z"
+ }
+},
+{
+ "model": "CampaignManager.post",
+ "pk": 9,
+ "fields": {
+  "scene": 2,
+  "author": [
+   "lucia"
+  ],
+  "as_character": 1,
+  "text": "«Oswin: tenemos la mitad de lo que buscas. La otra mitad no está donde dijiste.»",
+  "roll": "",
+  "whisper_to": null,
+  "created_at": "2026-11-15T20:03:00Z"
+ }
+},
+{
+ "model": "CampaignManager.post",
+ "pk": 10,
+ "fields": {
+  "scene": 2,
+  "author": [
+   "carlos"
+  ],
+  "as_character": 6,
+  "text": "«Mi querida Aria: entonces buscad mejor. Y no abráis la caja.»",
+  "roll": "",
+  "whisper_to": null,
+  "created_at": "2026-11-15T20:10:00Z"
+ }
+},
+{
+ "model": "CampaignManager.post",
+ "pk": 11,
+ "fields": {
+  "scene": 3,
+  "author": [
+   "carlos"
+  ],
+  "as_character": null,
+  "text": "La plaza huele a pan dulce y a cerveza. El alcalde Bertrán no deja de tocarse el bolsillo.",
+  "roll": "",
+  "whisper_to": null,
+  "created_at": "2026-11-15T20:17:00Z"
+ }
+},
+{
+ "model": "CampaignManager.post",
+ "pk": 12,
+ "fields": {
+  "scene": 3,
+  "author": [
+   "ane"
+  ],
+  "as_character": 3,
+  "text": "Me acerco al alcalde con dos jarras. Una es para él.",
+  "roll": "",
+  "whisper_to": null,
+  "created_at": "2026-11-15T20:24:00Z"
+ }
+},
+{
+ "model": "CampaignManager.post",
+ "pk": 13,
+ "fields": {
+  "scene": 3,
+  "author": [
+   "lucia"
+  ],
+  "as_character": 1,
+  "text": "Mientras Kaida lo distrae, pregunto a la novia por las luces que se ven en el bosque.",
+  "roll": "",
+  "whisper_to": null,
+  "created_at": "2026-11-15T20:31:00Z"
+ }
+},
+{
+ "model": "CampaignManager.post",
+ "pk": 14,
+ "fields": {
+  "scene": 3,
+  "author": [
+   "carlos"
+  ],
+  "as_character": null,
+  "text": "El alcalde Bertrán: «¡Nadie entra en ese bosque! Y usted, señorita, devuélvame la jarra.»",
+  "roll": "",
+  "whisper_to": null,
+  "created_at": "2026-11-15T20:38:00Z"
+ }
+},
+{
+ "model": "CampaignManager.post",
+ "pk": 15,
+ "fields": {
+  "scene": 4,
+  "author": [
+   "carlos"
+  ],
+  "as_character": null,
+  "text": "El río está lleno de linternas de papel. Alguien grita en el puente.",
+  "roll": "",
+  "whisper_to": null,
+  "created_at": "2026-11-15T19:07:00Z"
+ }
+},
+{
+ "model": "CampaignManager.map",
+ "pk": 1,
+ "fields": {
+  "campaign": 1,
+  "name": "Valcendra",
+  "image": "demo/valcendra.svg",
+  "order": 0
+ }
+},
+{
+ "model": "CampaignManager.map",
+ "pk": 2,
+ "fields": {
+  "campaign": 1,
+  "name": "Puerto Gris",
+  "image": "demo/puerto-gris.svg",
+  "order": 1
+ }
+},
+{
+ "model": "CampaignManager.maplocation",
+ "pk": 1,
+ "fields": {
+  "map": 1,
+  "name": "Puerto Gris",
+  "x": 19.0,
+  "y": 68.8,
+  "status": "visitado"
+ }
+},
+{
+ "model": "CampaignManager.maplocation",
+ "pk": 2,
+ "fields": {
+  "map": 1,
+  "name": "Camino del Faro",
+  "x": 30.0,
+  "y": 52.8,
+  "status": "visitado"
+ }
+},
+{
+ "model": "CampaignManager.maplocation",
+ "pk": 3,
+ "fields": {
+  "map": 1,
+  "name": "Robleda",
+  "x": 43.0,
+  "y": 60.8,
+  "status": "visitado"
+ }
+},
+{
+ "model": "CampaignManager.maplocation",
+ "pk": 4,
+ "fields": {
+  "map": 1,
+  "name": "Bosque de Ceniza",
+  "x": 56.0,
+  "y": 43.2,
+  "status": "visitado"
+ }
+},
+{
+ "model": "CampaignManager.maplocation",
+ "pk": 5,
+ "fields": {
+  "map": 1,
+  "name": "Ruinas de Vel-Ithar",
+  "x": 72.0,
+  "y": 32.0,
+  "status": "visitado"
+ }
+},
+{
+ "model": "CampaignManager.maplocation",
+ "pk": 6,
+ "fields": {
+  "map": 1,
+  "name": "Torre de Morwen",
+  "x": 87.0,
+  "y": 17.6,
+  "status": "conocido"
+ }
+},
+{
+ "model": "CampaignManager.maplocation",
+ "pk": 7,
+ "fields": {
+  "map": 1,
+  "name": "Paso del Cuervo",
+  "x": 79.0,
+  "y": 68.8,
+  "status": "conocido"
+ }
+},
+{
+ "model": "CampaignManager.maplocation",
+ "pk": 8,
+ "fields": {
+  "map": 1,
+  "name": "Santuario hundido",
+  "x": 10.5,
+  "y": 40.0,
+  "status": "oculto"
+ }
+},
+{
+ "model": "CampaignManager.maplocation",
+ "pk": 9,
+ "fields": {
+  "map": 2,
+  "name": "El Ancla Rota",
+  "x": 33.0,
+  "y": 57.6,
+  "status": "visitado"
+ }
+},
+{
+ "model": "CampaignManager.maplocation",
+ "pk": 10,
+ "fields": {
+  "map": 2,
+  "name": "Tienda de Oswin",
+  "x": 50.0,
+  "y": 44.8,
+  "status": "visitado"
+ }
+},
+{
+ "model": "CampaignManager.maplocation",
+ "pk": 11,
+ "fields": {
+  "map": 2,
+  "name": "Muelles",
+  "x": 21.5,
+  "y": 79.2,
+  "status": "visitado"
+ }
+},
+{
+ "model": "CampaignManager.maplocation",
+ "pk": 12,
+ "fields": {
+  "map": 2,
+  "name": "Templo de la Llama",
+  "x": 66.0,
+  "y": 32.0,
+  "status": "conocido"
+ }
+},
+{
+ "model": "CampaignManager.maplocation",
+ "pk": 13,
+ "fields": {
+  "map": 2,
+  "name": "Barrio Alto",
+  "x": 82.0,
+  "y": 20.8,
+  "status": "oculto"
+ }
+},
+{
+ "model": "CampaignManager.partymove",
+ "pk": 1,
+ "fields": {
+  "map": 1,
+  "location": 1,
+  "session": 1,
+  "order": 0
+ }
+},
+{
+ "model": "CampaignManager.partymove",
+ "pk": 2,
+ "fields": {
+  "map": 1,
+  "location": 2,
+  "session": 2,
+  "order": 1
+ }
+},
+{
+ "model": "CampaignManager.partymove",
+ "pk": 3,
+ "fields": {
+  "map": 1,
+  "location": 3,
+  "session": 2,
+  "order": 2
+ }
+},
+{
+ "model": "CampaignManager.partymove",
+ "pk": 4,
+ "fields": {
+  "map": 1,
+  "location": 4,
+  "session": 4,
+  "order": 3
+ }
+},
+{
+ "model": "CampaignManager.partymove",
+ "pk": 5,
+ "fields": {
+  "map": 1,
+  "location": 5,
+  "session": 5,
+  "order": 4
+ }
+},
+{
+ "model": "CampaignManager.encounter",
+ "pk": 1,
+ "fields": {
+  "campaign": 1,
+  "active": true,
+  "round": 2,
+  "turn_index": 0
+ }
+},
+{
+ "model": "CampaignManager.combatant",
+ "pk": 1,
+ "fields": {
+  "encounter": 1,
+  "character": 3,
+  "name": "",
+  "initiative": 19,
+  "hp": null,
+  "hp_max": null,
+  "order": 0
+ }
+},
+{
+ "model": "CampaignManager.combatant",
+ "pk": 2,
+ "fields": {
+  "encounter": 1,
+  "character": 8,
+  "name": "",
+  "initiative": 15,
+  "hp": null,
+  "hp_max": null,
+  "order": 1
+ }
+},
+{
+ "model": "CampaignManager.combatant",
+ "pk": 3,
+ "fields": {
+  "encounter": 1,
+  "character": 2,
+  "name": "",
+  "initiative": 12,
+  "hp": null,
+  "hp_max": null,
+  "order": 2
+ }
+},
+{
+ "model": "CampaignManager.combatant",
+ "pk": 4,
+ "fields": {
+  "encounter": 1,
+  "character": 1,
+  "name": "",
+  "initiative": 10,
+  "hp": null,
+  "hp_max": null,
+  "order": 3
+ }
+},
+{
+ "model": "CampaignManager.combatant",
+ "pk": 5,
+ "fields": {
+  "encounter": 1,
+  "character": 9,
+  "name": "",
+  "initiative": 6,
+  "hp": null,
+  "hp_max": null,
+  "order": 4
+ }
+}
+]
+

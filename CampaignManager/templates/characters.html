@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load i18n mesa %}
+{% block title %}{% translate "Personajes" %} · {{ campaign.name }}{% endblock %}
+{% block content %}
+<section class="pila" aria-labelledby="h-personajes">
+    <div class="cabeza-seccion">
+        <h1 id="h-personajes">{% translate "Personajes" %}</h1>
+        <a class="btn btn-principal" href="{% url 'creator' campaign.pk %}">+ {% translate "Crear personaje" %}</a>
+    </div>
+    <p id="mensaje-ajax" class="mensaje" role="status" hidden></p>
+
+    <h2 class="rotulo">{% translate "El grupo" %}</h2>
+    <div class="rejilla">
+        {% for c in party %}
+        <article class="tarjeta compacta">
+            <div class="miembro" style="padding:0">
+                <span class="avatar" style="background:{{ c|avatar_color }}">{% if c.portrait %}<img src="{{ c.portrait.url }}" alt="">{% else %}{{ c.name|initial }}{% endif %}</span>
+                <span class="miembro-datos">
+                    <span class="fila-s" style="justify-content:space-between"><b>{{ c.name }}</b>
+                        {% if c.status == "pendiente" %}<span class="pastilla p-ambar">{% translate "Pendiente" %}</span>{% endif %}</span>
+                    <span class="pequeno atenuado">{{ c.race.name }}{% if c.subrace %} ({{ c.subrace.name }}){% endif %} · {{ c.char_class.name }} {{ c.level }}{% if c.player %} · {{ c.player.username }}{% endif %}</span>
+                </span>
+            </div>
+            <div class="medidor"><span style="min-width:28px">{% translate "Vida" %}</span><span class="barra vida"><span style="width:{% pct c.temp_hp c.hp %}%"></span></span><b>{{ c.temp_hp }}/{{ c.hp }}</b></div>
+            <div class="medidor"><span style="min-width:28px">AP</span><span class="barra ap"><span style="width:{% pct c.temp_ap c.max_ap %}%"></span></span><b>{{ c.temp_ap }}/{{ c.max_ap }}</b></div>
+            <div class="fila-s">
+                <a class="btn btn-pequeno" href="{% url 'sheet' campaign.pk c.pk %}">{% if c.can_edit %}{% translate "Abrir ficha" %}{% else %}{% translate "Ver ficha" %}{% endif %}</a>
+                {% if is_master and c.status == "pendiente" %}
+                <form method="post" action="{% url 'character_review' campaign.pk c.pk %}" class="en-linea">{% csrf_token %}
+                    <button class="btn btn-pequeno btn-bien" name="accion" value="aprobar">{% translate "Aprobar" %}</button>
+                    <button class="btn btn-pequeno btn-peligro" name="accion" value="rechazar">{% translate "Rechazar" %}</button>
+                </form>
+                {% endif %}
+            </div>
+        </article>
+        {% empty %}
+        <p class="atenuado">{% translate "El grupo todavía no tiene personajes." %}</p>
+        {% endfor %}
+    </div>
+    {% if is_master and no_character %}
+    <p class="ayuda">{% translate "Sin personaje en esta campaña:" %} {% for u in no_character %}{{ u.username }}{% if not forloop.last %}, {% endif %}{% endfor %}.</p>
+    {% endif %}
+
+    {% if is_master %}
+    <h2 class="rotulo">{% translate "PNJ de la campaña" %}</h2>
+    <div class="tarjeta sin-relleno">
+        {% for c in npcs %}
+        <div class="fila-tabla">
+            <span class="avatar" style="width:32px;height:32px;font-size:14px;background:{{ c|avatar_color }}">{{ c.name|initial }}</span>
+            <span style="flex:1 1 180px"><b>{{ c.name }}</b><br><span class="pequeno atenuado">{% if c.template %}{% translate "Copia de" %} {{ c.template.name }}{% else %}{% translate "Plantilla" %}{% endif %}</span></span>
+            <span class="pequeno">{% translate "Vida" %} <b>{{ c.temp_hp }}/{{ c.hp }}</b> · AP <b>{{ c.temp_ap }}</b></span>
+            <a class="btn btn-pequeno" href="{% url 'sheet' campaign.pk c.pk %}">{% translate "Ficha" %}</a>
+        </div>
+        {% empty %}
+        <p class="atenuado" style="padding:16px">{% translate "No hay PNJ en esta campaña. Copia una plantilla para añadir uno." %}</p>
+        {% endfor %}
+    </div>
+
+    <h2 class="rotulo">{% translate "Plantillas de PNJ" %}</h2>
+    <p class="ayuda">{% translate "Cada copia lleva su propia arma y armadura. Las plantillas con una habilidad única no se copian." %}</p>
+    <div class="tarjeta sin-relleno">
+        {% for t in templates %}
+        <div class="fila-tabla">
+            <span style="flex:1 1 200px"><b>{{ t.character.name }}</b><br>
+                <span class="pequeno atenuado">{{ t.character.race.name }} · {{ t.character.char_class.name }} {{ t.character.level }} · {% blocktranslate count n=t.copies %}{{ n }} copia aquí{% plural %}{{ n }} copias aquí{% endblocktranslate %}{% if t.general %} · {% translate "general" %}{% endif %}</span></span>
+            <a class="btn btn-pequeno" href="{% url 'sheet' campaign.pk t.character.pk %}">{% translate "Ficha" %}</a>
+            {% if t.unique %}
+            <span class="pastilla p-morado">{% translate "Única" %}</span>
+            {% else %}
+            <form method="post" action="{% url 'character_copy' campaign.pk t.character.pk %}" class="fila-s">{% csrf_token %}
+                <button class="btn btn-pequeno">{% translate "Copiar a la campaña" %}</button>
+                {% if encounter %}<button class="btn btn-pequeno btn-principal" name="turnos" value="1">{% translate "Copiar a los turnos" %}</button>{% endif %}
+            </form>
+            {% endif %}
+        </div>
+        {% empty %}
+        <p class="atenuado" style="padding:16px">{% translate "No hay plantillas de PNJ. Se crean en la administración." %}</p>
+        {% endfor %}
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% load i18n mesa %}
+{% block title %}{% translate "Crear personaje" %} · {{ campaign.name }}{% endblock %}
+{% block content %}
+<section class="pila" aria-labelledby="h-creador">
+    <nav class="migas" aria-label="{% translate 'Ruta' %}"><a href="{% url 'characters' campaign.pk %}">{% translate "Personajes" %}</a> <span aria-hidden="true">›</span> <span>{% translate "Crear personaje" %}</span></nav>
+    <h1 id="h-creador">{% translate "Crear personaje" %}</h1>
+
+    <ol class="pasos" aria-label="{% translate 'Pasos' %}">
+        {% for s in steps %}
+        <li>{% if s.current %}<span aria-current="step"><b>{{ s.n|add:1 }}</b>{% translate s.label %}</span>{% else %}<a href="?paso={{ s.n }}"><b>{{ s.n|add:1 }}</b>{% translate s.label %}</a>{% endif %}</li>
+        {% endfor %}
+    </ol>
+
+    <form method="post" enctype="multipart/form-data" class="tarjeta pila" novalidate>{% csrf_token %}
+        <input type="hidden" name="paso" value="{{ step }}">
+        {% if form.non_field_errors %}{{ form.non_field_errors }}{% endif %}
+
+        {% if step == 0 %}
+        <fieldset class="pila-s" style="border:0;padding:0;margin:0">
+            <legend class="etiqueta">{% translate "Raza" %}</legend>
+            {{ form.race.errors }}
+            <div class="rejilla-s" style="grid-template-columns:repeat(auto-fill,minmax(min(240px,100%),1fr))">
+                {% for r in races %}
+                <label class="eleccion"><input type="radio" name="race" value="{{ r.race.pk }}"{% if r.checked %} checked{% endif %} data-raza>
+                    <strong>{{ r.race.name }}</strong>
+                    <span class="pequeno atenuado">{{ r.race.description|plain|truncatechars:150 }}</span>
+                    <span class="pequeno">{% translate "Velocidad" %} {{ r.race.speed }} m{% if r.subraces %} · {% blocktranslate count n=r.subraces|length %}{{ n }} linaje{% plural %}{{ n }} linajes{% endblocktranslate %}{% endif %}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </fieldset>
+        {{ form.subrace.errors }}
+        {% for r in races %}{% if r.subraces %}
+        <fieldset class="pila-s linaje-grupo" data-de-raza="{{ r.race.pk }}" style="border:0;padding:0;margin:0">
+            <legend class="etiqueta">{% blocktranslate with race=r.race.name %}Linaje de {{ race }}{% endblocktranslate %}</legend>
+            <div class="rejilla-s" style="grid-template-columns:repeat(auto-fill,minmax(min(240px,100%),1fr))">
+                {% for s in r.subraces %}
+                <label class="eleccion"><input type="radio" name="subrace" value="{{ s.subrace.pk }}"{% if s.checked %} checked{% endif %}>
+                    <strong>{{ s.subrace.name }}</strong>
+                    <span class="pequeno atenuado">{{ s.subrace.description|plain|truncatechars:150 }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </fieldset>
+        {% endif %}{% endfor %}
+        {% if race_traits %}
+        <div class="pila-s"><span class="etiqueta">{% blocktranslate with race=race.name %}Rasgos de {{ race }} a nivel 1{% endblocktranslate %}</span>
+            <p class="pequeno">{% for t in race_traits %}{{ t.ability.name }}{% if not forloop.last %} · {% endif %}{% endfor %}{% for t in subrace_traits %} · {{ t.ability.name }}{% endfor %}</p></div>
+        {% endif %}
+
+        {% elif step == 1 %}
+        <fieldset class="pila-s" style="border:0;padding:0;margin:0">
+            <legend class="etiqueta">{% translate "Clase" %}</legend>
+            {{ form.char_class.errors }}
+            <div class="rejilla-s" style="grid-template-columns:repeat(auto-fill,minmax(min(240px,100%),1fr))">
+                {% for c in classes %}
+                <label class="eleccion"><input type="radio" name="char_class" value="{{ c.c.pk }}"{% if c.checked %} checked{% endif %}>
+                    <strong>{{ c.c.name }}</strong>
+                    <span class="pequeno atenuado">{% translate "Característica principal" %}: {{ c.c.primary_ability }}{% if c.die %} · {% translate "dado de golpe" %} d{{ c.die }}{% endif %}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </fieldset>
+        {% if class_traits %}
+        <div class="pila-s"><span class="etiqueta">{% blocktranslate with c=char_class.name %}Rasgos de {{ c }} a nivel 1{% endblocktranslate %}</span>
+            <p class="pequeno">{% for t in class_traits %}{{ t.ability.name }}{% if not forloop.last %} · {% endif %}{% endfor %}</p></div>
+        {% endif %}
+
+        {% elif step == 2 %}
+        <fieldset class="pila-s" style="border:0;padding:0;margin:0">
+            <legend class="etiqueta">{% translate "Método" %}</legend>
+            <div class="fila-s">
+                <label class="chip"><input type="radio" name="method" value="estandar"{% if method == "estandar" %} checked{% endif %}>{% translate "Valores estándar" %}</label>
+                <label class="chip"><input type="radio" name="method" value="puntos"{% if method != "estandar" %} checked{% endif %}>{% translate "Reparto de puntos" %}</label>
+            </div>
+            <p class="ayuda">{% translate "Valores estándar: reparte 15, 14, 13, 12, 10 y 8, uno en cada característica." %}<br>
+                {% blocktranslate with total=points_total %}Reparto de puntos: tienes {{ total }} puntos y cada característica va de 8 a 15.{% endblocktranslate %}
+                {% translate "Coste" %}: {% for score, cost in point_costs %}{{ score }} → {{ cost }}{% if not forloop.last %} · {% endif %}{% endfor %}.</p>
+        </fieldset>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px" data-reparto data-total="{{ points_total }}">
+            {% for s in stats %}
+            <div class="caracteristica">
+                <label for="id_{{ s.key }}"><small>{{ s.abbr }}</small> <span class="pequeno" style="border:0;background:none">{{ s.label }}</span></label>
+                <input id="id_{{ s.key }}" class="entrada-num" style="text-align:center" type="number" name="{{ s.key }}" value="{{ s.value }}" min="3" max="20" inputmode="numeric">
+                <span data-mod>{{ s.mod|signed }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        <p class="etiqueta">{% translate "Puntos sin gastar" %}: <b data-puntos>{{ points_left }}</b></p>
+        {% for field in form %}{{ field.errors }}{% endfor %}
+
+        {% elif step == 3 %}
+        {% include "partials/field.html" with field=form.name %}
+        {% if portrait_url %}<div class="fila-s"><span class="avatar grande"><img src="{{ portrait_url }}" alt=""></span><span class="ayuda">{% translate "Retrato subido. Sube otro para cambiarlo." %}</span></div>{% endif %}
+        {% include "partials/field.html" with field=form.portrait %}
+        {% include "partials/field.html" with field=form.background %}
+        {% if form.player %}{% include "partials/field.html" with field=form.player %}{% endif %}
+
+        {% elif step == 4 %}
+        <fieldset class="pila-s" style="border:0;padding:0;margin:0">
+            <legend class="etiqueta">{% translate "Armas" %}</legend>
+            {{ form.weapons.errors }}
+            <div class="rejilla-s" style="grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr))">
+                {% for w in weapon_choices %}
+                <label class="eleccion"><input type="checkbox" name="weapons" value="{{ w.item.pk }}"{% if w.checked %} checked{% endif %}>
+                    <strong>{{ w.item.name }}</strong>
+                    <span class="pequeno atenuado">{% translate "Golpe" %} {{ w.item.weapon.to_hit }}{% if w.damage %} · {{ w.damage }}{% endif %}</span>
+                </label>
+                {% empty %}<p class="atenuado">{% translate "El catálogo no tiene armas." %}</p>{% endfor %}
+            </div>
+        </fieldset>
+        <fieldset class="pila-s" style="border:0;padding:0;margin:0">
+            <legend class="etiqueta">{% translate "Armadura" %}</legend>
+            {{ form.armor.errors }}
+            <div class="rejilla-s" style="grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr))">
+                <label class="eleccion"><input type="radio" name="armor" value=""{% if no_armor %} checked{% endif %}><strong>{% translate "Sin armadura" %}</strong><span class="pequeno atenuado">AP 0</span></label>
+                {% for a in armor_choices %}
+                <label class="eleccion"><input type="radio" name="armor" value="{{ a.item.pk }}"{% if a.checked %} checked{% endif %}>
+                    <strong>{{ a.item.name }}</strong>
+                    <span class="pequeno atenuado">{{ a.item.armor.armor_type.type }} · AP {{ a.item.armor.ap|add:a.item.armor.armor_type.ap }} · {% translate "AP mágico" %} {{ a.item.armor.magic_ap|add:a.item.armor.armor_type.magic_ap }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </fieldset>
+        <p class="ayuda">{% translate "Cada arma y armadura que elijas será una copia propia del personaje, ya equipada." %}</p>
+
+        {% else %}
+        <div class="fila" style="align-items:flex-start">
+            <span class="avatar grande" style="background:{{ draft.name|default:'?'|avatar_color }}">{% if portrait_url %}<img src="{{ portrait_url }}" alt="">{% else %}{{ draft.name|initial }}{% endif %}</span>
+            <div class="pila-s" style="flex:1 1 260px">
+                <h2>{{ draft.name|default:_("Sin nombre") }}</h2>
+                <span>{{ race.name|default:"—" }}{% if subrace %} ({{ subrace.name }}){% endif %} · {{ char_class.name|default:"—" }} 1{% if player %} · {{ player.username }}{% endif %}</span>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px">
+                    {% for s in stats %}<div class="caracteristica"><small>{{ s.abbr }}</small><b>{{ s.value }}</b><span>{{ s.mod|signed }}</span></div>{% endfor %}
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px">
+                    <div class="dato"><small>{% translate "Vida" %}</small><b>{{ hp|default:"—" }}</b></div>
+                    <div class="dato"><small>{% translate "Clase de armadura" %}</small><b>{{ ac }}</b></div>
+                    <div class="dato"><small>AP</small><b>{{ max_ap }}</b></div>
+                </div>
+                <span class="pequeno">{% translate "Equipo" %}: {% for w in weapons %}{{ w.name }}, {% endfor %}{{ armor.name|default:_("sin armadura") }}</span>
+                {% if draft.background %}<p class="pequeno" style="white-space:pre-line">{{ draft.background|truncatechars:400 }}</p>{% endif %}
+            </div>
+        </div>
+        {% if problems %}
+        <div class="aviso"><span class="rotulo">{% translate "Falta por completar" %}</span>
+            <ul class="lista-limpia" style="gap:4px">{% for n, message in problems %}<li><a href="?paso={{ n }}">{{ message }}</a></li>{% endfor %}</ul>
+        </div>
+        {% elif not is_master %}
+        <p class="ayuda">{% translate "Al enviarlo, el personaje queda pendiente hasta que el máster lo apruebe." %}</p>
+        {% endif %}
+        {% endif %}
+
+        {# «Siguiente» goes first in the HTML so that Enter moves forward; row-reverse puts it on the right. #}
+        <div class="fila-s" style="flex-direction:row-reverse;justify-content:space-between;border-top:1px solid var(--line);padding-top:14px">
+            <span class="fila-s" style="flex-direction:row-reverse">
+                {% if step < last_step %}<button class="btn btn-principal" name="ir" value="siguiente">{% translate "Siguiente" %} →</button>
+                {% else %}<button class="btn btn-principal" name="ir" value="enviar"{% if problems %} disabled{% endif %}>{% if is_master %}{% translate "Crear personaje" %}{% else %}{% translate "Enviar al máster" %}{% endif %}</button>{% endif %}
+                <button class="btn btn-texto" name="ir" value="empezar">{% translate "Empezar de nuevo" %}</button>
+            </span>
+            {% if step > 0 %}<button class="btn" name="ir" value="atras">← {% translate "Atrás" %}</button>{% endif %}
+        </div>
+    </form>
+</section>
+{% endblock %}

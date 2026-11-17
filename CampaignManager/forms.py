@@ -1,0 +1,238 @@
+"""Public forms of «Mesa de campaña» (ModelForms with their validation)."""
+from django import forms
+from django.forms import inlineformset_factory
+
+from . import rules
+from .models import (
+    BoardCard, Character, CharacterClass, Item, Map, MapLocation, Page, Post, Quest, QuestObjective, Race, Scene,
+    Session, Subrace, TimelineEvent, User,
+)
+
+
+class CampaignFormMixin:
+    """ModelForm for a model with a campaign: the campaign comes from the URL."""
+
+    def __init__(self, *args, campaign=None, **kwargs):
+        self.campaign = campaign
+        super().__init__(*args, **kwargs)
+        if campaign is not None and hasattr(self.instance, "campaign_id"):
+            self.instance.campaign = campaign
+
+
+class SessionForm(CampaignFormMixin, forms.ModelForm):
+    class Meta:
+        model = Session
+        fields = ["number", "title", "played_on", "world_day", "body", "xp_awarded", "loot", "master_notes", "published"]
+        labels = {
+            "number": "Número", "title": "Título", "played_on": "Fecha de la partida", "world_day": "Día en el mundo",
+            "body": "Crónica", "xp_awarded": "XP repartida", "loot": "Botín",
+            "master_notes": "Notas del máster (solo las ves tú)", "published": "Publicada (los jugadores la ven)",
+        }
+        widgets = {"played_on": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+                   "body": forms.Textarea(attrs={"rows": 10}), "master_notes": forms.Textarea(attrs={"rows": 3})}
+        help_texts = {"body": "Escribe [[Nombre]] para enlazar una página del Mundo o la ficha de un personaje. Una línea en blanco separa párrafos."}
+
+    def clean_number(self):
+        number = self.cleaned_data["number"]
+        if Session.objects.filter(campaign=self.campaign, number=number).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("Ya hay una crónica con ese número en esta campaña.")
+        return number
+
+
+class EventForm(CampaignFormMixin, forms.ModelForm):
+    class Meta:
+        model = TimelineEvent
+        fields = ["title", "kind", "hidden"]
+        labels = {"title": "Qué ha pasado", "kind": "Tipo", "hidden": "Solo para el máster"}
+
+
+class BoardCardForm(CampaignFormMixin, forms.ModelForm):
+    class Meta:
+        model = BoardCard
+        fields = ["title", "text", "page", "classified"]
+        labels = {"title": "Título", "text": "Texto", "page": "Página del Mundo", "classified": "Clasificada: los jugadores la verán oculta hasta que la reveles"}
+        widgets = {"text": forms.Textarea(attrs={"rows": 3})}
+
+    def __init__(self, *args, is_master=False, visible_pages=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["page"].queryset = visible_pages if visible_pages is not None else Page.objects.none()
+        self.fields["page"].required = False
+        if not is_master:
+            del self.fields["classified"]
+
+
+class SceneForm(CampaignFormMixin, forms.ModelForm):
+    class Meta:
+        model = Scene
+        fields = ["title", "location", "participants", "is_open"]
+        labels = {"title": "Título", "location": "Lugar", "participants": "Participan", "is_open": "Abierta"}
+        widgets = {"participants": forms.CheckboxSelectMultiple}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["location"].queryset = Page.objects.filter(campaign=self.campaign).order_by("title")
+        self.fields["participants"].queryset = Character.objects.filter(campaigns=self.campaign).order_by("is_npc", "name")
+
+
+class PostForm(forms.Form):
+    """A message in a scene. `as_who` is a character id or "narrador"."""
+
+    as_who = forms.ChoiceField(label="Escribir como")
+    text = forms.CharField(label="Mensaje", widget=forms.Textarea(attrs={"rows": 4}), max_length=5000,
+                           help_text="Empieza con /tirar 1d20+3 para tirar dados con el mensaje.")
+    whisper = forms.BooleanField(label="Susurro al máster", required=False)
+    whisper_to = forms.ModelChoiceField(label="Susurrar a", queryset=Character.objects.none(), required=False,
+                                        empty_label="Nadie: lo ve toda la mesa")
+
+    def __init__(self, *args, options=(), whisper_targets=None, is_master=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["as_who"].choices = list(options)
+        if is_master:
+            del self.fields["whisper"]
+            self.fields["whisper_to"].queryset = whisper_targets
+        else:
+            del self.fields["whisper_to"]
+
+
+class QuestForm(CampaignFormMixin, forms.ModelForm):
+    class Meta:
+        model = Quest
+        fields = ["title", "description", "status", "giver"]
+        labels = {"title": "Título", "description": "Descripción", "status": "Estado", "giver": "Quién la encarga"}
+        widgets = {"description": forms.Textarea(attrs={"rows": 3})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["giver"].queryset = Page.objects.filter(campaign=self.campaign).order_by("title")
+
+
+ObjectiveFormSet = inlineformset_factory(
+    Quest, QuestObjective, fields=["text", "done", "hidden", "order"], extra=2, can_delete=True,
+    labels={"text": "Objetivo", "done": "Cumplido", "hidden": "Oculto (se revela al cumplirlo)", "order": "Orden"},
+)
+
+
+class PageForm(CampaignFormMixin, forms.ModelForm):
+    class Meta:
+        model = Page
+        fields = ["title", "category", "parent", "summary", "body", "secret", "image", "location"]
+        labels = {"title": "Título", "category": "Categoría", "parent": "Dentro de", "summary": "Resumen",
+                  "body": "Lo que sabe el grupo", "secret": "Secreto del máster", "image": "Imagen",
+                  "location": "Lugar del mapa (solo para lugares)"}
+        widgets = {"body": forms.Textarea(attrs={"rows": 8}), "secret": forms.Textarea(attrs={"rows": 3}),
+                   "summary": forms.Textarea(attrs={"rows": 2})}
+        help_texts = {"body": "Escribe el nombre de otra página entre dobles corchetes, como [[Puerto Gris]], y se convierte en un enlace. Una línea en blanco separa párrafos.",
+                      "summary": "Se ve en la vista previa al pasar sobre un enlace. Si lo dejas vacío, se usa la primera frase."}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        others = Page.objects.filter(campaign=self.campaign, category__in=Page.PARENT_CATEGORIES)
+        if self.instance.pk:
+            others = others.exclude(pk=self.instance.pk)
+        self.fields["parent"].queryset = others.order_by("title")
+        self.fields["parent"].empty_label = "Ninguno"
+        taken = Page.objects.filter(campaign=self.campaign, location__isnull=False).exclude(pk=self.instance.pk)
+        self.fields["location"].queryset = (MapLocation.objects.filter(map__campaign=self.campaign)
+                                            .exclude(page__in=taken).select_related("map").order_by("map__order", "name"))
+        self.fields["location"].label_from_instance = lambda loc: f"{loc.map.name} · {loc.name}"
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("location") and cleaned.get("category") != Page.Category.LUGAR:
+            self.add_error("location", "Solo las páginas de lugar pueden tener un lugar del mapa.")
+        return cleaned
+
+
+class MapForm(CampaignFormMixin, forms.ModelForm):
+    class Meta:
+        model = Map
+        fields = ["name", "image", "order"]
+        labels = {"name": "Nombre", "image": "Imagen", "order": "Orden"}
+
+
+class LocationForm(forms.ModelForm):
+    class Meta:
+        model = MapLocation
+        fields = ["name", "x", "y", "status"]
+        labels = {"name": "Nombre", "x": "X (%)", "y": "Y (%)", "status": "Estado"}
+
+
+# ---------------------------------------------------------------------------
+# Creador de personajes: one form per step. The view keeps the cleaned values
+# (as primary keys) in the session until the last step.
+# ---------------------------------------------------------------------------
+
+class RaceStepForm(forms.Form):
+    race = forms.ModelChoiceField(Race.objects.order_by("name"), label="Raza", widget=forms.RadioSelect,
+                                  error_messages={"required": "Elige una raza."})
+    subrace = forms.ModelChoiceField(Subrace.objects.order_by("name"), label="Linaje", required=False, widget=forms.RadioSelect)
+
+    def clean(self):
+        cleaned = super().clean()
+        race, subrace = cleaned.get("race"), cleaned.get("subrace")
+        if race is None:
+            return cleaned
+        if subrace is not None and subrace.race_id != race.pk:
+            self.add_error("subrace", f"{subrace} es un linaje de {subrace.race}, no de {race}.")
+        elif subrace is None and race.subraces.exists():
+            self.add_error("subrace", f"Elige el linaje de {race}.")
+        return cleaned
+
+
+class ClassStepForm(forms.Form):
+    char_class = forms.ModelChoiceField(CharacterClass.objects.order_by("name"), label="Clase", widget=forms.RadioSelect,
+                                        error_messages={"required": "Elige una clase."})
+
+
+class ScoresStepForm(forms.Form):
+    """Standard array (15, 14, 13, 12, 10, 8, one each) or point buy (27 points, 8 to 15)."""
+    METHODS = [("estandar", "Valores estándar"), ("puntos", "Reparto de puntos")]
+    method = forms.ChoiceField(choices=METHODS, label="Método", widget=forms.RadioSelect, initial="puntos")
+    strength = forms.IntegerField(label="Fuerza", min_value=3, max_value=20)
+    dexterity = forms.IntegerField(label="Destreza", min_value=3, max_value=20)
+    constitution = forms.IntegerField(label="Constitución", min_value=3, max_value=20)
+    intelligence = forms.IntegerField(label="Inteligencia", min_value=3, max_value=20)
+    wisdom = forms.IntegerField(label="Sabiduría", min_value=3, max_value=20)
+    charisma = forms.IntegerField(label="Carisma", min_value=3, max_value=20)
+
+    def scores(self):
+        return {key: self.cleaned_data[key] for key in rules.ABILITY_KEYS}
+
+    def clean(self):
+        cleaned = super().clean()
+        if any(cleaned.get(key) is None for key in rules.ABILITY_KEYS):
+            return cleaned
+        values = [cleaned[key] for key in rules.ABILITY_KEYS]
+        if cleaned.get("method") == "estandar":
+            if sorted(values, reverse=True) != rules.STANDARD_ARRAY:
+                raise forms.ValidationError("Con los valores estándar, reparte 15, 14, 13, 12, 10 y 8: uno en cada característica.")
+        elif not all(value in rules.POINT_BUY_COST for value in values):
+            raise forms.ValidationError("Con el reparto de puntos, cada característica va de 8 a 15.")
+        elif rules.point_buy_spent(values) != rules.POINT_BUY_TOTAL:
+            left = rules.POINT_BUY_TOTAL - rules.point_buy_spent(values)
+            raise forms.ValidationError(
+                f"Te quedan {left} puntos por gastar." if left > 0 else f"Te has pasado {-left} puntos de los {rules.POINT_BUY_TOTAL}.")
+        return cleaned
+
+
+class IdentityStepForm(forms.Form):
+    name = forms.CharField(label="Nombre", max_length=100)
+    portrait = forms.ImageField(label="Retrato", required=False)
+    background = forms.CharField(label="Trasfondo", required=False, max_length=5000, widget=forms.Textarea(attrs={"rows": 6}))
+    player = forms.ModelChoiceField(User.objects.none(), label="Jugador", required=False)
+
+    def __init__(self, *args, campaign=None, is_master=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        if is_master:
+            self.fields["player"].queryset = campaign.players.order_by("username")
+        else:
+            del self.fields["player"]
+
+
+class EquipmentStepForm(forms.Form):
+    weapons = forms.ModelMultipleChoiceField(
+        Item.objects.filter(weapon__isnull=False, template__isnull=True).order_by("name"),
+        label="Armas", required=False, widget=forms.CheckboxSelectMultiple)
+    armor = forms.ModelChoiceField(
+        Item.objects.filter(armor__isnull=False, template__isnull=True).order_by("name"),
+        label="Armadura", required=False, empty_label="Sin armadura", widget=forms.RadioSelect)

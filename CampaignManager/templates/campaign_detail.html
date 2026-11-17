@@ -1,34 +1,23 @@
 {% extends "base.html" %}
-
-{% block title %}{{ campaign.name }} | KirokuStory{% endblock %}
-
+{% load i18n %}
+{% block title %}{{ campaign.name }} · {% translate "Reglas" %}{% endblock %}
 {% block content %}
-<h2>{{ campaign.name }}</h2>
-
-{% if campaign.description %}{{ campaign.description|linebreaks }}{% endif %}
-
-<dl>
-    <dt>Status</dt>
-    <dd>{{ campaign.get_status_display }}</dd>
-
-    <dt>Start date</dt>
-    <dd>{{ campaign.start_date }}</dd>
-
-    <dt>Masters</dt>
-    <dd>{% for user in campaign.masters.all %}{{ user.username }}{% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}</dd>
-
-    <dt>Players</dt>
-    <dd>{% for user in campaign.players.all %}{{ user.username }}{% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}</dd>
-</dl>
-
-<h3>Characters</h3>
-<ul>
-    {% for character in campaign.characters.all %}
-    <li><a href="{% url 'character_detail' character.pk %}">{{ character.name }}</a>{% if character.is_npc %} (NPC){% endif %}</li>
-    {% empty %}
-    <li>This campaign has no characters yet.</li>
-    {% endfor %}
-</ul>
-
-<p><a href="{% url 'campaign_list' %}">Back to campaigns</a></p>
+<section class="pila" aria-labelledby="h-reglas">
+    <nav class="migas" aria-label="{% translate 'Ruta' %}"><a href="{% url 'index' %}">{% translate "Reglas" %}</a> <span aria-hidden="true">›</span> <a href="{% url 'campaign_list' %}">{% translate "Tus campañas" %}</a> <span aria-hidden="true">›</span> <span>{{ campaign.name }}</span></nav>
+    <h1 id="h-reglas">{{ campaign.name }}</h1>
+    {% if campaign.description %}<div class="lectura-p">{{ campaign.description|linebreaks }}</div>{% endif %}
+    <div class="tarjeta compacta">
+        <p><b>{% translate "Estado" %}:</b> {{ campaign.get_status_display }} · <b>{% translate "Inicio" %}:</b> {{ campaign.start_date }}</p>
+        <p><b>{% translate "Másteres" %}:</b> {% for user in campaign.masters.all %}{{ user.username }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</p>
+        <p><b>{% translate "Jugadores" %}:</b> {% for user in campaign.players.all %}{{ user.username }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</p>
+        <a class="btn btn-principal" style="align-self:flex-start" href="{% url 'home' campaign.pk %}">{% translate "Abrir la mesa" %}</a>
+    </div>
+    <div class="tarjeta compacta">
+        <h2 class="rotulo">{% translate "Personajes" %}</h2>
+        <ul class="lista-limpia" style="gap:4px">
+            {% for character in characters %}<li><a href="{% url 'character_detail' character.pk %}">{{ character.name }}</a>{% if character.is_npc %} <span class="pastilla">{% translate "PNJ" %}</span>{% endif %}</li>
+            {% empty %}<li class="atenuado">{% translate "Esta campaña todavía no tiene personajes." %}</li>{% endfor %}
+        </ul>
+    </div>
+</section>
 {% endblock %}

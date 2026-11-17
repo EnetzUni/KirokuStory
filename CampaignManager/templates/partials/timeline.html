@@ -1,0 +1,66 @@
+{% load i18n l10n %}
+<div id="linea" class="pila">
+    <div class="fila-s" role="group" aria-label="{% translate 'Filtrar por personaje' %}">
+        <a class="chip{% if not pc_filter %} on{% endif %}" href="?{% if not show_hidden %}ocultos=0{% endif %}" {% if not pc_filter %}aria-current="true"{% endif %}>{% translate "Todos" %}</a>
+        {% for pc in party %}<a class="chip{% if pc_filter == pc.pk|stringformat:'s' %} on{% endif %}" href="?pj={{ pc.pk }}{% if not show_hidden %}&amp;ocultos=0{% endif %}">{{ pc.name }}</a>{% endfor %}
+        {% if is_master %}<a class="chip{% if show_hidden %} on{% endif %}" style="border-style:dashed" href="?ocultos={{ query_hidden }}{% if pc_filter %}&amp;pj={{ pc_filter }}{% endif %}">{% translate "Mostrar sucesos ocultos" %}</a>{% endif %}
+    </div>
+
+    {% if is_master %}
+    <form method="post" action="{% url 'diary_event_add' campaign.pk %}" class="tarjeta compacta" data-ajax data-target="#linea">
+        {% csrf_token %}
+        <div class="campo"><label for="ev-titulo">{% translate "Añadir un suceso" %}</label>
+            <input id="ev-titulo" class="entrada" type="text" name="title" placeholder="{% translate 'Qué ha pasado' %}" required maxlength="200"></div>
+        <div class="fila-s" role="group" aria-label="{% translate 'Tipo de suceso' %}">
+            {% for value, label in event_form.fields.kind.choices %}<label class="chip"><input type="radio" name="kind" value="{{ value }}" {% if forloop.first %}checked{% endif %}>{{ label }}</label>{% endfor %}
+        </div>
+        <div class="fila-s">
+            <button type="submit" class="btn btn-principal" {% if not add_session %}disabled{% endif %}>{% if add_session %}{% translate "Añadir a la sesión" %} {{ add_session.number }}{% else %}{% translate "Escribe antes una crónica" %}{% endif %}</button>
+            <label class="casilla"><input type="checkbox" name="hidden"> {% translate "Solo para el máster" %}</label>
+        </div>
+    </form>
+    {% endif %}
+
+    {% if not marks %}<p class="atenuado">{% translate "Todavía no hay sucesos." %}</p>{% else %}
+    {% localize off %}
+    <div class="tl-marco">
+        <div class="tl" style="width:{{ width }}px">
+            {% for seg in segments %}
+            <span class="tl-tramo{% if seg.even %} par{% endif %}" style="left:{{ seg.left }}px;width:{{ seg.width }}px" aria-hidden="true"></span>
+            <span class="tl-etiqueta" title="{{ seg.full }}" style="left:{{ seg.left|add:8 }}px;width:{{ seg.width|add:-16 }}px">{{ seg.label }}</span>
+            {% endfor %}
+            <span class="tl-barra" style="width:{{ past_width }}px" aria-hidden="true"></span>
+            <span class="tl-futuro" style="left:{{ future_left }}px;width:160px" aria-hidden="true"></span>
+            <span class="tl-etiqueta" style="left:{{ future_left|add:8 }}px;color:var(--link)">{{ future_label }}</span>
+            {% for m in marks %}
+            <span class="tl-tallo k-{{ m.event.kind }} k-fondo" style="left:{{ m.x }}px;top:{{ m.stem_top }}px" aria-hidden="true"></span>
+            <span class="tl-punto k-{{ m.event.kind }} k-fondo" style="left:{{ m.x }}px" aria-hidden="true"></span>
+            <a class="tl-tarjeta k-{{ m.event.kind }}{% if m.event.hidden %} oculto{% endif %}" href="?evento={{ m.event.pk }}{% if pc_filter %}&amp;pj={{ pc_filter }}{% endif %}{% if not show_hidden %}&amp;ocultos=0{% endif %}#detalle-suceso"
+               data-detalle="#detalle-{{ m.event.pk }}" style="left:{{ m.card_left }}px;top:{{ m.card_top }}px" {% if chosen and chosen.event.pk == m.event.pk %}aria-current="true"{% endif %}>
+                <small class="k-color">{{ m.event.get_kind_display }}</small><span>{{ m.event.title }}</span></a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endlocalize %}
+    <div id="detalle-suceso">
+    {% for m in marks %}
+    <div id="detalle-{{ m.event.pk }}" class="tl-detalle{% if m.event.hidden %} oculto{% endif %}" {% if not chosen or chosen.event.pk != m.event.pk %}hidden{% endif %}>
+        <div class="fila-s"><span class="pastilla k-{{ m.event.kind }} k-pastilla">{{ m.event.get_kind_display }}</span>
+            <span class="pequeno atenuado">{% if m.event.session %}{% translate "Sesión" %} {{ m.event.session.number }} · {% endif %}{{ m.event.world_day }}</span>
+            {% if m.event.hidden %}<span class="pastilla p-morado">{% translate "OCULTO" %}</span>{% endif %}</div>
+        <h2 style="font-size:22px">{{ m.event.title }}</h2>
+        {% if m.event.description %}<p>{{ m.event.description }}</p>{% endif %}
+        <div class="fila-s">
+            {% for c in m.event.characters.all %}<span class="pastilla">{{ c.name }}</span>{% endfor %}
+            {% if m.event.location and m.event.location.status != "oculto" or m.event.location and is_master %}
+            <a class="chip" href="{% url 'map' campaign.pk %}?mapa={{ m.event.location.map_id }}&amp;lugar={{ m.event.location.pk }}">{{ m.event.location.name }} · {% translate "mapa" %}</a>{% endif %}
+            {% if is_master %}
+            <form method="post" action="{% url 'diary_event_toggle' campaign.pk m.event.pk %}" data-ajax data-target="#linea" class="en-linea">
+                {% csrf_token %}<button type="submit" class="chip">{% if m.event.hidden %}{% translate "Revelar a los jugadores" %}{% else %}{% translate "Ocultar" %}{% endif %}</button></form>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+    </div>
+    {% endif %}
+</div>

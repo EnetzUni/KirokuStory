@@ -1,32 +1,18 @@
 {% extends "base.html" %}
-
-{% block title %}Spells | KirokuStory{% endblock %}
-
+{% load i18n %}
+{% block title %}{% translate "Conjuros" %} · {% translate "Reglas" %}{% endblock %}
 {% block content %}
-<h2>Spells</h2>
-
-{% if spells %}
-<table>
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Level</th>
-            <th>Casting time</th>
-            <th>Range</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for spell in spells %}
-        <tr>
-            <td><a href="{% url 'spell_detail' spell.pk %}">{{ spell.name }}</a></td>
-            <td>{% if spell.level == 0 %}Cantrip{% else %}{{ spell.level }}{% endif %}</td>
-            <td>{{ spell.casting_time }}</td>
-            <td>{% if spell.range is None %}—{% else %}{{ spell.range }} m{% endif %}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-{% else %}
-<p>There are no spells yet.</p>
-{% endif %}
+<section class="pila" aria-labelledby="h-reglas">
+    <nav class="migas" aria-label="{% translate 'Ruta' %}"><a href="{% url 'index' %}">{% translate "Reglas" %}</a> <span aria-hidden="true">›</span> <span>{% translate "Conjuros" %}</span></nav>
+    <h1 id="h-reglas">{% translate "Conjuros" %}</h1>
+    <div class="tarjeta sin-relleno tabla-marco">
+        <table class="tabla">
+            <thead><tr><th>{% translate "Nombre" %}</th><th>{% translate "Nivel" %}</th><th>{% translate "Tiempo de lanzamiento" %}</th><th>{% translate "Alcance" %}</th></tr></thead>
+            <tbody>
+                {% for spell in spells %}<tr><td><a href="{% url 'spell_detail' spell.pk %}">{{ spell.name }}</a></td><td>{% if spell.level == 0 %}{% translate "Truco" %}{% else %}{{ spell.level }}{% endif %}</td><td>{{ spell.casting_time }}</td><td>{% if spell.range is None %}—{% else %}{{ spell.range }} m{% endif %}</td></tr>
+                {% empty %}<tr><td colspan="4" class="atenuado">{% translate "Todavía no hay conjuros." %}</td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
 {% endblock %}

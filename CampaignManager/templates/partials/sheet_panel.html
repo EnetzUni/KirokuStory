@@ -1,0 +1,314 @@
+{% load i18n mesa %}{% url 'sheet_action' campaign.pk character.pk as act %}{% url 'sheet' campaign.pk character.pk as here %}
+<div id="ficha" class="pila">
+    <article class="tarjeta sin-relleno" aria-labelledby="h-ficha">
+        <div class="ficha-franja" style="background:{{ character|avatar_color }}"></div>
+        <div class="ficha-cabeza">
+            <span class="avatar grande" style="background:{{ character|avatar_color }}">{% if character.portrait %}<img src="{{ character.portrait.url }}" alt="">{% else %}{{ character.name|initial }}{% endif %}</span>
+            <div class="ficha-datos">
+                <div class="fila-s" style="justify-content:space-between">
+                    <h1 id="h-ficha" style="font-size:30px">{{ character.name }}</h1>
+                    {% if my_turn %}<a class="pastilla p-acento" href="{% url 'turns' campaign.pk %}">{% translate "Te toca" %}</a>{% endif %}
+                    {% if character.status == "pendiente" %}<span class="pastilla p-ambar">{% translate "Pendiente de aprobar" %}</span>{% endif %}
+                </div>
+                <span class="atenuado">{{ character.race.name }}{% if character.subrace %} ({{ character.subrace.name }}){% endif %} · {{ character.char_class.name }}{% if character.subclass %} ({{ character.subclass.name }}){% endif %} · {% translate "nivel" %} {{ level }}{% if character.player %} · {{ character.player.username }}{% endif %}{% if character.is_npc %} · {% translate "PNJ" %}{% endif %}</span>
+                <div class="medidor"><span>XP</span><span class="barra"><span style="width:{{ xp_pct }}%"></span></span><b style="min-width:auto">{{ character.xp }}{% if xp_next %} / {{ xp_next }}{% endif %}</b></div>
+            </div>
+        </div>
+    </article>
+
+    <div class="rejilla-s" style="grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr))">
+        {# ---- Vida ---- #}
+        <section class="tarjeta compacta" aria-labelledby="h-vida">
+            <h2 id="h-vida" class="rotulo">{% translate "Puntos de vida" %}</h2>
+            <span class="numero-grande"><span data-valor="vida">{{ character.temp_hp }}</span> <span class="atenuado" style="font-size:18px">/ {{ character.hp }}</span></span>
+            <span class="barra vida gruesa"><span style="width:{% pct character.temp_hp character.hp %}%"></span></span>
+            {% if can_edit %}
+            <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="pila-s">{% include "partials/sheet_hidden.html" %}
+                <div class="contador">
+                    <button class="btn btn-cuadrado" name="accion" value="vida_menos" aria-label="{% translate 'Quitar 1 de vida' %}">−1</button>
+                    <button class="btn btn-cuadrado" name="accion" value="vida_mas" aria-label="{% translate 'Sumar 1 de vida' %}">+1</button>
+                    <label class="sr-only" for="cantidad-vida">{% translate "Cantidad" %}</label>
+                    <input id="cantidad-vida" class="entrada-num" type="number" name="cantidad" min="1" inputmode="numeric" placeholder="{% translate 'Cant.' %}">
+                    <button class="btn btn-peligro" name="accion" value="dano">{% translate "Daño" %}</button>
+                    <button class="btn btn-bien" name="accion" value="curar">{% translate "Curar" %}</button>
+                </div>
+            </form>
+            {% endif %}
+            {% if dying %}
+            <div class="pila-s" style="gap:4px">
+                <span class="etiqueta">{% translate "Salvaciones de muerte" %}</span>
+                {% for save in saves %}
+                <div class="fila-s" style="gap:0">
+                    <span class="pequeno" style="min-width:56px">{{ save.label }}</span>
+                    {% if can_edit %}<form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="fila-s" style="gap:0">{% include "partials/sheet_hidden.html" %}{% endif %}
+                    {% for pip in save.pips %}
+                        <button {% if can_edit %}type="submit" name="accion" value="{{ save.kind }}:{{ pip.i }}"{% else %}type="button" disabled{% endif %} class="salvacion {{ save.kind }}" aria-pressed="{% if pip.on %}true{% else %}false{% endif %}" aria-label="{{ save.label }} {{ forloop.counter }}"><i></i></button>
+                    {% endfor %}
+                    {% if can_edit %}</form>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </section>
+
+        {# ---- Armadura ---- #}
+        <section class="tarjeta compacta" aria-labelledby="h-ap">
+            <h2 id="h-ap" class="rotulo">{% translate "Armadura (AP)" %}</h2>
+            <span class="numero-grande"><span data-valor="ap">{{ character.temp_ap }}</span> <span class="atenuado" style="font-size:18px">/ {{ max_ap }}</span></span>
+            <span class="barra ap gruesa"><span style="width:{% pct character.temp_ap max_ap %}%"></span></span>
+            <span class="pequeno atenuado">{{ armor_source }} · {% translate "AP mágico" %} <b data-valor="ap-magico">{{ max_magic_ap }}</b></span>
+            {% if can_edit %}
+            <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="contador">{% include "partials/sheet_hidden.html" %}
+                <button class="btn btn-cuadrado" name="accion" value="ap_menos" aria-label="{% translate 'Quitar 1 de AP' %}">−1</button>
+                <button class="btn btn-cuadrado" name="accion" value="ap_mas" aria-label="{% translate 'Sumar 1 de AP' %}">+1</button>
+                <button class="btn" name="accion" value="ap_restaurar">{% translate "Restaurar" %}</button>
+            </form>
+            {% endif %}
+        </section>
+
+        {# ---- Inspiración ---- #}
+        <section class="tarjeta compacta" aria-labelledby="h-insp">
+            <h2 id="h-insp" class="rotulo">{% translate "Inspiración" %}</h2>
+            <span class="numero-medio" data-valor="inspiracion">{{ character.inspiration }}</span>
+            {% if can_edit %}
+            <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="contador">{% include "partials/sheet_hidden.html" %}
+                <button class="btn" name="accion" value="insp_gastar"{% if not character.inspiration %} disabled{% endif %}>{% translate "Gastar" %}</button>
+                <button class="btn" name="accion" value="insp_dar">{% translate "Dar" %}</button>
+            </form>
+            {% endif %}
+        </section>
+
+        {# ---- Magia ---- #}
+        {% if character.has_magic %}
+        <section class="tarjeta compacta" aria-labelledby="h-magia">
+            <h2 id="h-magia" class="rotulo">{% translate "Puntos de magia" %}</h2>
+            <span class="numero-medio"><span data-valor="magia">{{ character.magic_points }}</span> <span class="atenuado" style="font-size:16px">/ {{ character.magic_points_max }}</span></span>
+            <span class="pips" aria-hidden="true">{% for on in mp_pips %}<i class="pip{% if on %} lleno{% endif %}"></i>{% endfor %}</span>
+            {% if can_edit %}
+            <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="contador">{% include "partials/sheet_hidden.html" %}
+                <button class="btn btn-magia" name="accion" value="magia_gastar"{% if not character.magic_points %} disabled{% endif %}>{% translate "Gastar 1" %}</button>
+                <button class="btn" name="accion" value="magia_recuperar">{% translate "Recuperar 1" %}</button>
+            </form>
+            {% endif %}
+        </section>
+        {% endif %}
+    </div>
+
+    <nav class="pestanas" aria-label="{% translate 'Secciones de la ficha' %}">
+        {% for t in tabs %}<a href="{{ here }}?tab={{ t.key }}" data-ajax-link{% if t.current %} aria-current="page"{% endif %}>{% translate t.label %}</a>{% endfor %}
+    </nav>
+
+    {% if tab == "res" %}
+    <section class="pila" aria-label="{% translate 'Resumen' %}">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px">
+            {% for s in stats %}<div class="caracteristica"><small>{{ s.abbr }}</small><b>{{ s.score }}</b><span>{{ s.mod|signed }}</span></div>{% endfor %}
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px">
+            <div class="dato"><small>{% translate "Nivel" %}</small><b>{{ level }}</b></div>
+            <div class="dato"><small>{% translate "Clase de armadura" %}</small><b>{{ character.ac }}</b></div>
+            <div class="dato"><small>{% translate "Velocidad" %}</small><b>{{ character.speed }} m</b></div>
+            <div class="dato"><small>{% translate "Iniciativa" %}</small><b>{{ character.initiative|signed }}</b></div>
+            <div class="dato"><small>{% translate "Percepción pasiva" %}</small><b>{{ character.passive_perception }}</b></div>
+        </div>
+
+        <div class="tarjeta compacta">
+            <h2 class="rotulo">{% translate "Estados" %}</h2>
+            {% for e in effects %}
+            <div class="fila-s" style="justify-content:space-between">
+                <span><b>{{ e.effect.name }}</b> · <span data-valor="estado-{{ e.pk }}">{{ e.remaining_turns }}</span> {% translate "rondas" %}{% if e.effect.description %}<br><span class="pequeno atenuado">{{ e.effect.description|truncatechars:140 }}</span>{% endif %}</span>
+                {% if can_edit %}
+                <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="fila-s">{% include "partials/sheet_hidden.html" %}<input type="hidden" name="valor" value="{{ e.pk }}">
+                    <button class="btn btn-cuadrado btn-pequeno" name="accion" value="estado_menos" aria-label="{% translate 'Una ronda menos' %}">−</button>
+                    <button class="btn btn-cuadrado btn-pequeno" name="accion" value="estado_mas" aria-label="{% translate 'Una ronda más' %}">+</button>
+                    <button class="btn btn-pequeno btn-texto" name="accion" value="estado_quitar">{% translate "Quitar" %}</button>
+                </form>
+                {% endif %}
+            </div>
+            {% empty %}<p class="atenuado">{% translate "Sin estados activos." %}</p>{% endfor %}
+            {% if can_edit and effect_catalog %}
+            <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="fila-s">{% include "partials/sheet_hidden.html" %}
+                <label class="sr-only" for="efecto-nuevo">{% translate "Estado" %}</label>
+                <select id="efecto-nuevo" name="efecto" class="entrada" style="flex:1 1 180px;width:auto">{% for e in effect_catalog %}<option value="{{ e.pk }}">{{ e.name }}</option>{% endfor %}</select>
+                <label class="sr-only" for="efecto-rondas">{% translate "Rondas" %}</label>
+                <input id="efecto-rondas" class="entrada-num" type="number" name="rondas" min="1" value="1" inputmode="numeric">
+                <button class="btn" name="accion" value="estado_anadir">{% translate "Añadir" %}</button>
+            </form>
+            {% endif %}
+        </div>
+
+        {% if can_edit %}
+        <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="fila-s">{% include "partials/sheet_hidden.html" %}
+            <button class="btn" name="accion" value="descanso_corto">{% translate "Descanso corto" %}</button>
+            <button class="btn" name="accion" value="descanso_largo">{% translate "Descanso largo" %}</button>
+        </form>
+        <p class="ayuda">{% translate "El descanso largo recupera la vida, el AP, los puntos de magia, todos los usos y las salvaciones. El corto, los usos que se recargan con descanso corto." %}</p>
+        {% endif %}
+    </section>
+
+    {% elif tab == "act" %}
+    <section class="pila" aria-label="{% translate 'Acciones' %}">
+        {% for w in weapons %}
+        <article class="tarjeta sin-relleno">
+            <div class="arma-cabeza">
+                <span><b style="font-size:18px">{{ w.item.name }}</b>{% for t in w.traits %} <span class="rasgo" title="{{ t.title }}">{{ t.label }}</span>{% endfor %}</span>
+                <span class="pastilla p-acento" style="font-size:15px">{% translate "Golpe" %} {% if w.to_hit is None %}?{% else %}{{ w.to_hit|signed }}{% endif %}</span>
+            </div>
+            {% for a in w.attacks %}
+            <div class="fila-tabla">
+                <span style="flex:1 1 140px"><b>{{ a.attack.name }}</b><br><span class="pequeno atenuado">{{ a.meta }}</span></span>
+                <span class="numero-medio" style="font-size:20px">{{ a.damage }}</span>
+                {% for d in a.armor %}<span class="pastilla p-coral">{{ d }}</span>{% endfor %}
+            </div>
+            {% empty %}<p class="atenuado" style="padding:12px 16px">{% translate "Esta arma no tiene ataques." %}</p>{% endfor %}
+        </article>
+        {% empty %}
+        <p class="atenuado">{% translate "Sin armas equipadas. Equípalas en el inventario." %}</p>
+        {% endfor %}
+
+        <div class="tarjeta sin-relleno">
+            <div class="cabeza-tabla">{% translate "Habilidades con usos" %}</div>
+            {% for a in tracked %}
+            <div class="fila-tabla">
+                <span style="flex:1 1 160px"><b>{{ a.ability.name }}</b><br><span class="pequeno atenuado">
+                    {% if a.has_uses %}{% translate "Usos" %} <span data-valor="usos-{{ a.pk }}">{{ a.uses_left }}</span>/{{ a.max_uses }} · {{ a.get_recharge_display }}{% endif %}
+                    {% if a.has_cooldown %}{% if a.has_uses %} · {% endif %}{% if a.cooldown_left %}{% blocktranslate count n=a.cooldown_left %}lista en {{ n }} ronda{% plural %}lista en {{ n }} rondas{% endblocktranslate %}{% else %}{% translate "lista" %}{% endif %} ({% translate "enfriamiento" %} {{ a.cooldown_rounds }}){% endif %}
+                </span></span>
+                {% if can_edit %}
+                <form method="post" action="{{ act }}" data-ajax data-target="#ficha">{% include "partials/sheet_hidden.html" %}<input type="hidden" name="valor" value="{{ a.pk }}">
+                    <button class="btn btn-principal" name="accion" value="usar_habilidad"{% if not a.ready %} disabled{% endif %}>{% translate "Usar" %}</button>
+                </form>
+                {% endif %}
+            </div>
+            {% empty %}<p class="atenuado" style="padding:12px 16px">{% translate "Ninguna habilidad tiene usos o enfriamiento." %}</p>{% endfor %}
+        </div>
+    </section>
+
+    {% elif tab == "spells" %}
+    <section class="pila" aria-label="{% translate 'Conjuros' %}">
+        {% if character.has_magic %}<p class="ayuda">{% blocktranslate with n=character.magic_points m=character.magic_points_max s=max_slot %}Le quedan {{ n }} de {{ m }} puntos de magia. Un espacio de nivel N cuesta N puntos; el más alto a este nivel es el {{ s }}.{% endblocktranslate %}</p>{% endif %}
+        {% for spell_level, group in spell_groups %}
+        <h2 class="rotulo">{% if spell_level == 0 %}{% translate "Trucos" %}{% else %}{% translate "Nivel" %} {{ spell_level }}{% endif %}</h2>
+        <div class="rejilla-s" style="grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr))">
+            {% for s in group %}
+            <article class="tarjeta compacta">
+                <div class="fila-s" style="justify-content:space-between"><h3>{{ s.spell.name }}</h3>{% if s.damage %}<span class="pastilla p-morado">{{ s.damage }}</span>{% endif %}</div>
+                <span class="pequeno atenuado">{{ s.spell.casting_time }} · {{ s.range }} · {{ s.spell.duration }}{% if s.components %} · {{ s.components }}{% endif %}</span>
+                {% if s.rule %}<span class="pequeno">{{ s.rule }}</span>{% endif %}
+                {% if s.spell.description %}<details><summary class="pequeno">{% translate "Descripción" %}</summary><p class="pequeno" style="white-space:pre-line">{{ s.spell.description }}</p></details>{% endif %}
+                {% if can_edit %}
+                {% if s.castable %}
+                <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="fila-s">{% include "partials/sheet_hidden.html" %}<input type="hidden" name="conjuro" value="{{ s.spell.pk }}">
+                    {% if s.slots %}
+                    <label class="sr-only" for="espacio-{{ s.spell.pk }}">{% translate "Espacio de conjuro" %}</label>
+                    <select id="espacio-{{ s.spell.pk }}" name="espacio" class="entrada" style="flex:1 1 160px;width:auto">
+                        {% for slot in s.slots %}<option value="{{ slot.level }}">{% translate "Espacio" %} {{ slot.level }} · {{ slot.cost }} PM{% if slot.damage %} · {{ slot.damage }}{% endif %}</option>{% endfor %}
+                    </select>
+                    {% endif %}
+                    <button class="btn btn-magia" name="accion" value="lanzar">{% translate "Lanzar" %}</button>
+                </form>
+                {% else %}<span class="ayuda">{% translate "Todavía no puede lanzarlo." %}</span>{% endif %}
+                {% endif %}
+            </article>
+            {% endfor %}
+        </div>
+        {% empty %}
+        <p class="atenuado">{% translate "No conoce conjuros." %}</p>
+        {% endfor %}
+    </section>
+
+    {% elif tab == "inv" %}
+    <section class="pila" aria-label="{% translate 'Inventario' %}">
+        <div class="tarjeta compacta">
+            <div class="fila-s" style="justify-content:space-between"><h2 class="rotulo">{% translate "Oro" %}</h2><span class="numero-medio"><span data-valor="oro">{{ gold }}</span> po</span></div>
+            {% if can_edit %}
+            <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="contador">{% include "partials/sheet_hidden.html" %}
+                <label class="sr-only" for="cantidad-oro">{% translate "Cantidad de oro" %}</label>
+                <input id="cantidad-oro" class="entrada-num" type="number" name="cantidad" min="1" inputmode="numeric" placeholder="po">
+                <button class="btn" name="accion" value="pagar">{% translate "Pagar" %}</button>
+                <button class="btn" name="accion" value="recibir">{% translate "Recibir" %}</button>
+            </form>
+            {% endif %}
+        </div>
+
+        <div class="tarjeta sin-relleno">
+            <div class="cabeza-tabla">{% translate "Equipo y objetos" %}</div>
+            {% for r in inventory %}
+            <div class="fila-tabla">
+                <span style="flex:1 1 180px"><b>{{ r.item.name }}</b> <span class="pastilla{% if r.equipped %} p-verde{% endif %}">{% if r.equipped %}{% translate "Equipado" %}{% else %}{% translate r.kind %}{% endif %}</span>{% if r.desc %}<br><span class="pequeno atenuado">{{ r.desc }}</span>{% endif %}</span>
+                {% if can_edit %}
+                <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="fila-s">{% include "partials/sheet_hidden.html" %}<input type="hidden" name="valor" value="{{ r.row.pk }}">
+                    {% if r.equipment %}
+                    <button class="btn btn-pequeno{% if not r.equipped %} btn-principal{% endif %}" name="accion" value="equipar">{% if r.equipped %}{% translate "Desequipar" %}{% else %}{% translate "Equipar" %}{% endif %}</button>
+                    <button class="btn btn-pequeno btn-texto" name="accion" value="objeto_menos">{% translate "Soltar" %}</button>
+                    {% else %}
+                    <button class="btn btn-cuadrado btn-pequeno" name="accion" value="objeto_menos" aria-label="{% translate 'Uno menos' %}">−</button>
+                    <b data-valor="cantidad-{{ r.row.pk }}" style="min-width:24px;text-align:center">{{ r.row.quantity }}</b>
+                    <button class="btn btn-cuadrado btn-pequeno" name="accion" value="objeto_mas" aria-label="{% translate 'Uno más' %}">+</button>
+                    {% if r.item.consumable %}<button class="btn btn-pequeno" name="accion" value="usar_objeto">{% translate "Usar" %}</button>{% endif %}
+                    {% endif %}
+                </form>
+                {% else %}<b>× {{ r.row.quantity }}</b>{% endif %}
+            </div>
+            {% empty %}<p class="atenuado" style="padding:12px 16px">{% translate "El inventario está vacío." %}</p>{% endfor %}
+        </div>
+
+        {% if can_edit %}
+        <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="tarjeta compacta">{% include "partials/sheet_hidden.html" %}
+            <h2 class="rotulo">{% translate "Añadir desde el catálogo" %}</h2>
+            <div class="fila-s">
+                <label class="sr-only" for="objeto-nuevo">{% translate "Objeto" %}</label>
+                <select id="objeto-nuevo" name="objeto" class="entrada" style="flex:1 1 200px;width:auto">{% for i in catalog %}<option value="{{ i.pk }}">{{ i.name }}</option>{% endfor %}</select>
+                <label class="sr-only" for="objeto-cantidad">{% translate "Cantidad" %}</label>
+                <input id="objeto-cantidad" class="entrada-num" type="number" name="cantidad" min="1" value="1" inputmode="numeric">
+                <button class="btn" name="accion" value="anadir_objeto">{% translate "Añadir" %}</button>
+            </div>
+            <span class="ayuda">{% translate "Las armas y armaduras se añaden de una en una: cada una es una copia propia." %}</span>
+        </form>
+        {% endif %}
+    </section>
+
+    {% elif tab == "feats" %}
+    <section class="pila" aria-label="{% translate 'Rasgos' %}">
+        {% if abilities %}
+        <div class="tarjeta compacta">
+            <h2 class="rotulo">{% translate "Habilidades propias" %}</h2>
+            {% for a in abilities %}
+            <details><summary><b>{{ a.ability.name }}</b>{% if a.ability.unique %} <span class="pastilla p-morado">{% translate "Única" %}</span>{% endif %}</summary><p class="pequeno" style="white-space:pre-line">{{ a.ability.description }}</p></details>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% for g in granted %}
+        <div class="tarjeta compacta">
+            <h2 class="rotulo">{{ g.title }}</h2>
+            {% for i in g.items %}
+            <details{% if not i.reached %} class="atenuado"{% endif %}><summary><b>{{ i.ability.name }}</b> <span class="pequeno">· {% translate "nivel" %} {{ i.level }}{% if not i.reached %} ({% translate "todavía no" %}){% endif %}</span></summary><p class="pequeno" style="white-space:pre-line">{{ i.ability.description }}</p></details>
+            {% empty %}<p class="atenuado">{% translate "Sin rasgos." %}</p>{% endfor %}
+        </div>
+        {% endfor %}
+    </section>
+
+    {% elif tab == "bio" %}
+    <section class="pila" aria-label="{% translate 'Biografía' %}">
+        {% if can_edit %}
+        <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="tarjeta compacta">{% include "partials/sheet_hidden.html" %}
+            <div class="campo"><label for="trasfondo">{% translate "Trasfondo" %}</label><textarea id="trasfondo" name="trasfondo" rows="6">{{ character.background }}</textarea></div>
+            <div class="campo"><label for="notas">{% translate "Notas" %}</label><textarea id="notas" name="notas" rows="6">{{ character.notes }}</textarea></div>
+            <button class="btn btn-principal" style="align-self:flex-start" name="accion" value="notas">{% translate "Guardar" %}</button>
+        </form>
+        <form method="post" action="{{ act }}" enctype="multipart/form-data" class="tarjeta compacta">{% include "partials/sheet_hidden.html" %}
+            <div class="campo"><label for="retrato">{% translate "Retrato" %}</label><input id="retrato" type="file" name="retrato" accept="image/*"></div>
+            <button class="btn" style="align-self:flex-start" name="accion" value="retrato">{% translate "Cambiar retrato" %}</button>
+        </form>
+        {% else %}
+        <div class="tarjeta compacta"><h2 class="rotulo">{% translate "Trasfondo" %}</h2><p style="white-space:pre-line">{{ character.background|default:_("Sin trasfondo.") }}</p></div>
+        {% endif %}
+        <div class="tarjeta compacta">
+            <h2 class="rotulo">{% translate "En el diario" %}</h2>
+            <ul class="lista-limpia">
+                {% for e in history %}<li class="suceso k-{{ e.kind }}"><span class="punto k-fondo" aria-hidden="true"></span><span><b>{{ e.title }}</b><br><span class="pequeno atenuado">{{ e.get_kind_display }}{% if e.session %} · {% translate "Sesión" %} {{ e.session.number }}{% endif %}</span></span></li>
+                {% empty %}<li class="atenuado">{% translate "Todavía no aparece en la línea del tiempo." %}</li>{% endfor %}
+            </ul>
+        </div>
+    </section>
+    {% endif %}
+</div>

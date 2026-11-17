@@ -15,12 +15,13 @@ Text version of the entity-relationship diagram (`ER.drawio`), written as contex
 |---|---|
 | Users and campaigns | User, Campaign |
 | Characters | Character, Race, Subrace, CharacterClass, Subclass |
-| Abilities | Ability, RaceAbility, SubraceAbility, ClassAbility, SubclassAbility |
+| Abilities | Ability, CharacterAbility, RaceAbility, SubraceAbility, ClassAbility, SubclassAbility |
 | Spells and combat | Spell, Component, Attack, DiceRoll, ArmorDamage |
 | Effects | Effect, ActiveEffect |
 | Items and equipment | Item, ItemEffect, Inventory, Weapon, Armor, ArmorType |
+| Campaign contents (E4) | Session, TimelineEvent, Page, Quest, QuestObjective, BoardCard, BoardLink, Scene, Post, Map, MapLocation, PartyMove, Encounter, Combatant |
 
-RaceAbility, SubraceAbility, ClassAbility, SubclassAbility, ItemEffect, Inventory and ActiveEffect are **link tables** (yellow in the diagram): they join two models and carry extra data of their own.
+CharacterAbility, RaceAbility, SubraceAbility, ClassAbility, SubclassAbility, ItemEffect, Inventory and ActiveEffect are **link tables** (yellow in the diagram): they join two models and carry extra data of their own.
 
 ---
 
@@ -42,6 +43,10 @@ Use Django's authentication system: a custom user model `class User(AbstractUser
 | description | text | |
 | start_date | date | |
 | status | string | One of `activa`, `pausada`, `terminada` |
+| cover | image | **Optional.** Cover picture of the home page (`portadas/`) |
+| notice | text | **Optional.** «Aviso del máster», shown on the home page |
+| world_day | string | **Optional.** The day in the world, e.g. «Día 9 de Brumaluz» |
+| world_year | string | **Optional.** The year in the world |
 
 - Has many Masters and many players (both are Users, see above).
 - Contains (*contiene*) many Characters. A Character can belong to many Campaigns, or to none. Deleting a campaign only removes the link: its characters are kept, and those left without any campaign are shown apart.
@@ -74,9 +79,17 @@ Use Django's authentication system: a custom user model `class User(AbstractUser
 | subrace_id | FK → Subrace | **Optional.** Must be a subrace of the character's race |
 | is_npc | bool | True for NPCs (see NPCs below) |
 | template_id | FK → Character | **Optional.** Only for NPC copies: the NPC template it was made from |
+| status | string | `aprobado` (default) or `pendiente`: a player's new character waits for the master's approval |
+| portrait | image | **Optional.** (`retratos/`) |
+| background | text | **Optional.** The character's background (*trasfondo*) |
+| notes | text | **Optional.** The player's own notes |
+| death_successes | int | 0 to 3. Marked only at 0 hit points; cleared when hit points go above 0 or on a long rest |
+| death_failures | int | 0 to 3. Same as above |
+| magic_points | int | Current magic points |
+| magic_points_max | int | **Optional.** Maximum magic points, set by the master. Empty: the character does not use magic points |
 
 - Belongs to many Campaigns (*contiene*, many-to-many), or to none. There is no `campaign_id` column.
-- Has (*posee*) many Abilities. An Ability can be held by many Characters, unless it is unique: then only one character per campaign (see game rules).
+- Has (*posee*) many Abilities through CharacterAbility, which stores their uses. An Ability can be held by many Characters, unless it is unique: then only one character per campaign (see game rules).
 - Knows (*conoce*) many Spells.
 - Carries (*lleva*) Items through Inventory.
 - Suffers (*sufre*) Effects through ActiveEffect.
@@ -87,7 +100,7 @@ Not stored, calculated when needed:
 - **maximum AP and maximum magic AP**: from the equipped armor (see game rules).
 - **initiative**: from dexterity.
 - **passive perception**: from wisdom.
-- **level**: from xp. The conversion is not defined yet and is not needed for now.
+- **level**: from xp, with the SRD table (300, 900, 2700…) in `CampaignManager/rules.py` (`XP_THRESHOLDS`).
 
 ### NPCs: templates and copies
 
@@ -164,6 +177,20 @@ NPCs are Characters with `is_npc = true`. There can be many of the same NPC (fou
 | description | text | |
 
 - Applies (*aplica*) many Effects.
+
+### CharacterAbility (link table)
+
+| Field | Type | Notes |
+|---|---|---|
+| character_id | FK → Character | |
+| ability_id | FK → Ability | |
+| max_uses | int | **Optional.** Empty: no limited uses |
+| uses_left | int | Up to `max_uses` |
+| recharge | string | `corto`, `largo` or `ninguno`: which rest gives the uses back |
+| cooldown_rounds | int | **Optional.** Empty: no cooldown |
+| cooldown_left | int | Up to `cooldown_rounds` |
+
+The abilities a character holds directly (*posee*), with their uses. The master sets the uses and cooldowns: they are not read from the SRD text. «Usar» spends a use and starts the cooldown; a long rest gives back every use, a short rest only those with `recharge = corto`, and both end the cooldowns. In combat, the end of each round takes 1 from `cooldown_left`. Abilities granted by race, subrace, class or subclass appear on the sheet as traits; give the character a row here too if one has uses.
 
 ### RaceAbility (link table)
 
@@ -290,7 +317,7 @@ Applied (*aplica*, many-to-many) by Spells, Abilities, Attacks, Items and ArmorT
 | effect_id | FK → Effect | |
 | remaining_turns | int | |
 
-The effects currently on a character.
+The effects currently on a character. In combat, the end of each round takes 1 from `remaining_turns`, and the effects that reach 0 are removed.
 
 ---
 
@@ -380,9 +407,164 @@ A template's Armor row describes a **kind** of armor; a copy's Armor row is an *
 
 ---
 
+## Campaign contents (E4)
+
+Everything that belongs to one campaign: its diary, its world wiki, its board, its role-play scenes, its maps and its fights. They live in `CampaignManager/campaign_models.py`. Every one of them reaches its campaign through a foreign key (directly, or through its scene, quest, map or encounter), and all of them are deleted with it (`CASCADE`).
+
+**Hidden content is filtered on the server:** each model with something hidden has a `visible_for(user, campaign)` queryset that returns everything to the campaign's masters and only the visible rows to its players. Templates never hide anything with CSS.
+
+### Session (diary chronicle)
+
+| Field | Type | Notes |
+|---|---|---|
+| campaign_id | FK → Campaign | |
+| number | int | Unique per campaign |
+| title | string | |
+| played_on | date | Real date the session was played |
+| world_day | string | **Optional.** Day in the world |
+| body | text | The chronicle. `[[Name]]` links to a world page or a player character |
+| xp_awarded | int | |
+| loot | string | **Optional.** |
+| master_notes | text | **Optional.** Only masters see them |
+| published | bool | Players only see published sessions |
+
+### TimelineEvent
+
+| Field | Type | Notes |
+|---|---|---|
+| campaign_id | FK → Campaign | |
+| session_id | FK → Session | **Optional.** `SET_NULL` |
+| title | string | |
+| description | text | |
+| world_day | string | **Optional.** |
+| kind | string | `combate`, `social`, `descubrimiento`, `viaje`, `giro`, `mision` or `secreto` |
+| location_id | FK → MapLocation | **Optional.** `SET_NULL`. Must be on a map of the same campaign |
+| hidden | bool | Hidden events are not sent to players |
+
+- Many-to-many with the Characters who took part (`characters`). Closing a scene adds an event «Escena: …».
+
+### Page (world wiki)
+
+| Field | Type | Notes |
+|---|---|---|
+| campaign_id | FK → Campaign | |
+| title | string | |
+| slug | slug | Unique per campaign, made from the title |
+| category | string | `lugar`, `pnj`, `faccion`, `objeto` or `historia` |
+| parent_id | FK → Page | **Optional.** `SET_NULL`. Only a place or a faction of the same campaign, never forming a cycle |
+| summary | text | Shown in the floating preview of `[[links]]` |
+| body | text | `[[Name]]` links to another page |
+| secret | text | Only masters see it |
+| image | image | **Optional.** (`mundo/`) |
+| revealed | bool | A page that is not revealed does not exist for players: 404, no preview, its links become plain text |
+| location_id | One-to-one → MapLocation | **Optional.** `SET_NULL`. Only for places. Revealing or hiding the page moves its location between `oculto` and `conocido`, and the other way round |
+
+### Quest and QuestObjective
+
+| Quest field | Type | Notes |
+|---|---|---|
+| campaign_id | FK → Campaign | |
+| title | string | |
+| description | text | |
+| status | string | `activa`, `completada` or `fallida` |
+| giver_id | FK → Page | **Optional.** `SET_NULL`. Who gave it |
+
+| QuestObjective field | Type | Notes |
+|---|---|---|
+| quest_id | FK → Quest | |
+| text | string | |
+| done | bool | |
+| hidden | bool | Players see «Objetivo oculto», never the text. Ticking it reveals it (`hidden` becomes false) |
+| order | int | |
+
+### BoardCard and BoardLink (the board)
+
+| BoardCard field | Type | Notes |
+|---|---|---|
+| campaign_id | FK → Campaign | |
+| title | string | |
+| text | text | |
+| x, y | int | Position on a 1100 × 640 board, so a 200 × 120 note fits |
+| page_id | FK → Page | **Optional.** `SET_NULL` |
+| classified | bool | Players see «CLASIFICADO» and not its title or text until it is revealed |
+| revealed | bool | |
+| author_id | FK → User | **Optional.** `SET_NULL`. Players can remove only their own notes |
+
+BoardLink joins two notes with red thread (`card_a`, `card_b`, both `CASCADE`). The pair is stored in order (`card_a` < `card_b`), so a thread is never stored twice.
+
+### Scene and Post (role-play scenes)
+
+| Scene field | Type | Notes |
+|---|---|---|
+| campaign_id | FK → Campaign | |
+| title | string | |
+| location_id | FK → Page | **Optional.** `SET_NULL` |
+| is_open | bool | Closed scenes cannot get messages |
+
+- Many-to-many with the participating Characters (`participants`).
+
+| Post field | Type | Notes |
+|---|---|---|
+| scene_id | FK → Scene | |
+| author_id | FK → User | `SET_NULL` |
+| as_character_id | FK → Character | **Optional.** `SET_NULL`. Empty: the narrator |
+| text | text | |
+| roll | string | Result of «/tirar 2d6+3», rolled on the server |
+| whisper_to_id | FK → Character | **Optional.** `SET_NULL`. Only the author, this character's player and the masters see it. A player's whisper goes to the masters |
+| created_at | datetime | |
+
+### Map, MapLocation and PartyMove
+
+| Map field | Type | Notes |
+|---|---|---|
+| campaign_id | FK → Campaign | |
+| name | string | |
+| image | image | **Optional.** (`mapas/`) |
+| order | int | |
+
+| MapLocation field | Type | Notes |
+|---|---|---|
+| map_id | FK → Map | |
+| name | string | |
+| x, y | float | Position in % of the image (0 to 100) |
+| status | string | `oculto` (not sent to players), `conocido` or `visitado` |
+
+PartyMove is one step of the party's route: `map`, `location` (both `CASCADE`), `session` (optional, `SET_NULL`) and `order`. Moving the party marks the location as `visitado`. The map's session slider shows the route up to a session.
+
+### Encounter and Combatant (combat turns)
+
+| Encounter field | Type | Notes |
+|---|---|---|
+| campaign_id | FK → Campaign | |
+| active | bool | At most one active encounter per campaign (`UniqueConstraint` with a condition) |
+| round | int | |
+| turn_index | int | Position of the combatant whose turn it is |
+
+| Combatant field | Type | Notes |
+|---|---|---|
+| encounter_id | FK → Encounter | |
+| character_id | FK → Character | **Optional.** `CASCADE`. Characters keep their hit points and AP on their sheet |
+| name | string | For enemies without a character. A combatant has a character or a name (`CheckConstraint`) |
+| initiative | int | **Optional.** Typed by the master |
+| hp, hp_max | int | **Optional.** Only for enemies without a character |
+| order | int | Turn order; «Ordenar por iniciativa» rewrites it |
+
+Players see the order and whose turn it is; they never receive the hit points of enemies or NPCs. When «Siguiente» closes a round, cooldowns and active effects of the characters in the fight lose 1 round.
+
+---
+
 ## Initial data
 
-The database starts from three sources, loaded in this order on a database with empty tables:
+The database starts from three sources, loaded in this order on a database with empty tables. For E4 the whole demo loads with one command:
+
+```bash
+python manage.py migrate
+python manage.py cargar_demo    # datos_iniciales_srd + armas_caseras + demo_campana + demo images
+```
+
+`demo_campana.json` holds the prototype's campaigns (La Corona de Ceniza, Ecos de Kioto, Prólogo en Puerto Gris), its users, armor types and armors, characters, NPC templates and copies, and at least one row of every campaign model. It is generated by `python manage.py generar_demo --output CampaignManager/fixtures/demo_campana.json` on a database with only the two rules fixtures. Users and groups go by natural key (`["carlos"]`, `["Campañas"]`), because the groups come from a migration.
+
+The E3 way, without the demo, still works:
 
 ```bash
 python manage.py migrate
@@ -431,7 +613,7 @@ These are house rules or constraints the diagram cannot express.
    - A character **cannot join** a campaign where another character already has one of its unique abilities.
    - A character cannot get a unique ability that another character already has in any of its campaigns.
    - Characters without a campaign keep their unique abilities, which stay marked as unique, but are not exclusive in any sense: they block no one and nothing blocks them, until they join a campaign.
-   - It applies to abilities from any source: race, subrace, class, subclass or held directly. Until levels exist (rule 7), every granted ability counts, whatever its `level_required`.
+   - It applies to abilities from any source: race, subrace, class, subclass or held directly. A granted ability counts once the character's level reaches its `level_required` (rule 7).
    - Campaign membership and abilities are many-to-many links, so this is checked in code, not by a database constraint:
      - The character's admin form, on the campaigns, abilities, race, subrace, class and subclass being saved, and `Character.clean()` on the saved ones.
      - Adding campaigns or abilities in code (`character.campaigns.add()`, `campaign.characters.add()`, `character.abilities.add()`, `ability.character_set.add()`) raises a `ValidationError`, including when several characters joining together share a unique ability.
@@ -439,7 +621,7 @@ These are house rules or constraints the diagram cannot express.
      - The `clean()` of RaceAbility, SubraceAbility, ClassAbility and SubclassAbility: a race, subrace, class or subclass cannot grant a unique ability that would leave two characters in a campaign with it.
 7. **Ability levels:** a character gets a race, subrace, class or subclass ability only once their level is at least `level_required`.
 8. **One class per character:** no multiclassing. A character has at most one subclass and at most one subrace.
-9. **Calculated, not stored:** speed comes from the race (subraces have no speed); maximum AP and magic AP come from the equipped armor; initiative and passive perception come from the ability scores; level comes from xp (conversion to be defined later).
+9. **Calculated, not stored:** speed comes from the race (subraces have no speed); maximum AP and magic AP come from the equipped armor; initiative and passive perception come from the ability scores; level comes from xp with the SRD table (`rules.XP_THRESHOLDS`).
 10. **Units:** distances (race speed, spell and attack range, attack area) are in meters; in melee, 1 square = 1 m. Attack cooldown is in rounds. A spell's or attack's range is empty when it is not a distance. Distances in feet (D&D books, character sheets) are converted with 6 ft = 2 m, rounded to the nearest meter: 30 ft = 10 m, 35 ft = 12 m, 25 ft = 8 m.
 11. **NPCs:**
    - Only NPCs can have a template (checked by a database constraint).
@@ -459,6 +641,11 @@ These are house rules or constraints the diagram cannot express.
 14. **Weapon to hit:** `Weapon.to_hit` is a formula with an optional integer, an ability (`str` or `dex`) and an optional multiplier for that ability's modifier: `-3 + dex x2` = −3 + 2 × the Dexterity modifier (see rule 4 for modifiers).
    - The format is checked by a validator when the weapon is validated (`full_clean()`, the admin). Loading a fixture does not run validators.
    - **In code:** `Weapon.to_hit_bonus(character)` works it out, and `parse_to_hit()` splits a formula into its integer, ability and multiplier. The character page shows the to hit and damage of every weapon the character carries.
+15. **Open decisions (E4), kept in `CampaignManager/rules.py`:**
+   - **XP → level:** the SRD table, `XP_THRESHOLDS`.
+   - **Magic points:** casting with a level N slot costs N points (`magic_point_cost`); cantrips cost nothing. The highest slot is `ceil(level / 2)`, at most 9 (`max_spell_slot`). The maximum is `Character.magic_points_max`, set by the master.
+   - **Ability uses:** set by the master in CharacterAbility, not read from the SRD.
+   - **Character creation:** standard array (15, 14, 13, 12, 10, 8) or point buy (27 points, 8 to 15, SRD costs). Level 1 hit points = the class hit die's maximum + the Constitution modifier; armor class = 10 + the Dexterity modifier.
 
 ---
 
@@ -478,7 +665,7 @@ These are house rules or constraints the diagram cannot express.
 | *define* (subclass) | `Character.subclass = ForeignKey(Subclass, null=True, blank=True)` |
 | *tiene* (race) | `Subrace.race = ForeignKey(Race, related_name="subraces")` |
 | *tiene* (class) | `Subclass.char_class = ForeignKey(CharacterClass, related_name="subclasses")` |
-| *posee* | `Character.abilities = ManyToManyField(Ability)` |
+| *posee* | `Character.abilities = ManyToManyField(Ability, through="CharacterAbility")` |
 | *conoce* | `Character.spells = ManyToManyField(Spell)` |
 | *lleva* | `Character.items = ManyToManyField(Item, through="Inventory")` |
 | *sufre* | `Character.effects = ManyToManyField(Effect, through="ActiveEffect")` |
@@ -504,8 +691,10 @@ The two User ↔ Campaign relationships need different `related_name` values, ot
 
 ### Constraints and choices
 
-- `UniqueConstraint` on Inventory (`character`, `item`), ItemEffect (`item`, `effect`), RaceAbility (`race`, `ability`), SubraceAbility (`subrace`, `ability`), ClassAbility (`char_class`, `ability`) and SubclassAbility (`subclass`, `ability`).
-- `CheckConstraint` on Character: `template` is empty or `is_npc` is true.
+- `UniqueConstraint` on Inventory (`character`, `item`), ItemEffect (`item`, `effect`), CharacterAbility (`character`, `ability`), RaceAbility (`race`, `ability`), SubraceAbility (`subrace`, `ability`), ClassAbility (`char_class`, `ability`) and SubclassAbility (`subclass`, `ability`).
+- `CheckConstraint` on Character: `template` is empty or `is_npc` is true; death saves up to 3; `magic_points` up to `magic_points_max`.
+- `CheckConstraint` on CharacterAbility: `uses_left` up to `max_uses`, `cooldown_left` up to `cooldown_rounds`.
+- Campaign models: `UniqueConstraint` on Session (`campaign`, `number`), Page (`campaign`, `slug`), BoardLink (`card_a`, `card_b`) and one active Encounter per campaign; `CheckConstraint` on BoardLink (`card_a` < `card_b`) and Combatant (a character or a name).
 - `Campaign.status`: use `TextChoices` with `activa`, `pausada`, `terminada`.
 - `ArmorDamage.type`: use `TextChoices` with `penetrating` (Penetrante) and `shredding` (Triturante). "None" and "both" are not choices: they are zero, or more than one, ArmorDamages linked to the attack.
 - `Attack.stat_bonus`: choices `str` (Fuerza) and `dex` (Destreza), from the `Stat` TextChoices; empty means no ability modifier.
@@ -515,7 +704,9 @@ The two User ↔ Campaign relationships need different `related_name` values, ot
 
 | Foreign key | `on_delete` | Effect |
 |---|---|---|
-| Link tables (ItemEffect, Inventory, ActiveEffect, RaceAbility, SubraceAbility, ClassAbility, SubclassAbility) | `CASCADE` | Rows disappear with either side |
+| Link tables (ItemEffect, Inventory, ActiveEffect, CharacterAbility, RaceAbility, SubraceAbility, ClassAbility, SubclassAbility) | `CASCADE` | Rows disappear with either side |
+| Campaign models → Campaign, and their parts (objectives, links, posts, locations, moves, combatants) → their whole | `CASCADE` | Deleting a campaign deletes its diary, wiki, board, scenes, maps and fights |
+| Optional references inside a campaign (event → session or location, page → parent or location, quest → giver, note → page or author, post → author or character) | `SET_NULL` | The row stays without the reference |
 | Subrace.race, Subclass.char_class | `CASCADE` | Deleting a race or class deletes its subraces or subclasses; blocked if a character uses one of them |
 | Weapon.item, Armor.item | `CASCADE` | Deleting the Item deletes its weapon or armor data |
 | Character.race, Character.subrace, Character.char_class, Character.subclass, Armor.armor_type | `PROTECT` | Cannot delete a race, subrace, class, subclass or armor type still in use |

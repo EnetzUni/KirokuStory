@@ -1,0 +1,11 @@
+{% comment %}One form field with its label, help and errors.{% endcomment %}
+{% if field.is_hidden %}{{ field }}{% elif field.widget_type == "checkbox" %}
+<div class="campo"><label class="casilla">{{ field }} {{ field.label }}</label>{% if field.help_text %}<span class="ayuda">{{ field.help_text }}</span>{% endif %}{{ field.errors }}</div>
+{% else %}
+<div class="campo">
+    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {{ field }}
+    {% if field.help_text %}<span class="ayuda">{{ field.help_text }}</span>{% endif %}
+    {{ field.errors }}
+</div>
+{% endif %}

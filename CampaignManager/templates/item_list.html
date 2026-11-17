@@ -1,34 +1,19 @@
 {% extends "base.html" %}
-
-{% block title %}Items | KirokuStory{% endblock %}
-
+{% load i18n %}
+{% block title %}{% translate "Objetos" %} · {% translate "Reglas" %}{% endblock %}
 {% block content %}
-<h2>Items</h2>
-
-{% if items %}
-<table>
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Kind</th>
-            <th>Price</th>
-            <th>Consumable</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for item in items %}
-        <tr>
-            <td><a href="{% url 'item_detail' item.pk %}">{{ item.name }}</a></td>
-            <td>{% if item.template %}Copy{% else %}Template{% endif %}</td>
-            <td>{% if item.weapon %}Weapon{% elif item.armor %}Armor{% else %}Item{% endif %}</td>
-            <td>{{ item.price|default_if_none:"—" }}</td>
-            <td>{{ item.consumable|yesno:"Yes,No" }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-{% else %}
-<p>There are no items yet.</p>
-{% endif %}
+<section class="pila" aria-labelledby="h-reglas">
+    <nav class="migas" aria-label="{% translate 'Ruta' %}"><a href="{% url 'index' %}">{% translate "Reglas" %}</a> <span aria-hidden="true">›</span> <span>{% translate "Objetos" %}</span></nav>
+    <h1 id="h-reglas">{% translate "Objetos" %}</h1>
+    <p class="ayuda">{% translate "Plantillas del catálogo. Cada personaje lleva copias propias de las armas y armaduras." %}</p>
+    <div class="tarjeta sin-relleno tabla-marco">
+        <table class="tabla">
+            <thead><tr><th>{% translate "Nombre" %}</th><th>{% translate "Tipo" %}</th><th>{% translate "Precio" %}</th><th>{% translate "Consumible" %}</th></tr></thead>
+            <tbody>
+                {% for item in items %}<tr><td><a href="{% url 'item_detail' item.pk %}">{{ item.name }}</a></td><td>{% if item.weapon %}{% translate "Arma" %}{% elif item.armor %}{% translate "Armadura" %}{% else %}{% translate "Objeto" %}{% endif %}</td><td>{{ item.price|default_if_none:"—" }}</td><td>{% if item.consumable %}{% translate "Sí" %}{% else %}{% translate "No" %}{% endif %}</td></tr>
+                {% empty %}<tr><td colspan="4" class="atenuado">{% translate "Todavía no hay objetos." %}</td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
 {% endblock %}

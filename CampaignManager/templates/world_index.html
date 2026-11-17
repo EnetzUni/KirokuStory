@@ -1,0 +1,26 @@
+{% extends "world_base.html" %}
+{% load i18n mesa %}
+{% block world %}
+<nav class="migas" aria-label="{% translate 'Ruta' %}"><a href="{% url 'world' campaign.pk %}">{% translate "Mundo" %}</a><span aria-hidden="true">›</span><span style="color:var(--text)">{% translate category_label %}</span></nav>
+<h1>{% translate category_label %}</h1>
+<p class="atenuado">{% translate category_intro %}</p>
+<div class="rejilla" style="grid-template-columns:repeat(auto-fill,minmax(min(240px,100%),1fr))">
+    {% for card in cards %}
+    {% if card.character %}
+    <a class="tarjeta sin-relleno tarjeta-enlace" href="{% url 'sheet' campaign.pk card.character.pk %}">
+        <span class="ficha-pagina" style="background:{{ card.character|avatar_color }}">{% if card.character.portrait %}<img src="{{ card.character.portrait.url }}" alt="">{% else %}{{ card.character.name|initial }}{% endif %}</span>
+        <span class="pila-s" style="padding:12px 14px 14px;gap:4px"><b style="font-size:18px">{{ card.character.name }}</b><span class="pequeno atenuado">{{ card.character.race }} · {{ card.character.char_class }}</span></span>
+    </a>
+    {% else %}
+    <a class="tarjeta sin-relleno tarjeta-enlace" href="{% url 'world_page' campaign.pk card.page.slug %}">
+        <span class="ficha-pagina cat-{{ card.page.category }}">{% if card.page.image %}<img src="{{ card.page.image.url }}" alt="">{% else %}{{ card.page.title|initial }}{% endif %}</span>
+        <span class="pila-s" style="padding:12px 14px 14px;gap:4px">
+            <span class="fila-s" style="justify-content:space-between"><b style="font-size:18px">{{ card.page.title }}</b>{% if not card.page.revealed %}<span class="pastilla p-morado" style="font-size:10px">{% translate "OCULTO" %}</span>{% endif %}</span>
+            {% if card.page.parent %}<span class="pequeno" style="color:var(--link);font-weight:700">{% translate "En" %} {{ card.page.parent.title }}</span>{% endif %}
+            <span class="pequeno atenuado">{{ card.summary|plain }}</span>
+        </span>
+    </a>
+    {% endif %}
+    {% empty %}<p class="atenuado">{% translate "Todavía no hay nada en esta categoría." %}</p>{% endfor %}
+</div>
+{% endblock %}

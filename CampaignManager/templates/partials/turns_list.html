@@ -1,0 +1,107 @@
+{% load i18n mesa %}{% url 'turns_action' campaign.pk as act %}
+<div id="turnos" class="pila" data-refrescar="{% url 'turns' campaign.pk %}" data-cada="5" aria-live="polite">
+    {% if not encounter %}
+    <div class="tarjeta compacta">
+        <p class="atenuado">{% translate "No hay ningún combate en marcha." %}</p>
+        {% if is_master %}
+        <form method="post" action="{{ act }}" data-ajax data-target="#turnos">{% csrf_token %}
+            <button class="btn btn-principal" name="accion" value="empezar">{% translate "Empezar combate" %}</button>
+            <span class="ayuda">{% translate "El grupo entra en el combate; después añade a los enemigos." %}</span>
+        </form>
+        {% else %}<p class="ayuda">{% translate "Esta página se actualiza sola cuando el máster empiece uno." %}</p>{% endif %}
+    </div>
+    {% else %}
+    <div class="destacado fila-s" style="justify-content:space-between">
+        <span><b style="font-size:20px">{% translate "Ronda" %} <span data-valor="ronda">{{ encounter.round }}</span></b>{% if actor %} · {% translate "turno de" %} <b data-valor="actor">{{ actor.display_name }}</b>{% endif %}</span>
+        {% if my_turn %}<span class="pastilla p-acento">{% translate "Te toca" %}</span>{% endif %}
+        {% if is_master %}
+        <form method="post" action="{{ act }}" data-ajax data-target="#turnos" class="fila-s">{% csrf_token %}
+            <button class="btn btn-principal" name="accion" value="siguiente">{% translate "Siguiente" %} →</button>
+            <button class="btn" name="accion" value="ordenar">{% translate "Ordenar por iniciativa" %}</button>
+        </form>
+        {% endif %}
+    </div>
+
+    <ol class="lista-limpia" aria-label="{% translate 'Orden de combate' %}">
+        {% for r in rows %}
+        <li class="turno{% if r.current %} actual{% endif %}"{% if r.current %} aria-current="step"{% endif %}>
+            {% if is_master %}
+            <form method="post" action="{{ act }}" data-ajax data-auto data-target="#turnos" class="fila-s" style="gap:4px">{% csrf_token %}
+                <input type="hidden" name="accion" value="iniciativa"><input type="hidden" name="combatiente" value="{{ r.c.pk }}">
+                <label class="sr-only" for="ini-{{ r.c.pk }}">{% blocktranslate with name=r.c.display_name %}Iniciativa de {{ name }}{% endblocktranslate %}</label>
+                <input id="ini-{{ r.c.pk }}" class="iniciativa" type="number" name="valor" value="{{ r.c.initiative|default_if_none:'' }}" inputmode="numeric"{% if r.hint is not None %} title="{% translate 'Modificador de Destreza' %} {{ r.hint|signed }}"{% endif %}>
+                <button class="btn btn-pequeno sin-js">{% translate "Guardar" %}</button>
+            </form>
+            {% else %}
+            <span class="iniciativa">{{ r.c.initiative|default_if_none:"–" }}</span>
+            {% endif %}
+            <span class="pila-s" style="flex:1 1 180px;gap:4px">
+                <span class="fila-s" style="gap:8px">
+                    {% if r.sheet %}<a href="{% url 'sheet' campaign.pk r.c.character_id %}"><b>{{ r.c.display_name }}</b></a>{% else %}<b>{{ r.c.display_name }}</b>{% endif %}
+                    <span class="pastilla{% if r.pc %} p-verde{% elif r.kind == 'Enemigo' %} p-coral{% endif %}">{% translate r.kind %}</span>
+                    {% if r.current %}<span class="pastilla p-acento">{% translate "Su turno" %}</span>{% endif %}
+                    {% for e in r.effects %}<span class="rasgo">{{ e }}</span>{% endfor %}
+                </span>
+                {% if r.shown %}
+                <span class="medidor"><span style="min-width:28px">{% translate "Vida" %}</span><span class="barra vida"><span style="width:{% pct r.hp r.hp_max %}%"></span></span><b data-valor="vida-{{ r.c.pk }}">{{ r.hp|default_if_none:"–" }}/{{ r.hp_max|default_if_none:"–" }}</b></span>
+                {% if r.ap is not None %}<span class="medidor"><span style="min-width:28px">AP</span><span class="barra ap"><span style="width:{% pct r.ap r.ap_max %}%"></span></span><b data-valor="ap-{{ r.c.pk }}">{{ r.ap }}/{{ r.ap_max }}</b></span>{% endif %}
+                {% endif %}
+            </span>
+            {% if r.can_touch and r.shown %}
+            <form method="post" action="{{ act }}" data-ajax data-target="#turnos" class="contador">{% csrf_token %}
+                <input type="hidden" name="combatiente" value="{{ r.c.pk }}">
+                <button class="btn btn-cuadrado" name="accion" value="vida_menos" aria-label="{% translate 'Quitar 1 de vida' %}">−1</button>
+                <button class="btn btn-cuadrado" name="accion" value="vida_mas" aria-label="{% translate 'Sumar 1 de vida' %}">+1</button>
+                <label class="sr-only" for="cant-{{ r.c.pk }}">{% translate "Cantidad" %}</label>
+                <input id="cant-{{ r.c.pk }}" class="entrada-num" type="number" name="cantidad" min="1" inputmode="numeric" placeholder="{% translate 'Cant.' %}">
+                <button class="btn btn-peligro" name="accion" value="dano">{% translate "Daño" %}</button>
+                <button class="btn btn-bien" name="accion" value="curar">{% translate "Curar" %}</button>
+                {% if r.ap is not None %}
+                <button class="btn btn-cuadrado" name="accion" value="ap_menos" aria-label="{% translate 'Quitar 1 de AP' %}">AP−</button>
+                <button class="btn btn-cuadrado" name="accion" value="ap_mas" aria-label="{% translate 'Sumar 1 de AP' %}">AP+</button>
+                {% endif %}
+                {% if is_master %}<button class="btn btn-texto" name="accion" value="quitar">{% translate "Quitar" %}</button>{% endif %}
+            </form>
+            {% endif %}
+        </li>
+        {% empty %}
+        <li class="atenuado">{% translate "Todavía no hay combatientes." %}</li>
+        {% endfor %}
+    </ol>
+
+    {% if is_master %}
+    <details id="anadir-combatientes" class="tarjeta compacta"{% if not rows %} open{% endif %}>
+        <summary class="etiqueta">{% translate "Añadir combatientes" %}</summary>
+        <div class="pila-s" style="margin-top:12px">
+            {% if add_pcs or add_npcs %}
+            <form method="post" action="{{ act }}" data-ajax data-target="#turnos" class="fila-s">{% csrf_token %}<input type="hidden" name="accion" value="anadir">
+                <label class="sr-only" for="add-personaje">{% translate "Personaje" %}</label>
+                <select id="add-personaje" name="personaje" class="entrada" style="flex:1 1 200px;width:auto">
+                    {% if add_pcs %}<optgroup label="{% translate 'El grupo' %}">{% for c in add_pcs %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}</optgroup>{% endif %}
+                    {% if add_npcs %}<optgroup label="{% translate 'PNJ de la campaña' %}">{% for c in add_npcs %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}</optgroup>{% endif %}
+                </select>
+                <button class="btn">{% translate "Añadir" %}</button>
+            </form>
+            {% endif %}
+            {% if add_templates %}
+            <form method="post" action="{{ act }}" data-ajax data-target="#turnos" class="fila-s">{% csrf_token %}<input type="hidden" name="accion" value="anadir">
+                <label class="sr-only" for="add-plantilla">{% translate "Plantilla de PNJ" %}</label>
+                <select id="add-plantilla" name="plantilla" class="entrada" style="flex:1 1 200px;width:auto">{% for t in add_templates %}<option value="{{ t.pk }}">{{ t.name }}</option>{% endfor %}</select>
+                <button class="btn">{% translate "Copiar y añadir" %}</button>
+            </form>
+            {% endif %}
+            <form method="post" action="{{ act }}" data-ajax data-target="#turnos" class="fila-s">{% csrf_token %}<input type="hidden" name="accion" value="anadir">
+                <label class="sr-only" for="add-nombre">{% translate "Nombre del enemigo" %}</label>
+                <input id="add-nombre" class="entrada" style="flex:1 1 160px;width:auto" name="nombre" maxlength="100" placeholder="{% translate 'Nombre libre' %}">
+                <label class="sr-only" for="add-vida">{% translate "Vida" %}</label>
+                <input id="add-vida" class="entrada-num" type="number" name="vida" min="1" inputmode="numeric" placeholder="{% translate 'Vida' %}">
+                <button class="btn">{% translate "Añadir enemigo" %}</button>
+            </form>
+        </div>
+    </details>
+    <form method="post" action="{{ act }}" data-ajax data-target="#turnos">{% csrf_token %}
+        <button class="btn btn-peligro" name="accion" value="terminar">{% translate "Terminar combate" %}</button>
+    </form>
+    {% endif %}
+    {% endif %}
+</div>
