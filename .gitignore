@@ -18,8 +18,9 @@ env/
 local_settings.py
 
 # Django
-db.sqlite3
 db.sqlite3-journal
+db.sqlite3-wal
+db.sqlite3-shm
 /media/
 /staticfiles/
 *.log
