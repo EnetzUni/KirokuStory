@@ -38,6 +38,14 @@
     $(this).closest("form").data("submitter", this);
   });
 
+  // Buttons that delete something ask first (data-confirmar="the question").
+  $(document).on("click", "[data-confirmar]", function (event) {
+    if (!window.confirm($(this).data("confirmar"))) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  });
+
   function valuesOf($root) {
     var out = {};
     $root.find("[data-valor]").each(function () { out[$(this).data("valor")] = $(this).text().trim(); });
@@ -88,6 +96,7 @@
       return; // file uploads go the normal way
     }
     event.preventDefault();
+    $form.trigger("mesa:enviar"); // last chance to fill fields (e.g. where a new note goes)
     var data = $form.serializeArray();
     var submitter = (event.originalEvent && event.originalEvent.submitter) || $form.data("submitter");
     if (submitter && submitter.name) { data.push({ name: submitter.name, value: submitter.value }); }
@@ -170,14 +179,434 @@
   });
   $(document).on("touchend touchmove", "a.wikilink[data-preview]", function () { clearTimeout(pressTimer); });
 
+  // ---- Subir la imagen del mapa ----
+  // Choosing a file shows it at once in the map and sends the form (a normal
+  // multipart POST: the page reloads with the saved image).
+  $(document).on("change", "form[data-subir-imagen] input[type=file]", function () {
+    var file = this.files && this.files[0];
+    if (!file) { return; }
+    var form = this.form;
+    if (form.checkValidity && !form.checkValidity()) { form.reportValidity(); return; }
+    var $surface = $($(form).data("subir-imagen")).first();
+    if ($surface.length && window.URL && URL.createObjectURL) {
+      $surface.find(".vacio").remove();
+      var $img = $surface.children("img");
+      if (!$img.length) { $img = $("<img>").prependTo($surface); }
+      $img.attr({ src: URL.createObjectURL(file), alt: file.name });
+    }
+    $(form).find(":submit").prop("disabled", true).text("Subiendo…");
+    if (form.requestSubmit) { form.requestSubmit(); } else { form.submit(); }
+  });
+
+  // ---- Zoom: mapa y pizarra ----
+  // Only inside a zoomable window ([data-zoom]): wheel / trackpad pinch,
+  // two-finger pinch, drag to move, double click, the +/− buttons and the keys
+  // + − 0 and arrows (with the window focused). Two kinds of layer inside:
+  //  - map (.mapa-lienzo with an image): the layer gets its real width and
+  //    height in pixels, never a CSS scale. The browser then draws the image
+  //    from the original file at exactly the size on screen, so a good PNG
+  //    stays sharp up to its own resolution. The image keeps its proportions
+  //    (fitted, not stretched) and pins stay in % of the image.
+  //  - board ([data-zoom-capa] with data-ancho / data-alto): notes and threads
+  //    are placed in board pixels, so the board is scaled with a transform
+  //    (without will-change, so the text is redrawn sharp at each zoom level).
+  var ZOOM_STEP = 1.6;
+  var zoomMemory = {}; // window key -> {z, fx, fy}: survives the AJAX re-render of a section
+
+  function initZoom(view) {
+    if (view.zoomListo) { return; }
+    var layer = view.querySelector("[data-zoom-capa], .mapa-lienzo");
+    if (!layer) { return; }
+    var scaled = layer.hasAttribute("data-ancho");
+    var img = scaled ? null : layer.querySelector("img");
+    if (!scaled && !img) { return; }
+    view.zoomListo = true;
+    var key = view.getAttribute("data-zoom");
+    var $buttons = $(view).children(".zoom-botones");
+    var s = { z: 1, left: 0, top: 0, bw: 0, bh: 0, max: 4 };
+    var ready = false, frame = null;
+
+    function dpr() { return window.devicePixelRatio || 1; }
+    // Whole device pixels: no half-pixel offsets that would soften the image.
+    function snap(v) { return Math.round(v * dpr()) / dpr(); }
+    function natural() {
+      return scaled ? { w: +layer.getAttribute("data-ancho"), h: +layer.getAttribute("data-alto") }
+                    : { w: img.naturalWidth, h: img.naturalHeight };
+    }
+
+    // Size of the whole layer fitted in the window (zoom 1) and the zoom limit.
+    function fit() {
+      var vw = view.clientWidth, vh = view.clientHeight, n = natural();
+      var ratio = n.w && n.h ? n.w / n.h : vw / vh;
+      if (ratio > vw / vh) { s.bw = vw; s.bh = vw / ratio; } else { s.bh = vh; s.bw = vh * ratio; }
+      if (scaled) {
+        s.max = Math.min(16, Math.max(2, 2 * n.w / s.bw)); // up to twice the board's real size
+      } else {
+        // Up to twice the image's own resolution (one image pixel = 2 screen pixels), never less than x4.
+        s.max = Math.min(24, Math.max(4, n.w ? 2 * n.w / (s.bw * dpr()) : 4));
+      }
+    }
+
+    function clamp() {
+      var vw = view.clientWidth, vh = view.clientHeight, w = s.bw * s.z, h = s.bh * s.z;
+      s.left = w <= vw ? (vw - w) / 2 : Math.min(0, Math.max(vw - w, s.left));
+      s.top = h <= vh ? (vh - h) / 2 : Math.min(0, Math.max(vh - h, s.top));
+    }
+
+    function paint() {
+      frame = null;
+      var st = layer.style;
+      if (scaled) {
+        st.transform = "translate(" + snap(s.left) + "px," + snap(s.top) + "px) scale(" + (s.bw * s.z / natural().w) + ")";
+        return;
+      }
+      st.right = st.bottom = "auto";
+      st.left = snap(s.left) + "px";
+      st.top = snap(s.top) + "px";
+      st.width = snap(s.bw * s.z) + "px";
+      st.height = snap(s.bh * s.z) + "px";
+    }
+
+    function draw() {
+      clamp();
+      if (!frame) { frame = window.requestAnimationFrame(paint); }
+      var zoomed = s.z > 1.001;
+      view.classList.toggle("ampliado", zoomed);
+      $buttons.find("[data-zoom-accion=menos], [data-zoom-accion=entero]").prop("disabled", !zoomed);
+      $buttons.find("[data-zoom-accion=mas]").prop("disabled", s.z >= s.max - 0.001);
+      zoomMemory[key] = { z: s.z, fx: (view.clientWidth / 2 - s.left) / (s.bw * s.z),
+                          fy: (view.clientHeight / 2 - s.top) / (s.bh * s.z) };
+    }
+
+    // Zoom keeping the point (px, py) of the window still.
+    function zoomAt(z, px, py) {
+      z = Math.max(1, Math.min(s.max, z));
+      var fx = (px - s.left) / (s.bw * s.z), fy = (py - s.top) / (s.bh * s.z);
+      s.z = z;
+      s.left = px - fx * s.bw * z;
+      s.top = py - fy * s.bh * z;
+      draw();
+    }
+
+    // Show the point (fx, fy) of the layer (0..1) in the middle of the window.
+    function centreOn(z, fx, fy) {
+      s.z = Math.max(1, Math.min(s.max, z));
+      s.left = view.clientWidth / 2 - fx * s.bw * s.z;
+      s.top = view.clientHeight / 2 - fy * s.bh * s.z;
+      draw();
+    }
+
+    function local(e) {
+      var r = view.getBoundingClientRect();
+      return { x: e.clientX - r.left - view.clientLeft, y: e.clientY - r.top - view.clientTop };
+    }
+
+    // What the window is looking at, in the layer's own units (board pixels or image pixels).
+    view.zoomCentro = function () {
+      var m = zoomMemory[key] || { fx: 0.5, fy: 0.5 }, n = natural();
+      return { x: m.fx * n.w, y: m.fy * n.h };
+    };
+
+    function start() {
+      if (ready) { return; }
+      ready = true;
+      fit();
+      var saved = zoomMemory[key];
+      if (saved) { centreOn(saved.z, saved.fx, saved.fy); } else { centreOn(1, 0.5, 0.5); }
+      if (frame) { window.cancelAnimationFrame(frame); }
+      paint(); // now, so the layout without JavaScript is never seen
+    }
+    if (scaled || img.complete) { start(); } else { img.addEventListener("load", start); img.addEventListener("error", start); }
+
+    // Window resized (or the layout changed): same zoom, same point in the middle.
+    if (window.ResizeObserver) {
+      new ResizeObserver(function () {
+        if (!ready) { return; }
+        var m = zoomMemory[key];
+        fit();
+        centreOn(s.z, m.fx, m.fy);
+      }).observe(view);
+    }
+
+    // Mouse wheel and trackpad pinch (which arrives as wheel + ctrlKey).
+    // Fully zoomed out, scrolling down still scrolls the page.
+    view.addEventListener("wheel", function (e) {
+      var dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? view.clientHeight : 1);
+      if (!ready || (dy > 0 && s.z <= 1.001)) { return; }
+      e.preventDefault();
+      var p = local(e);
+      zoomAt(s.z * Math.exp(-dy * (e.ctrlKey ? 0.01 : 0.0015)), p.x, p.y);
+    }, { passive: false });
+
+    // Drag with one pointer, pinch with two.
+    var pointers = {}, startPoint = null, last = null, moved = false;
+    function gesture() {
+      var ids = Object.keys(pointers), x = 0, y = 0, d = 0;
+      ids.forEach(function (id) { x += pointers[id].x; y += pointers[id].y; });
+      if (ids.length > 1) { d = Math.hypot(pointers[ids[0]].x - pointers[ids[1]].x, pointers[ids[0]].y - pointers[ids[1]].y); }
+      return { n: ids.length, x: x / (ids.length || 1), y: y / (ids.length || 1), d: d };
+    }
+    view.addEventListener("pointerdown", function (e) {
+      if (Object.keys(pointers).length === 0) { moved = false; }
+      if (!ready || (e.pointerType === "mouse" && e.button !== 0) || $(e.target).closest(".zoom-botones").length) { return; }
+      pointers[e.pointerId] = local(e);
+      if (!startPoint) { startPoint = pointers[e.pointerId]; }
+      last = gesture();
+    });
+    view.addEventListener("pointermove", function (e) {
+      if (!pointers[e.pointerId]) { return; }
+      pointers[e.pointerId] = local(e);
+      var g = gesture();
+      if (!moved) {
+        // A click on a pin or a note (or on the surface while placing) is not a drag.
+        if (g.n < 2 && Math.hypot(g.x - startPoint.x, g.y - startPoint.y) < 5) { return; }
+        moved = true;
+        view.classList.add("arrastrando");
+        Object.keys(pointers).forEach(function (id) { try { view.setPointerCapture(+id); } catch (err) { /* already gone */ } });
+      }
+      if (g.n !== last.n) { last = g; return; }
+      s.left += g.x - last.x;
+      s.top += g.y - last.y;
+      if (g.n > 1 && last.d) { zoomAt(s.z * g.d / last.d, g.x, g.y); } else { draw(); }
+      last = g;
+    });
+    function release(e) {
+      if (!pointers[e.pointerId]) { return; }
+      delete pointers[e.pointerId];
+      last = gesture();
+      if (!last.n) {
+        startPoint = null;
+        view.classList.remove("arrastrando");
+        // The click that follows a drag comes right after pointerup; later clicks (keyboard too) are normal again.
+        if (moved) { setTimeout(function () { moved = false; }, 0); }
+      }
+    }
+    view.addEventListener("pointerup", release);
+    view.addEventListener("pointercancel", release);
+    // After a drag, the click that follows must not open a pin or a note, or place anything.
+    view.addEventListener("click", function (e) {
+      if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; }
+    }, true);
+    // Dragging from a link must move the window, not start the browser's link drag.
+    view.addEventListener("dragstart", function (e) { e.preventDefault(); });
+
+    view.addEventListener("dblclick", function (e) {
+      if (!ready || view.classList.contains("colocando") || layer.classList.contains("colocando") ||
+          $(e.target).closest("a, button").length) { return; }
+      var p = local(e);
+      zoomAt(s.z * 2, p.x, p.y);
+    });
+
+    $buttons.on("click", "[data-zoom-accion]", function () {
+      var action = $(this).data("zoom-accion");
+      if (action === "entero") { centreOn(1, 0.5, 0.5); return; }
+      zoomAt(s.z * (action === "mas" ? ZOOM_STEP : 1 / ZOOM_STEP), view.clientWidth / 2, view.clientHeight / 2);
+    });
+
+    view.addEventListener("keydown", function (e) {
+      if (e.target !== view || !ready) { return; }
+      var cx = view.clientWidth / 2, cy = view.clientHeight / 2, step = 60;
+      switch (e.key) {
+        case "+": case "=": zoomAt(s.z * ZOOM_STEP, cx, cy); break;
+        case "-": case "_": zoomAt(s.z / ZOOM_STEP, cx, cy); break;
+        case "0": centreOn(1, 0.5, 0.5); break;
+        case "ArrowLeft": s.left += step; draw(); break;
+        case "ArrowRight": s.left -= step; draw(); break;
+        case "ArrowUp": s.top += step; draw(); break;
+        case "ArrowDown": s.top -= step; draw(); break;
+        default: return;
+      }
+      e.preventDefault();
+    });
+  }
+
+  // ---- Editor del camino (máster) ----
+  // Each stretch of the route (previous stop → waypoints → stop) is one
+  // polyline with data-guardar. Its waypoints get handles to drag; halfway
+  // along each part there is a "+" that adds a point (click it, or drag it
+  // straight away). Double click, right click or Supr on a point removes it.
+  // Every change is saved by itself. Points are in % of the image, so they
+  // follow the zoom.
+  function initRouteEditor(layer) {
+    if (layer.rutaLista) { return; }
+    var lines = layer.querySelectorAll("polyline[data-guardar]");
+    if (!lines.length) { return; }
+    layer.rutaLista = true;
+    Array.prototype.forEach.call(lines, function (line) { routeStretch(layer, line); });
+  }
+
+  function routeStretch(layer, line) {
+    var pts = line.getAttribute("points").trim().split(/\s+/).map(function (pair) {
+      var xy = pair.split(",");
+      return [parseFloat(xy[0]), parseFloat(xy[1])];
+    });
+    var arrow = layer.querySelector('[data-flecha="' + line.getAttribute("data-tramo") + '"]');
+    var handles = [], saveTimer = null;
+
+    function r2(v) { return Math.round(v * 100) / 100; }
+    function inside(v) { return Math.max(0, Math.min(100, v)); }
+    function place(el, p) { el.style.left = p[0] + "%"; el.style.top = p[1] + "%"; }
+    function middle(i) { return [r2((pts[i][0] + pts[i + 1][0]) / 2), r2((pts[i][1] + pts[i + 1][1]) / 2)]; }
+
+    function drawLine() {
+      line.setAttribute("points", pts.map(function (p) { return p[0] + "," + p[1]; }).join(" "));
+      if (!arrow) { return; }
+      for (var i = pts.length - 1; i > 0; i--) {
+        var dx = pts[i][0] - pts[i - 1][0], dy = pts[i][1] - pts[i - 1][1];
+        if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) {
+          place(arrow, pts[i]);
+          arrow.style.setProperty("--dx", r2(dx));
+          arrow.style.setProperty("--dy", r2(dy));
+          arrow.hidden = false;
+          return;
+        }
+      }
+      arrow.hidden = true;
+    }
+
+    function positionHandles() {
+      handles.forEach(function (h) { place(h.el, h.kind === "punto" ? pts[h.i] : middle(h.i)); });
+    }
+
+    function save(delay) {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(function () {
+        var inner = pts.slice(1, -1).map(function (p) { return p[0] + "," + p[1]; }).join(" ");
+        $.post(line.getAttribute("data-guardar"), { puntos: inner })
+          .done(function (response) { applyResponse(response, $(line)); })
+          .fail(function (xhr) {
+            var message = (xhr.responseJSON && xhr.responseJSON.msg) || "No se ha podido guardar el camino. Vuelve a intentarlo.";
+            applyResponse({ msg: message, error: true }, $(line));
+          });
+      }, delay);
+    }
+
+    function pointFor(i) {
+      for (var k = 0; k < handles.length; k++) { if (handles[k].kind === "punto" && handles[k].i === i) { return handles[k]; } }
+      return null;
+    }
+
+    function build(focusIndex) {
+      handles.forEach(function (h) { h.el.parentNode.removeChild(h.el); });
+      handles = [];
+      for (var i = 0; i < pts.length - 1; i++) {
+        handles.push(makeHandle("medio", i));
+        if (i > 0) { handles.push(makeHandle("punto", i)); }
+      }
+      positionHandles();
+      drawLine();
+      var h = focusIndex != null ? pointFor(focusIndex) : null;
+      if (h) { h.el.focus(); }
+    }
+
+    function removePoint(i) {
+      pts.splice(i, 1);
+      build(i - 1 >= 1 ? i - 1 : null);
+      save(0);
+    }
+
+    function addPoint(i) { // after pts[i], halfway to the next one
+      pts.splice(i + 1, 0, middle(i));
+      build(i + 1);
+      return pointFor(i + 1);
+    }
+
+    function drag(h, e) {
+      var el = h.el;
+      try { el.setPointerCapture(e.pointerId); } catch (err) { /* pointer already gone */ }
+      el.focus({ preventScroll: true }); // so the keys (arrows, Supr) act on it next
+      el.classList.add("activo");
+      function move(ev) {
+        if (ev.pointerId !== e.pointerId) { return; }
+        var r = layer.getBoundingClientRect();
+        pts[h.i] = [r2(inside((ev.clientX - r.left) / r.width * 100)), r2(inside((ev.clientY - r.top) / r.height * 100))];
+        positionHandles();
+        drawLine();
+      }
+      function up(ev) {
+        if (ev.pointerId !== e.pointerId) { return; }
+        el.removeEventListener("pointermove", move);
+        el.removeEventListener("pointerup", up);
+        el.removeEventListener("pointercancel", up);
+        el.classList.remove("activo");
+        save(0);
+      }
+      el.addEventListener("pointermove", move);
+      el.addEventListener("pointerup", up);
+      el.addEventListener("pointercancel", up);
+    }
+
+    function makeHandle(kind, i) {
+      var el = document.createElement("button");
+      var h = { kind: kind, i: i, el: el };
+      el.type = "button";
+      el.className = kind === "punto" ? "ruta-punto" : "ruta-medio";
+      el.setAttribute("aria-label", kind === "punto" ? "Punto del camino: flechas para moverlo, Supr para quitarlo"
+                                                      : "Añadir un punto al camino aquí");
+      el.title = kind === "punto" ? "Arrastra para moverlo · doble clic para quitarlo" : "Añadir un punto";
+      el.addEventListener("pointerdown", function (e) {
+        if (e.pointerType === "mouse" && e.button !== 0) { return; }
+        // The handle, not the zoom window, gets this pointer.
+        e.stopPropagation();
+        e.preventDefault();
+        drag(kind === "punto" ? h : addPoint(h.i), e);
+      });
+      el.addEventListener("click", function (e) {
+        // Keyboard (Enter / space) on a "+": add the point and focus it.
+        if (kind === "medio" && e.detail === 0) { addPoint(h.i); save(0); }
+      });
+      if (kind === "punto") {
+        el.addEventListener("dblclick", function (e) { e.preventDefault(); e.stopPropagation(); removePoint(h.i); });
+        el.addEventListener("contextmenu", function (e) { e.preventDefault(); removePoint(h.i); });
+        el.addEventListener("keydown", function (e) {
+          var step = e.shiftKey ? 1 : 0.2, p = pts[h.i];
+          switch (e.key) {
+            case "Delete": case "Backspace": removePoint(h.i); e.preventDefault(); return;
+            case "ArrowLeft": pts[h.i] = [r2(inside(p[0] - step)), p[1]]; break;
+            case "ArrowRight": pts[h.i] = [r2(inside(p[0] + step)), p[1]]; break;
+            case "ArrowUp": pts[h.i] = [p[0], r2(inside(p[1] - step))]; break;
+            case "ArrowDown": pts[h.i] = [p[0], r2(inside(p[1] + step))]; break;
+            default: return;
+          }
+          e.preventDefault();
+          positionHandles();
+          drawLine();
+          save(500);
+        });
+      }
+      layer.appendChild(el);
+      return h;
+    }
+
+    build(null);
+  }
+
+  // The note added from the board's form appears in the middle of what the window shows.
+  $(document).on("mesa:enviar", "form[data-en-vista]", function () {
+    var view = $($(this).data("en-vista"))[0];
+    if (!view || !view.zoomCentro) { return; }
+    var c = view.zoomCentro();
+    $(this).find("[name=x]").val(Math.round(c.x - 100));
+    $(this).find("[name=y]").val(Math.round(c.y - 60));
+  });
+
+  function initWindows(root) {
+    $(root).find("[data-zoom]").addBack("[data-zoom]").each(function () { initZoom(this); });
+    $(root).find(".mapa-lienzo").each(function () { initRouteEditor(this); });
+  }
+  $(function () { initWindows(document); });
+  $(document).on("mesa:actualizado", function (e) { initWindows(e.target); });
+
   // ---- Colocar en el corcho o en el mapa ----
   // A click on the surface fills the x/y fields of the form and sends it.
   $(document).on("click", "[data-colocar]", function (event) {
     var $surface = $(this);
     var $form = $($surface.data("colocar"));
     if (!$form.length || $(event.target).closest("a, button").length) { return; }
-    var rect = this.getBoundingClientRect();
-    var mode = $surface.data("unidad"); // "px" (board 1100x640) or "%" (map)
+    // On the map, positions are relative to the (maybe zoomed) layer that holds the image.
+    var rect = ($surface.children(".mapa-lienzo")[0] || this).getBoundingClientRect();
+    var mode = $surface.data("unidad"); // "px" (board, data-ancho x data-alto) or "%" (map)
+    var boardW = +$surface.data("ancho") || 1100, boardH = +$surface.data("alto") || 640;
     var x, y;
     if (mode === "%") {
       x = ((event.clientX - rect.left) / rect.width) * 100;
@@ -185,10 +614,11 @@
       x = Math.round(Math.max(2, Math.min(98, x)) * 10) / 10;
       y = Math.round(Math.max(2, Math.min(98, y)) * 10) / 10;
     } else {
-      x = Math.round((event.clientX - rect.left) * (1100 / rect.width) - 100);
-      y = Math.round((event.clientY - rect.top) * (640 / rect.height) - 20);
-      x = Math.max(8, Math.min(892, x));
-      y = Math.max(8, Math.min(512, y));
+      // The rect is the scaled board on screen, so this works at any zoom. The note's top centre goes there.
+      x = Math.round((event.clientX - rect.left) * (boardW / rect.width) - 100);
+      y = Math.round((event.clientY - rect.top) * (boardH / rect.height) - 20);
+      x = Math.max(8, Math.min(boardW - 208, x));
+      y = Math.max(8, Math.min(boardH - 128, y));
     }
     $form.find("[name=x]").val(x);
     $form.find("[name=y]").val(y);

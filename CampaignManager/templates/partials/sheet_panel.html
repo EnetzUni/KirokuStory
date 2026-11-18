@@ -33,9 +33,27 @@
     <div class="rejilla-s" style="grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr))">
         {# ---- Vida ---- #}
         <section class="tarjeta compacta" aria-labelledby="h-vida">
-            <h2 id="h-vida" class="rotulo">{% translate "Puntos de vida" %}</h2>
+            <div class="fila-s" style="justify-content:space-between">
+                <h2 id="h-vida" class="rotulo">{% translate "Puntos de vida" %}</h2>
+                {% if character.dead %}<span class="pastilla p-coral">{% translate "Muerto" %}</span>
+                {% elif knocked_down %}<span class="pastilla p-ambar">{% translate "Derribado" %}</span>{% endif %}
+            </div>
             <span class="numero-grande"><span data-valor="vida">{{ character.temp_hp }}</span> <span class="atenuado" style="font-size:18px">/ {{ character.hp }}</span></span>
             <span class="barra vida gruesa"><span style="width:{% pct character.temp_hp character.hp %}%"></span></span>
+            {% if character.dead %}
+            <div class="aviso" role="status"><b>{% blocktranslate with name=character.name %}{{ name }} ha muerto.{% endblocktranslate %}</b>
+                {% if is_master %}
+                <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="en-linea">{% include "partials/sheet_hidden.html" %}
+                    <button class="btn" name="accion" value="revivir">{% translate "Revivir" %}</button></form>
+                {% else %}<span class="pequeno">{% translate "Solo el máster puede revivirlo." %}</span>{% endif %}
+            </div>
+            {% else %}
+            {% if knocked_down %}
+            <div class="aviso" role="status">
+                <b>{% translate "Derribado" %}</b>
+                <span class="pequeno">{% blocktranslate with hp=death_hp %}Muere si llega a {{ hp }} de vida{% endblocktranslate %}{% if fell_this_fight %} {% translate "o si vuelve a caer en este combate" %}{% endif %}.</span>
+            </div>
+            {% endif %}
             {% if can_edit %}
             <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="pila-s">{% include "partials/sheet_hidden.html" %}
                 <div class="contador">
@@ -46,22 +64,15 @@
                     <button class="btn btn-peligro" name="accion" value="dano">{% translate "Daño" %}</button>
                     <button class="btn btn-bien" name="accion" value="curar">{% translate "Curar" %}</button>
                 </div>
+                <div class="contador">
+                    <label class="pequeno" for="penetrante">{% translate "Penetrante" %}</label>
+                    <input id="penetrante" class="entrada-num corta" type="number" name="penetrante" min="0" inputmode="numeric" placeholder="0">
+                    <label class="pequeno" for="triturante">{% translate "Triturante" %}</label>
+                    <input id="triturante" class="entrada-num corta" type="number" name="triturante" min="0" inputmode="numeric" placeholder="0">
+                </div>
+                <p class="ayuda">{% blocktranslate with ap=character.temp_ap %}El daño pasa por la armadura: daño − AP ({{ ap }}) = daño real. Penetrante ignora esos AP en este golpe; triturante los quita después.{% endblocktranslate %}</p>
             </form>
             {% endif %}
-            {% if dying %}
-            <div class="pila-s" style="gap:4px">
-                <span class="etiqueta">{% translate "Salvaciones de muerte" %}</span>
-                {% for save in saves %}
-                <div class="fila-s" style="gap:0">
-                    <span class="pequeno" style="min-width:56px">{{ save.label }}</span>
-                    {% if can_edit %}<form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="fila-s" style="gap:0">{% include "partials/sheet_hidden.html" %}{% endif %}
-                    {% for pip in save.pips %}
-                        <button {% if can_edit %}type="submit" name="accion" value="{{ save.kind }}:{{ pip.i }}"{% else %}type="button" disabled{% endif %} class="salvacion {{ save.kind }}" aria-pressed="{% if pip.on %}true{% else %}false{% endif %}" aria-label="{{ save.label }} {{ forloop.counter }}"><i></i></button>
-                    {% endfor %}
-                    {% if can_edit %}</form>{% endif %}
-                </div>
-                {% endfor %}
-            </div>
             {% endif %}
         </section>
 
@@ -75,7 +86,11 @@
             <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="contador">{% include "partials/sheet_hidden.html" %}
                 <button class="btn btn-cuadrado" name="accion" value="ap_menos" aria-label="{% translate 'Quitar 1 de AP' %}">−1</button>
                 <button class="btn btn-cuadrado" name="accion" value="ap_mas" aria-label="{% translate 'Sumar 1 de AP' %}">+1</button>
-                <button class="btn" name="accion" value="ap_restaurar">{% translate "Restaurar" %}</button>
+                <label class="sr-only" for="cantidad-ap">{% translate "Cantidad de AP" %}</label>
+                <input id="cantidad-ap" class="entrada-num" type="number" name="cantidad" min="1" inputmode="numeric" placeholder="{% translate 'Cant.' %}">
+                <button class="btn" name="accion" value="ap_quitar">{% translate "Quitar" %}</button>
+                <button class="btn" name="accion" value="ap_sumar">{% translate "Sumar" %}</button>
+                <button class="btn btn-texto" name="accion" value="ap_restaurar">{% translate "Restaurar" %}</button>
             </form>
             {% endif %}
         </section>
@@ -165,7 +180,7 @@
             <button class="btn" name="accion" value="descanso_corto">{% translate "Descanso corto" %}</button>
             <button class="btn" name="accion" value="descanso_largo">{% translate "Descanso largo" %}</button>
         </form>
-        <p class="ayuda">{% translate "El descanso largo recupera la vida, el AP, los puntos de magia, todos los usos y las salvaciones. El corto, los usos que se recargan con descanso corto." %}</p>
+        <p class="ayuda">{% translate "El descanso largo recupera la vida, el AP, los puntos de magia y todos los usos. El corto, los usos que se recargan con descanso corto." %}</p>
         {% endif %}
     </section>
 
@@ -324,6 +339,20 @@
             <h3>{{ unique_skill.ability.name }}</h3>
             <p style="white-space:pre-line">{{ unique_skill.ability.description }}</p>
             {% if can_edit and unique_skill.master_note %}<p class="pequeno atenuado">{% translate "Nota del máster" %}: {{ unique_skill.master_note }}</p>{% endif %}
+            {% if is_master %}
+            <details class="pila-s" id="unica-cambiar">
+                <summary class="btn btn-texto" style="align-self:flex-start">{% translate "Cambiar o quitar" %}</summary>
+                <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="pila-s">{% include "partials/sheet_hidden.html" %}
+                    <div class="campo"><label for="unica-editar-nombre">{% translate "Nombre de la habilidad" %}</label><input id="unica-editar-nombre" name="name" maxlength="100" value="{{ unique_skill.ability.name }}"></div>
+                    <div class="campo"><label for="unica-editar-descripcion">{% translate "Qué hace" %}</label><textarea id="unica-editar-descripcion" name="description" rows="4">{{ unique_skill.ability.description }}</textarea></div>
+                    <div class="campo"><label for="unica-editar-nota">{% translate "Nota para el jugador (opcional)" %}</label><input id="unica-editar-nota" name="nota" maxlength="2000"></div>
+                    <div class="fila-s">
+                        <button class="btn btn-principal" name="accion" value="unica_editar">{% translate "Guardar cambios" %}</button>
+                        <button class="btn btn-peligro" name="accion" value="unica_quitar" data-confirmar="{% blocktranslate with name=unique_skill.ability.name %}¿Quitar la habilidad única «{{ name }}»? El jugador podrá proponer otra.{% endblocktranslate %}">{% translate "Quitar habilidad única" %}</button>
+                    </div>
+                </form>
+            </details>
+            {% endif %}
             {% elif unique_skill.status == "pendiente" and is_master %}
             <p class="ayuda">{% blocktranslate with player=character.player.username|default:character.name %}Propuesta de {{ player }}. Apruébala tal cual, cámbiala antes de aprobarla o recházala.{% endblocktranslate %}</p>
             <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="pila-s">{% include "partials/sheet_hidden.html" %}
@@ -343,7 +372,10 @@
             <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="pila-s">{% include "partials/sheet_hidden.html" %}
                 <div class="campo"><label for="unica-nombre">{% translate "Nombre de la habilidad" %}</label><input id="unica-nombre" name="name" maxlength="100" value="{{ unique_skill.name|default:'' }}"></div>
                 <div class="campo"><label for="unica-descripcion">{% translate "Qué hace" %}</label><textarea id="unica-descripcion" name="description" rows="4">{{ unique_skill.description|default:'' }}</textarea></div>
-                <button class="btn btn-principal" style="align-self:flex-start" name="accion" value="unica_proponer">{% if is_master %}{% translate "Dar habilidad única" %}{% elif unique_skill.status == "pendiente" %}{% translate "Guardar cambios" %}{% else %}{% translate "Enviar al máster" %}{% endif %}</button>
+                <div class="fila-s">
+                    <button class="btn btn-principal" name="accion" value="unica_proponer">{% if is_master %}{% translate "Dar habilidad única" %}{% elif unique_skill.status == "pendiente" %}{% translate "Guardar cambios" %}{% else %}{% translate "Enviar al máster" %}{% endif %}</button>
+                    {% if unique_skill.pk and not is_master %}<button class="btn btn-texto" name="accion" value="unica_retirar">{% translate "Retirar la propuesta" %}</button>{% endif %}
+                </div>
             </form>
             {% endif %}
         </div>

@@ -24,6 +24,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from CampaignManager import rules
+from CampaignManager.campaign_models import BOARD_HEIGHT, BOARD_WIDTH
 from CampaignManager.models import (
     Ability, ActiveEffect, Armor, ArmorType, BoardCard, BoardLink, Campaign, Character,
     CharacterAbility, CharacterClass, Combatant, Effect, Encounter, Inventory, Item, Map,
@@ -226,7 +227,15 @@ QUESTS = {
               [("Encontrar al ladrón", False, False)])],
 }
 
-# key, x, y, title, text, author, page, classified, revealed
+# Adventure title -> (session it starts in, session it ends in or None while in progress).
+QUEST_SESSIONS = {
+    "La Corona de Ceniza": (1, None), "Las runas del pacto": (4, None), "Saqueadores en el Camino del Faro": (2, 2),
+    "Una deuda en los muelles": (1, 3), "El ladrón de linternas": (1, None),
+}
+
+# key, x, y, title, text, author, page, classified, revealed. x and y are on a 1100x640 area that
+# is placed in the middle of the (bigger) board.
+BOARD_OFFSET = ((BOARD_WIDTH - 1100) // 2, (BOARD_HEIGHT - 640) // 2)
 BOARD = {
     "corona": ([
         ("b1", 440, 30, "La Corona de Ceniza", "Partida en dos. Tenemos una mitad.", "carlos", "w_corona", False, False),
@@ -416,7 +425,9 @@ class Command(BaseCommand):
         for page in pages.values():
             page.full_clean()
         for title, status, giver, description, objectives in QUESTS.get(key, []):
-            quest = Quest.objects.create(campaign=campaign, title=title, status=status, giver=pages.get(giver), description=description)
+            start, end = QUEST_SESSIONS.get(title, (None, None))
+            quest = Quest.objects.create(campaign=campaign, title=title, status=status, giver=pages.get(giver), description=description,
+                                         start_session=sessions.get(start), end_session=sessions.get(end))
             for order, (text, done, hidden) in enumerate(objectives):
                 QuestObjective.objects.create(quest=quest, text=text, done=done, hidden=hidden, order=order)
         if key in BOARD:
@@ -424,7 +435,8 @@ class Command(BaseCommand):
             cards = {}
             for card_key, x, y, title, text, author, page, classified, revealed in cards_data:
                 cards[card_key] = BoardCard.objects.create(
-                    campaign=campaign, x=x, y=y, title=title, text=text, author=self.users[author],
+                    campaign=campaign, x=x + BOARD_OFFSET[0], y=y + BOARD_OFFSET[1], title=title, text=text,
+                    author=self.users[author],
                     page=pages.get(page), classified=classified, revealed=revealed,
                 )
             for a, b in links:

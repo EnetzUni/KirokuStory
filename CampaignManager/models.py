@@ -109,8 +109,15 @@ class Character(models.Model):
     notes = models.TextField(blank=True, help_text="The player's own notes")
     # Characters made by a player wait for a master's approval.
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.APROBADO)
-    death_successes = models.PositiveSmallIntegerField(default=0, validators=[MaxValueValidator(rules.DEATH_SAVES)])
-    death_failures = models.PositiveSmallIntegerField(default=0, validators=[MaxValueValidator(rules.DEATH_SAVES)])
+    # Knocked down and death (house rule): at 0 HP or less the character is knocked
+    # down; it dies at minus half its maximum HP (rules.death_hp) or when knocked down
+    # a second time in the same fight. `knocked_down_in` is the fight of the last
+    # knockdown; a new fight starts with a clean slate.
+    dead = models.BooleanField(default=False)
+    knocked_down_in = models.ForeignKey(
+        "Encounter", on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+        help_text="The fight in which the character was last knocked down",
+    )
     # Current magic points. The maximum comes from the class and the level
     # (rules.class_magic_points), plus the master's adjustment.
     magic_points = models.PositiveIntegerField(default=0)
@@ -159,10 +166,6 @@ class Character(models.Model):
                 violation_error_message="Only NPCs can have a template.",
             ),
             models.CheckConstraint(
-                condition=models.Q(death_successes__lte=rules.DEATH_SAVES, death_failures__lte=rules.DEATH_SAVES),
-                name="death_saves_up_to_3",
-            ),
-            models.CheckConstraint(
                 condition=models.Q(level__gte=1, level__lte=rules.MAX_LEVEL),
                 name="level_from_1_to_max",
             ),
@@ -196,6 +199,15 @@ class Character(models.Model):
     @property
     def passive_perception(self):
         return 10 + rules.ability_modifier(self.wisdom)
+
+    @property
+    def death_hp(self):
+        """At this many hit points or fewer the character dies."""
+        return rules.death_hp(self.hp)
+
+    @property
+    def knocked_down(self):
+        return not self.dead and self.temp_hp <= 0
 
     @property
     def equipped_armor(self):

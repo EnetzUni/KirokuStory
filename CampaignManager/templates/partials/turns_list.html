@@ -40,6 +40,7 @@
                     {% if r.sheet %}<a href="{% url 'sheet' campaign.pk r.c.character_id %}"><b>{{ r.c.display_name }}</b></a>{% else %}<b>{{ r.c.display_name }}</b>{% endif %}
                     <span class="pastilla{% if r.pc %} p-verde{% elif r.kind == 'Enemigo' %} p-coral{% endif %}">{% translate r.kind %}</span>
                     {% if r.current %}<span class="pastilla p-acento">{% translate "Su turno" %}</span>{% endif %}
+                    {% if r.dead %}<span class="pastilla p-coral">{% translate "Muerto" %}</span>{% elif r.down %}<span class="pastilla p-ambar">{% translate "Derribado" %}</span>{% endif %}
                     {% for e in r.effects %}<span class="rasgo">{{ e }}</span>{% endfor %}
                 </span>
                 {% if r.shown %}
@@ -54,6 +55,12 @@
                 <button class="btn btn-cuadrado" name="accion" value="vida_mas" aria-label="{% translate 'Sumar 1 de vida' %}">+1</button>
                 <label class="sr-only" for="cant-{{ r.c.pk }}">{% translate "Cantidad" %}</label>
                 <input id="cant-{{ r.c.pk }}" class="entrada-num" type="number" name="cantidad" min="1" inputmode="numeric" placeholder="{% translate 'Cant.' %}">
+                {% if r.ap is not None %}
+                <label class="sr-only" for="pen-{{ r.c.pk }}">{% translate "Penetrante" %}</label>
+                <input id="pen-{{ r.c.pk }}" class="entrada-num corta" type="number" name="penetrante" min="0" inputmode="numeric" placeholder="{% translate 'Pen.' %}" title="{% translate 'Penetrante: AP que ignora este golpe' %}">
+                <label class="sr-only" for="tri-{{ r.c.pk }}">{% translate "Triturante" %}</label>
+                <input id="tri-{{ r.c.pk }}" class="entrada-num corta" type="number" name="triturante" min="0" inputmode="numeric" placeholder="{% translate 'Trit.' %}" title="{% translate 'Triturante: AP que quita después del daño' %}">
+                {% endif %}
                 <button class="btn btn-peligro" name="accion" value="dano">{% translate "Daño" %}</button>
                 <button class="btn btn-bien" name="accion" value="curar">{% translate "Curar" %}</button>
                 {% if r.ap is not None %}

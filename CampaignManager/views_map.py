@@ -9,13 +9,13 @@ from django.views.generic import TemplateView
 
 from .ajax import is_ajax, respond
 from .forms import LocationForm, MapForm
-from .mapping import map_data
+from .mapping import map_data, parse_path
 from .models import Map, MapLocation, Page, PartyMove, Session, TimelineEvent
 from .permissions import CampaignMemberMixin, campaign_member, master_only
 from .wiki import first_sentence
 
 
-def map_context(request, campaign, is_master, map_id=None, location_id=None, draft=None):
+def map_context(request, campaign, is_master, map_id=None, location_id=None, draft=None, editing=None):
     user = request.user
     maps = list(campaign.maps.all())
     if not maps:
@@ -52,11 +52,15 @@ def map_context(request, campaign, is_master, map_id=None, location_id=None, dra
                   "description": (page.summary or first_sentence(page.body)) if page else "",
                   "visits": visits, "events": events, "actions": actions}
     query_session = request.GET.get("hasta", "")
+    placing = is_master and (request.GET.get("colocar") == "1" or draft is not None)
     return {
         "maps": maps, "current_map": current, "md": md, "detail": detail, "selected": selected,
         "max_session": max_session, "until": until,
         "until_session": next((s for s in sessions if s.number == until), None),
-        "placing": is_master and (request.GET.get("colocar") == "1" or draft is not None), "draft": draft,
+        "placing": placing, "draft": draft,
+        # The master shapes the way followed between stops (not while placing a location).
+        "editing_route": is_master and not placing and bool(md["segments"])
+                         and (editing if editing is not None else request.GET.get("recorrido") == "1"),
         "map_form": MapForm(instance=current, campaign=campaign) if is_master else None,
         "location_form": LocationForm(initial={"status": "conocido", "x": 50, "y": 50}),
         "places": md["locations"], "query_session": query_session,
@@ -79,15 +83,15 @@ class MapView(CampaignMemberMixin, TemplateView):
         return context
 
 
-def _map_url(campaign, map_id, location_id=None):
+def _map_url(campaign, map_id, location_id=None, editing=False):
     url = reverse("map", args=[campaign.pk]) + f"?mapa={map_id}"
-    return url + (f"&lugar={location_id}" if location_id else "")
+    return url + (f"&lugar={location_id}" if location_id else "") + ("&recorrido=1" if editing else "")
 
 
-def _map_response(request, campaign, map_id, location_id=None, msg="", error=False):
+def _map_response(request, campaign, map_id, location_id=None, msg="", error=False, editing=None):
     context = {"campaign": campaign, "is_master": request.is_master,
-               **map_context(request, campaign, request.is_master, map_id=map_id, location_id=location_id)}
-    return respond(request, redirect_to=_map_url(campaign, map_id, location_id), template="partials/map_section.html",
+               **map_context(request, campaign, request.is_master, map_id=map_id, location_id=location_id, editing=editing)}
+    return respond(request, redirect_to=_map_url(campaign, map_id, location_id, bool(editing)), template="partials/map_section.html",
                    context=context, target="#mapa-seccion", msg=msg, error=error)
 
 
@@ -144,6 +148,15 @@ def location_action(request, campaign, pk):
         # Its page follows: hidden locations have hidden pages.
         Page.objects.filter(location=location).update(revealed=status != MapLocation.Status.OCULTO)
         msg = f"{location.name}: {location.get_status_display().lower()}."
+    elif action == "borrar":
+        # The party's stops at this place go with it, so do the stretches that lead to it.
+        # Its page in the World stays (unlinked from the map): it may have notes worth keeping.
+        name, map_id, stops = location.name, location.map_id, location.moves.count()
+        location.delete()
+        msg = f"{name} borrado del mapa."
+        if stops:
+            msg += f" También {'la parada' if stops == 1 else f'las {stops} paradas'} del camino que llegaban allí."
+        return _map_response(request, campaign, map_id, msg=msg + " Su página del Mundo se conserva.")
     elif action == "grupo":
         last = Session.objects.filter(campaign=campaign).order_by("-number").first()
         order = (location.map.moves.aggregate(m=Max("order"))["m"] or 0) + 1
@@ -155,3 +168,35 @@ def location_action(request, campaign, pk):
     else:
         raise Http404
     return _map_response(request, campaign, location.map_id, location.pk, msg=msg)
+
+
+@require_POST
+@campaign_member
+def move_path(request, campaign, pk):
+    """The route editor saves the waypoints of one stretch (from the previous stop to this one)."""
+    master_only(request)
+    move = get_object_or_404(PartyMove, pk=pk, map__campaign=campaign)
+    path = parse_path(request.POST.get("puntos", ""))
+    if path is None:
+        return respond(request, redirect_to=_map_url(campaign, move.map_id), msg="Ese camino no es válido.", error=True)
+    move.path = path
+    move.save(update_fields=["path"])
+    return respond(request, redirect_to=_map_url(campaign, move.map_id), msg="Camino guardado.")
+
+
+@require_POST
+@campaign_member
+def move_delete(request, campaign, pk):
+    """Remove one stretch of the route (added by mistake): the stop it arrives at goes,
+    and the route goes straight from the stop before to the one after."""
+    master_only(request)
+    move = get_object_or_404(PartyMove.objects.select_related("location", "map"), pk=pk, map__campaign=campaign)
+    moves = list(move.map.moves.select_related("location"))
+    index = next(i for i, m in enumerate(moves) if m.pk == move.pk)
+    previous = moves[index - 1] if index else None
+    move.delete()
+    if previous is None:
+        msg = f"Quitada la salida del camino: {move.location.name}."
+    else:
+        msg = f"Tramo {previous.location.name} → {move.location.name} quitado del camino."
+    return _map_response(request, campaign, move.map_id, msg=msg, editing=True)

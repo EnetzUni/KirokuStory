@@ -211,12 +211,16 @@ class Page(models.Model):
 
 
 # ---------------------------------------------------------------------------
-# Quests
+# Aventuras (the model keeps its first name, Quest)
 # ---------------------------------------------------------------------------
 
 class Quest(models.Model):
+    """An adventure: a story arc that starts in one session and ends in another (or is
+    still going on), with the master's checklist of objectives. The sessions it covers
+    are those from `start_session` to `end_session` (to the last one while in progress)."""
+
     class Status(models.TextChoices):
-        ACTIVA = "activa", "Activa"
+        ACTIVA = "activa", "En curso"
         COMPLETADA = "completada", "Completada"
         FALLIDA = "fallida", "Fallida"
 
@@ -225,15 +229,41 @@ class Quest(models.Model):
     description = models.TextField(blank=True)
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.ACTIVA)
     giver = models.ForeignKey(Page, on_delete=models.SET_NULL, null=True, blank=True, related_name="quests_given")
+    start_session = models.ForeignKey(Session, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+                                      help_text="Session in which the adventure starts")
+    end_session = models.ForeignKey(Session, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+                                    help_text="Session in which it was completed or failed; empty while in progress")
 
     objects = CampaignQuerySet.as_manager()
 
     class Meta:
+        verbose_name = "adventure"
         ordering = ["campaign", "id"]
         indexes = [models.Index(fields=["campaign", "status"])]
 
     def __str__(self):
         return self.title
+
+    def clean(self):
+        for field in ("start_session", "end_session"):
+            session = getattr(self, field)
+            if session is not None and self.campaign_id and session.campaign_id != self.campaign_id:
+                raise ValidationError({field: "Esa sesión es de otra campaña."})
+        if self.end_session_id:
+            if self.status == self.Status.ACTIVA:
+                raise ValidationError({"end_session": "Una aventura en curso todavía no ha terminado: deja vacía la sesión final o cambia el estado."})
+            if self.start_session_id is None:
+                raise ValidationError({"start_session": "Di en qué sesión empezó."})
+            if self.end_session.number < self.start_session.number:
+                raise ValidationError({"end_session": "No puede terminar antes de empezar."})
+
+    def covers(self, session_number, last_number):
+        """Whether the session with this number is part of the adventure."""
+        if self.start_session is None:
+            return False
+        end = self.end_session.number if self.end_session else (last_number if self.status == self.Status.ACTIVA
+                                                                  else self.start_session.number)
+        return self.start_session.number <= session_number <= end
 
 
 class QuestObjective(models.Model):
@@ -260,16 +290,19 @@ class QuestObjective(models.Model):
 # Board (pizarra)
 # ---------------------------------------------------------------------------
 
-BOARD_WIDTH, BOARD_HEIGHT = 1100, 640
+# A big board (three times the first one each way) seen through a zoomable window,
+# so a whole web of clues fits. Positions are pixels of the board at zoom 100 %.
+BOARD_WIDTH, BOARD_HEIGHT = 3300, 1920
 CARD_WIDTH, CARD_HEIGHT = 200, 120
+BOARD_CENTRE_X, BOARD_CENTRE_Y = (BOARD_WIDTH - CARD_WIDTH) // 2, (BOARD_HEIGHT - CARD_HEIGHT) // 2
 
 
 class BoardCard(models.Model):
     campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, related_name="board_cards")
     title = models.CharField(max_length=120)
     text = models.TextField(blank=True)
-    x = models.PositiveIntegerField(default=260, validators=[MaxValueValidator(BOARD_WIDTH - CARD_WIDTH)])
-    y = models.PositiveIntegerField(default=150, validators=[MaxValueValidator(BOARD_HEIGHT - CARD_HEIGHT)])
+    x = models.PositiveIntegerField(default=BOARD_CENTRE_X, validators=[MaxValueValidator(BOARD_WIDTH - CARD_WIDTH)])
+    y = models.PositiveIntegerField(default=BOARD_CENTRE_Y, validators=[MaxValueValidator(BOARD_HEIGHT - CARD_HEIGHT)])
     page = models.ForeignKey(Page, on_delete=models.SET_NULL, null=True, blank=True, related_name="board_cards")
     classified = models.BooleanField(default=False, help_text="Players see it as «CLASIFICADO» until it is revealed")
     revealed = models.BooleanField(default=False)
@@ -429,6 +462,9 @@ class PartyMove(models.Model):
     location = models.ForeignKey(MapLocation, on_delete=models.CASCADE, related_name="moves")
     session = models.ForeignKey(Session, on_delete=models.SET_NULL, null=True, blank=True, related_name="moves")
     order = models.PositiveIntegerField(default=0)
+    # The way followed from the previous stop to this one: [[x, y], ...] in % of the
+    # image, without the two stops. Empty means a straight line.
+    path = models.JSONField(default=list, blank=True)
 
     class Meta:
         ordering = ["map", "order", "id"]

@@ -1,11 +1,22 @@
 {% load i18n l10n %}
 <div id="mapa-seccion" class="fila">
     <div class="ancho pila-s" style="gap:12px">
-        {% include "partials/map_canvas.html" with link_pins=True ajax_pins=True %}
+        {% include "partials/map_canvas.html" with link_pins=True ajax_pins=True zoom=True %}
         {% if placing %}<p class="mensaje" style="color:var(--link)">{% translate "Pulsa en el mapa donde quieras poner el lugar." %}</p>{% endif %}
+        {% if is_master and md.segments and not placing %}
+        <div class="fila-s" style="align-items:center">
+            {% if editing_route %}
+            <p class="mensaje" style="color:var(--link);flex:1 1 280px;margin:0">{% translate "Arrastra los puntos para trazar el camino que siguió el grupo. Pulsa o arrastra un «+» para añadir un punto; doble clic o Supr sobre un punto lo quita. Se guarda solo." %}</p>
+            <a class="btn btn-principal" href="?mapa={{ current_map.pk }}{% if query_session %}&amp;hasta={{ query_session }}{% endif %}" data-ajax-link>{% translate "Terminar" %}</a>
+            {% else %}
+            <a class="btn" href="?mapa={{ current_map.pk }}&amp;recorrido=1{% if query_session %}&amp;hasta={{ query_session }}{% endif %}" data-ajax-link>{% translate "Editar el camino" %}</a>
+            {% endif %}
+        </div>
+        {% endif %}
         {% if md.moves %}
         <form method="get" class="tarjeta compacta" data-ajax-get data-target="#mapa-seccion" style="gap:4px">
             <input type="hidden" name="mapa" value="{{ current_map.pk }}">
+            {% if editing_route %}<input type="hidden" name="recorrido" value="1">{% endif %}
             <label for="mapa-sesion">{% translate "Recorrido hasta la sesión" %} <strong>{{ until }}</strong>{% if until_session %} <span class="atenuado">· {{ until_session.title }}</span>{% endif %}</label>
             <input id="mapa-sesion" type="range" name="hasta" min="1" max="{{ max_session }}" step="1" value="{{ until }}" style="width:100%;min-height:40px;accent-color:var(--accent)">
             <noscript><button type="submit" class="btn">{% translate "Ver" %}</button></noscript>
@@ -32,6 +43,19 @@
                 <div class="fila-s"><button type="submit" class="btn btn-principal">{% translate "Guardar" %}</button>
                     <a class="btn" href="?mapa={{ current_map.pk }}" data-ajax-link>{% translate "Cancelar" %}</a></div>
             </form>
+            {% elif editing_route %}
+            <h2 style="font-size:22px">{% translate "Tramos del camino" %}</h2>
+            <p class="ayuda">{% translate "Quita un tramo añadido por error: el camino irá directo de la parada anterior a la siguiente." %}</p>
+            <ol class="lista-limpia pila-s" style="gap:6px">
+                {% for seg in md.segments %}
+                <li class="fila-s" style="justify-content:space-between;flex-wrap:nowrap">
+                    <span class="pequeno">{{ seg.start.name }} → <b>{{ seg.move.location.name }}</b>{% if seg.move.session %} <span class="atenuado">· {% translate "Sesión" %} {{ seg.move.session.number }}</span>{% endif %}</span>
+                    <form method="post" action="{% url 'map_move_delete' campaign.pk seg.move.pk %}" data-ajax data-target="#mapa-seccion" class="en-linea">{% csrf_token %}
+                        <button type="submit" class="btn btn-texto" style="color:var(--danger-text)" data-confirmar="{% blocktranslate with a=seg.start.name b=seg.move.location.name %}¿Quitar el tramo {{ a }} → {{ b }}?{% endblocktranslate %}">{% translate "Quitar" %}</button>
+                    </form>
+                </li>
+                {% endfor %}
+            </ol>
             {% elif detail %}
             <span class="pastilla {% if detail.location.status == 'visitado' %}p-coral{% elif detail.location.status == 'oculto' %}p-morado{% endif %}" style="align-self:flex-start">{{ detail.location.get_status_display }}{% if detail.location.status == "oculto" %} · {% translate "solo máster" %}{% endif %}</span>
             <h2 style="font-size:24px">{{ detail.location.name }}</h2>
@@ -52,6 +76,10 @@
                     {% csrf_token %}<input type="hidden" name="accion" value="{{ action }}"><input type="hidden" name="valor" value="{{ value }}">
                     <button type="submit" class="btn" style="width:100%;justify-content:flex-start">{% translate label %}</button></form>
                 {% endfor %}
+                <form method="post" action="{% url 'map_location_action' campaign.pk detail.location.pk %}" data-ajax data-target="#mapa-seccion">
+                    {% csrf_token %}<input type="hidden" name="accion" value="borrar">
+                    <button type="submit" class="btn" style="width:100%;justify-content:flex-start;color:var(--danger-text)"
+                            data-confirmar="{% blocktranslate with name=detail.location.name %}¿Borrar {{ name }} del mapa? También se quitan los tramos del camino que llegan allí. Su página del Mundo se conserva.{% endblocktranslate %}">{% translate "Borrar este lugar" %}</button></form>
             </div>
             {% endif %}
             {% else %}

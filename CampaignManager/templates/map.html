@@ -10,7 +10,7 @@
     {% if is_master %}
     <div class="fila-s">
         {% if current_map %}
-        <form method="post" action="{% url 'map_edit' campaign.pk current_map.pk %}" enctype="multipart/form-data" class="fila-s">
+        <form method="post" action="{% url 'map_edit' campaign.pk current_map.pk %}" enctype="multipart/form-data" class="fila-s" data-subir-imagen=".mapa-lienzo">
             {% csrf_token %}
             <label for="mapa-nombre" class="pequeno atenuado">{% translate "Nombre" %}</label>
             <input id="mapa-nombre" class="entrada" style="width:170px" type="text" name="name" value="{{ current_map.name }}" required maxlength="100">

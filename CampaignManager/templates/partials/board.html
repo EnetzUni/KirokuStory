@@ -8,8 +8,10 @@
     {% endif %}
     <div class="fila" style="gap:16px">
         {% localize off %}
-        <div class="corcho-marco">
+        {% translate "Pizarra: rueda o pellizco para acercar, arrastra para moverte" as board_label %}
+        <div class="corcho-marco" data-zoom="pizarra-{{ campaign.pk }}" tabindex="0" aria-label="{{ board_label }}">
             <div class="corcho{% if mode == 'mover' %} colocando{% endif %}" style="width:{{ board_w }}px;height:{{ board_h }}px"
+                 data-zoom-capa data-ancho="{{ board_w }}" data-alto="{{ board_h }}"
                  {% if mode == "mover" %}data-colocar="#form-mover" data-unidad="px"{% endif %}>
                 {% for item in board_items %}
                 {% if item.can_target %}
@@ -32,6 +34,7 @@
                 {% for line in board_lines %}<span class="hilo" style="left:{{ line.x }}px;top:{{ line.y }}px;width:{{ line.len }}px;transform:rotate({{ line.ang }}deg)" aria-hidden="true"></span>{% endfor %}
                 {% for x, y in board_pins %}<span class="chincheta" style="left:{{ x }}px;top:{{ y }}px" aria-hidden="true"></span>{% endfor %}
             </div>
+            {% translate "Ver toda la pizarra" as whole_label %}{% include "partials/zoom_buttons.html" with whole_label=whole_label %}
         </div>
         {% endlocalize %}
 
@@ -71,8 +74,8 @@
                 {% if mode == "mover" %}
                 <form id="form-mover" method="post" action="{% url 'diary_card_action' campaign.pk detail.card.pk %}" data-ajax data-target="#pizarra" data-enviar="1" class="fila-s">
                     {% csrf_token %}<input type="hidden" name="accion" value="mover">
-                    <label class="campo" style="width:96px">X <input class="entrada" type="number" name="x" value="{{ detail.card.x }}" min="0" max="900"></label>
-                    <label class="campo" style="width:96px">Y <input class="entrada" type="number" name="y" value="{{ detail.card.y }}" min="0" max="520"></label>
+                    <label class="campo" style="width:96px">X <input class="entrada" type="number" name="x" value="{{ detail.card.x }}" min="0" max="{{ card_max_x }}"></label>
+                    <label class="campo" style="width:96px">Y <input class="entrada" type="number" name="y" value="{{ detail.card.y }}" min="0" max="{{ card_max_y }}"></label>
                     <button type="submit" class="btn">{% translate "Mover aquí" %}</button>
                 </form>
                 {% endif %}
@@ -94,8 +97,10 @@
                 {% endif %}
             </div>
 
-            <form method="post" action="{% url 'diary_card_add' campaign.pk %}" class="tarjeta compacta" data-ajax data-target="#pizarra">
+            <form method="post" action="{% url 'diary_card_add' campaign.pk %}" class="tarjeta compacta" data-ajax data-target="#pizarra" data-en-vista=".corcho-marco[data-zoom]">
                 {% csrf_token %}
+                {# Filled by mesa.js with the middle of what the board window shows, so the note appears in view. #}
+                <input type="hidden" name="x" value=""><input type="hidden" name="y" value="">
                 <h2 style="font-size:20px">{% translate "Nueva nota" %}</h2>
                 <div class="campo"><label for="bn-titulo">{% translate "Título" %}</label><input id="bn-titulo" class="entrada" type="text" name="title" required maxlength="120"></div>
                 <div class="campo"><label for="bn-texto">{% translate "Texto" %}</label><textarea id="bn-texto" class="entrada" name="text" rows="3"></textarea></div>

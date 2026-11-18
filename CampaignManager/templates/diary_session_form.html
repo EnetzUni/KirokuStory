@@ -3,7 +3,7 @@
 {% block diary %}
 <form method="post" class="tarjeta lectura">
     {% csrf_token %}
-    <h2>{% if object %}{% translate "Editar crónica" %}{% else %}{% translate "Nueva crónica" %}{% endif %}</h2>
+    <h2>{% if object %}{% translate "Editar sesión" %}{% else %}{% translate "Nueva sesión" %}{% endif %}</h2>
     {{ form.non_field_errors }}
     {% for field in form %}{% include "partials/field.html" %}{% endfor %}
     <div class="fila-s">

@@ -23,7 +23,7 @@ from .forms import (
     UniqueSkillStepForm,
 )
 from .models import (
-    Ability, ActiveEffect, Armor, Character, CharacterAbility, CharacterClass, ClassAbility, Combatant, Effect, Inventory,
+    Ability, ActiveEffect, Armor, ArmorDamage, Character, CharacterAbility, CharacterClass, ClassAbility, Combatant, Effect, Inventory,
     Item, Race, RaceAbility, Spell, SubclassAbility, Subrace, SubraceAbility, UniqueSkill, User, Weapon,
     unique_ability_conflicts,
 )
@@ -192,6 +192,37 @@ def review_unique_skill(skill, action, data):
     return f"{who} tiene la habilidad única {name}" + (", con tus cambios." if changed else ".")
 
 
+def change_unique_skill(request, character, action, data):
+    """After approval a master can rewrite the unique skill (it stays the same ability,
+    with the new name and text) or take it away, so the player can propose another.
+    Before approval the player can withdraw the proposal. Returns the message."""
+    skill = unique_skill_of(character)
+    if skill is None:
+        raise SheetError(f"{character.name} no tiene habilidad única.")
+    if action == "unica_retirar":
+        if skill.status == UniqueSkill.Status.APROBADA:
+            raise SheetError("Ya está aprobada: solo el máster puede quitarla.")
+        skill.delete()
+        return f"Propuesta de habilidad única retirada: {skill.name}."
+    if not request.is_master:
+        raise PermissionDenied("Solo el máster cambia o quita una habilidad única aprobada.")
+    if skill.status != UniqueSkill.Status.APROBADA:
+        raise SheetError("Todavía no está aprobada: apruébala o recházala.")
+    if action == "unica_quitar":
+        # Deleting the ability deletes the skill row and the character's link to it.
+        skill.ability.delete()
+        return f"{character.name} ya no tiene la habilidad única {skill.name}. Puede proponer otra."
+    name, description = _skill_text(data)
+    note = (data.get("nota") or "").strip()[:2000]
+    skill.ability.name, skill.ability.description = name, description
+    skill.ability.save(update_fields=["name", "description"])
+    skill.name, skill.description = name, description
+    if note:
+        skill.master_note = note
+    skill.save()
+    return f"Habilidad única de {character.name} cambiada: {name}."
+
+
 @require_POST
 @campaign_member
 def unique_skill_review(request, campaign, pk):
@@ -328,9 +359,9 @@ def sheet_context(request, campaign, character):
                    "mod": rules.ability_modifier(getattr(character, key))} for key in rules.ABILITY_KEYS],
         "armor": armor, "max_ap": character.max_ap, "max_magic_ap": character.max_magic_ap,
         "armor_source": f"{armor.item.name} {armor.ap} + {armor.armor_type.type} {armor.armor_type.ap}" if armor else "Sin armadura",
-        "dying": character.temp_hp <= 0,
-        "saves": [{"kind": kind, "label": label, "pips": [{"i": i, "on": i < getattr(character, field)} for i in range(rules.DEATH_SAVES)]}
-                  for kind, label, field in [("exito", "Éxitos", "death_successes"), ("fallo", "Fallos", "death_failures")]],
+        # Knocked down / dead (house rule): how far it is from dying, and whether a second fall in this fight kills it.
+        "knocked_down": character.knocked_down, "death_hp": character.death_hp,
+        "fell_this_fight": bool(encounter and character.knocked_down_in_id == encounter.pk),
         "mp_pips": [i < character.magic_points for i in range(character.magic_points_max)],
         "spell_catalog": _spell_catalog(character) if is_master and tab == "spells" else [],
         "effects": list(character.activeeffect_set.select_related("effect").order_by("effect__name")),
@@ -395,20 +426,75 @@ class SheetError(Exception):
     """An action that cannot be done: nothing is saved and the message is shown."""
 
 
-def change_hp(character, delta):
-    """Add `delta` to the current hit points, between 0 and the maximum. Above 0,
-    the death saves are cleared. Returns the hit points before the change."""
-    before = character.temp_hp
-    character.temp_hp = rules.clamp(before + delta, 0, character.hp)
-    if character.temp_hp > 0:
-        character.death_successes = character.death_failures = 0
-    return before
+HP_FIELDS = ["temp_hp", "temp_ap", "dead", "knocked_down_in"]
 
 
-def _toggle_save(character, field, index):
-    """Click on death save box `index`: fill up to it, or empty it if it was the last one filled."""
-    index = rules.clamp(index, 0, rules.DEATH_SAVES - 1)
-    setattr(character, field, index if getattr(character, field) == index + 1 else index + 1)
+def change_hp(character, delta, encounter=None):
+    """Add `delta` to the current hit points, up to the maximum (house rule):
+    at 0 or fewer the character is knocked down; at minus half its maximum
+    (rules.death_hp) it dies, and so it does if it is knocked down a second time
+    in `encounter`, the fight going on. Dead characters do not change.
+    Returns (hit points before, what happened: "", "derribado", "muerto" or "segunda")."""
+    if character.dead:
+        raise SheetError(f"{character.name} está muerto. Solo el máster puede revivirlo.")
+    before, lowest = character.temp_hp, rules.death_hp(character.hp)
+    character.temp_hp = rules.clamp(before + delta, lowest, character.hp)
+    if character.temp_hp <= lowest:
+        character.dead = True
+        return before, "muerto"
+    if before > 0 >= character.temp_hp:
+        if encounter is not None and character.knocked_down_in_id == encounter.pk:
+            character.dead = True
+            return before, "segunda"
+        character.knocked_down_in = encounter
+        return before, "derribado"
+    return before, ""
+
+
+def hp_event_text(character, event, in_fight):
+    """What to tell after a change of hit points, if anything happened."""
+    name = character.name
+    if event == "muerto":
+        return f" {name} llega a {character.temp_hp} de vida y muere."
+    if event == "segunda":
+        return f" {name} cae por segunda vez en este combate y muere."
+    if event == "derribado":
+        again = " o si vuelve a caer en este combate" if in_fight else ""
+        return f" ¡{name} cae derribado! Muere si llega a {character.death_hp} de vida{again}."
+    return ""
+
+
+def take_damage(character, amount, penetrating=0, shredding=0, encounter=None):
+    """A hit (game rule 3 and house rule): True Damage = Damage - AP goes to the hit
+    points. Penetrante ignores that many AP for this hit; triturante takes that many
+    AP away after the damage. Otherwise the AP stay as they were. Returns the message."""
+    damages = [(kind, n) for kind, n in ((ArmorDamage.Type.PENETRATING, penetrating),
+                                         (ArmorDamage.Type.SHREDDING, shredding)) if n]
+    ap = character.temp_ap
+    met = rules.ap_against_attack(ap, damages)
+    true = rules.true_damage(amount, ap, damages)
+    before, event = change_hp(character, -true, encounter)
+    character.temp_ap = rules.ap_after_attack(ap, damages)
+    how = f"{amount} − {met} AP = {true}" if met else f"{amount}"
+    if penetrating:
+        how += f" (penetrante {penetrating})"
+    msg = f"{character.name} recibe {how} de daño: vida {before} → {character.temp_hp}."
+    if character.temp_ap != ap:
+        msg += f" Triturante {shredding}: AP {ap} → {character.temp_ap}."
+    return msg + hp_event_text(character, event, encounter is not None)
+
+
+def armor_damage_amount(value):
+    """Penetrante or triturante of a hit: empty is 0; otherwise a whole number from 0."""
+    if value in (None, ""):
+        return 0
+    try:
+        value = int(value)
+    except (TypeError, ValueError):
+        raise SheetError("Penetrante y triturante son números enteros (o se dejan vacíos).")
+    if value < 0:
+        raise SheetError("Penetrante y triturante no pueden ser negativos.")
+    return value
 
 
 def _equip(character, row):
@@ -433,27 +519,42 @@ def _equip(character, row):
 def _apply(request, character, action, arg):
     """Run one sheet action on `character` (locked for update) and return the message."""
     post, name = request.POST, character.name
+    encounter = active_encounter(request.campaign)
     if action in ("vida_menos", "vida_mas"):
-        change_hp(character, -1 if action == "vida_menos" else 1)
-        return ""
+        # The −1 / +1 buttons fix the counter by hand: no AP in between.
+        _, event = change_hp(character, -1 if action == "vida_menos" else 1, encounter)
+        return hp_event_text(character, event, encounter is not None).strip()
     if action in ("dano", "curar"):
         amount = _positive(post.get("cantidad"))
         if amount is None:
             raise SheetError("Escribe una cantidad mayor que 0.")
-        before = change_hp(character, -amount if action == "dano" else amount)
-        verb = "recibe" if action == "dano" else "se cura"
-        return f"{name} {verb} {amount}: vida {before} → {character.temp_hp}."
-    if action in ("exito", "fallo"):
-        if character.temp_hp > 0:
-            raise SheetError("Las salvaciones de muerte solo se marcan a 0 de vida.")
-        _toggle_save(character, "death_successes" if action == "exito" else "death_failures", arg or 0)
-        return ""
-    if action in ("ap_menos", "ap_mas", "ap_restaurar"):
+        if action == "dano":
+            return take_damage(character, amount, armor_damage_amount(post.get("penetrante")),
+                               armor_damage_amount(post.get("triturante")), encounter)
+        before, _ = change_hp(character, amount, encounter)
+        return f"{name} se cura {amount}: vida {before} → {character.temp_hp}."
+    if action == "revivir":
+        if not request.is_master:
+            raise PermissionDenied("Solo el máster revive a un personaje.")
+        if not character.dead:
+            raise SheetError(f"{name} no está muerto.")
+        character.dead, character.knocked_down_in = False, None
+        character.temp_hp = max(1, character.temp_hp)
+        return f"{name} vuelve a la vida con {character.temp_hp} de vida."
+    if action in ("ap_menos", "ap_mas", "ap_quitar", "ap_sumar", "ap_restaurar"):
+        # Current AP, between 0 and the maximum the equipped armor gives (game rule 2).
         if action == "ap_restaurar":
             character.temp_ap = character.max_ap
             return f"AP restaurado: {character.temp_ap}."
-        character.temp_ap = rules.clamp(character.temp_ap + (1 if action == "ap_mas" else -1), 0, character.max_ap)
-        return ""
+        amount = 1
+        if action in ("ap_quitar", "ap_sumar"):
+            amount = _positive(post.get("cantidad"))
+            if amount is None:
+                raise SheetError("Escribe cuántos AP.")
+        before = character.temp_ap
+        sign = 1 if action in ("ap_mas", "ap_sumar") else -1
+        character.temp_ap = rules.clamp(before + sign * amount, 0, character.max_ap)
+        return f"{name}: AP {before} → {character.temp_ap}." if action in ("ap_quitar", "ap_sumar") else ""
     if action in ("xp_dar", "xp_quitar"):
         # Only masters give XP; the level waits until the player levels up.
         if not request.is_master:
@@ -488,6 +589,8 @@ def _apply(request, character, action, arg):
                 f"nivel {character.level}, ajuste {bonus:+d}. Máximo {before} → {after}.")
     if action == "unica_proponer":
         return propose_unique_skill(request, character, post)
+    if action in ("unica_editar", "unica_quitar", "unica_retirar"):
+        return change_unique_skill(request, character, action, post)
     if action in ("unica_aprobar", "unica_rechazar"):
         if not request.is_master:
             raise PermissionDenied("Solo el máster revisa las habilidades únicas.")
@@ -532,11 +635,12 @@ def _apply(request, character, action, arg):
             row.save()
         if rest == CharacterAbility.Recharge.CORTO:
             return f"{name} hace un descanso corto: recupera las habilidades de descanso corto."
+        if character.dead:
+            raise SheetError(f"{name} está muerto: no puede descansar.")
         character.temp_hp, character.temp_ap = character.hp, character.max_ap
         if character.has_magic:
             character.magic_points = character.magic_points_max
-        character.death_successes = character.death_failures = 0
-        return f"{name} hace un descanso largo: vida, AP, puntos de magia, usos y salvaciones al máximo."
+        return f"{name} hace un descanso largo: vida, AP, puntos de magia y usos al máximo."
     if action == "lanzar":
         spell = get_object_or_404(character.spells, pk=post.get("conjuro"))
         if spell.level == 0:
@@ -614,7 +718,7 @@ def _apply(request, character, action, arg):
 @campaign_member
 def sheet_action(request, campaign, pk):
     """Every counter of the sheet, by AJAX or with a normal form. The action is
-    `accion`, optionally with an argument after a colon («exito:2»).
+    `accion`, optionally with an argument after a colon («accion:2»).
     Players only change their own characters; masters, any in their campaign."""
     character = character_in_campaign(campaign, pk, request.user)
     if not can_edit_character(request.user, character, campaign):

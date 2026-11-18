@@ -19,7 +19,7 @@ from .ajax import is_ajax, respond
 from .models import ActiveEffect, Armor, Character, Combatant, Encounter
 from .permissions import CampaignMemberMixin, campaign_member, master_only, npc_templates_for
 from .services import active_encounter, end_round
-from .views_characters import change_hp
+from .views_characters import HP_FIELDS, SheetError, armor_damage_amount, change_hp, hp_event_text, take_damage
 
 HP_ACTIONS = ("vida_menos", "vida_mas", "dano", "curar", "ap_menos", "ap_mas")
 
@@ -54,6 +54,7 @@ def turns_context(request, campaign, is_master):
             "hp": combatant.current_hp if shown else None, "hp_max": combatant.max_hp if shown else None,
             "ap": character.temp_ap if character and shown else None,
             "ap_max": _max_ap(armors.get(character.pk)) if character and shown else None,
+            "dead": bool(character and character.dead), "down": bool(character and character.knocked_down),
             "effects": [f"{e.effect.name} {e.remaining_turns}" for e in character.activeeffect_set.all()]
             if character and shown else [],
             "hint": rules.ability_modifier(character.dexterity) if character and is_master else None,
@@ -100,8 +101,9 @@ def _number(value):
         return None
 
 
-def _touch(request, combatant, action):
-    """Hit points and AP from the turns list: on the sheet for characters, on the combatant for enemies."""
+def _touch(request, combatant, action, encounter):
+    """Hit points and AP from the turns list: on the sheet for characters, on the combatant for enemies.
+    For characters, damage goes through their AP and they can be knocked down or die (house rule)."""
     amount = _number(request.POST.get("cantidad"))
     if action in ("dano", "curar"):
         if amount is None or amount <= 0:
@@ -118,16 +120,25 @@ def _touch(request, combatant, action):
         character.save(update_fields=["temp_ap"])
         return ""
     if character is not None:
-        before = change_hp(character, delta)
-        character.save(update_fields=["temp_hp", "death_successes", "death_failures"])
-        after = character.temp_hp
-    else:
-        if combatant.hp is None:
-            raise TurnError(f"{name} no tiene vida apuntada.")
-        before = combatant.hp
-        combatant.hp = max(0, before + delta) if combatant.hp_max is None else rules.clamp(before + delta, 0, combatant.hp_max)
-        combatant.save(update_fields=["hp"])
-        after = combatant.hp
+        try:
+            if action == "dano":
+                msg = take_damage(character, amount, armor_damage_amount(request.POST.get("penetrante")),
+                                  armor_damage_amount(request.POST.get("triturante")), encounter)
+            else:
+                before, event = change_hp(character, delta, encounter)
+                msg = (f"{name}: vida {before} → {character.temp_hp}." if action == "curar" else "")
+                msg = (msg + hp_event_text(character, event, True)).strip()
+        except SheetError as error:
+            raise TurnError(str(error))
+        character.save(update_fields=HP_FIELDS)
+        return msg
+    # Enemies without a sheet: their own hit points, no AP.
+    if combatant.hp is None:
+        raise TurnError(f"{name} no tiene vida apuntada.")
+    before = combatant.hp
+    combatant.hp = max(0, before + delta) if combatant.hp_max is None else rules.clamp(before + delta, 0, combatant.hp_max)
+    combatant.save(update_fields=["hp"])
+    after = combatant.hp
     if action in ("dano", "curar"):
         return f"{name}: vida {before} → {after}." + (" ¡Fuera de combate!" if after == 0 else "")
     return ""
@@ -234,7 +245,7 @@ def turns_action(request, campaign):
                 # Players only touch their own characters; the master, everyone.
                 if not request.is_master and not (character and not character.is_npc and character.player_id == request.user.pk):
                     master_only(request)
-                msg = _touch(request, combatant, action)
+                msg = _touch(request, combatant, action, encounter)
             else:
                 master_only(request)
                 msg = _master_action(request, campaign, encounter, action)

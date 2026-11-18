@@ -25,7 +25,7 @@ class SessionForm(CampaignFormMixin, forms.ModelForm):
         fields = ["number", "title", "played_on", "world_day", "body", "xp_awarded", "loot", "master_notes", "published"]
         labels = {
             "number": "Número", "title": "Título", "played_on": "Fecha de la partida", "world_day": "Día en el mundo",
-            "body": "Crónica", "xp_awarded": "XP repartida", "loot": "Botín",
+            "body": "Lo que pasó", "xp_awarded": "XP repartida", "loot": "Botín",
             "master_notes": "Notas del máster (solo las ves tú)", "published": "Publicada (los jugadores la ven)",
         }
         widgets = {"played_on": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
@@ -35,7 +35,7 @@ class SessionForm(CampaignFormMixin, forms.ModelForm):
     def clean_number(self):
         number = self.cleaned_data["number"]
         if Session.objects.filter(campaign=self.campaign, number=number).exclude(pk=self.instance.pk).exists():
-            raise forms.ValidationError("Ya hay una crónica con ese número en esta campaña.")
+            raise forms.ValidationError("Ya hay una sesión con ese número en esta campaña.")
         return number
 
 
@@ -95,15 +95,26 @@ class PostForm(forms.Form):
 
 
 class QuestForm(CampaignFormMixin, forms.ModelForm):
+    """An adventure: status, the sessions it spans and (in the formset) its objectives."""
+
     class Meta:
         model = Quest
-        fields = ["title", "description", "status", "giver"]
-        labels = {"title": "Título", "description": "Descripción", "status": "Estado", "giver": "Quién la encarga"}
+        fields = ["title", "description", "status", "start_session", "end_session", "giver"]
+        labels = {"title": "Título", "description": "Descripción", "status": "Estado", "giver": "Quién la encarga",
+                  "start_session": "Empieza en la sesión", "end_session": "Termina en la sesión"}
+        help_texts = {"end_session": "Déjalo vacío mientras está en curso. Al completarla o fallarla, la sesión en que acabó.",
+                      "start_session": ""}
         widgets = {"description": forms.Textarea(attrs={"rows": 3})}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["giver"].queryset = Page.objects.filter(campaign=self.campaign).order_by("title")
+        sessions = Session.objects.filter(campaign=self.campaign).order_by("number")
+        for name in ("start_session", "end_session"):
+            self.fields[name].queryset = sessions
+            self.fields[name].label_from_instance = lambda s: f"{s.number} · {s.title}"
+        self.fields["end_session"].empty_label = "Todavía no ha terminado"
+        self.fields["start_session"].empty_label = "Sin sesión"
 
 
 ObjectiveFormSet = inlineformset_factory(

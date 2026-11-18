@@ -127,6 +127,7 @@ label.chip:has(input:focus-visible){outline:3px solid var(--accent);outline-offs
 .entrada,.campo input:not([type=checkbox]):not([type=radio]):not([type=file]),.campo select,.campo textarea{min-height:var(--tap);padding:0 12px;border-radius:var(--r-ctl);border:1px solid var(--line);background:var(--surface2);width:100%}
 .campo textarea,textarea.entrada{padding:10px 12px;min-height:110px;resize:vertical;line-height:1.6}
 .entrada-num{width:88px;min-height:var(--tap);padding:0 10px;border-radius:var(--r-ctl);border:1px solid var(--line);background:var(--surface2);font-size:17px;font-weight:700}
+.entrada-num.corta{width:72px;font-size:15px}
 .casilla{display:flex;align-items:center;gap:8px;font-size:14px;min-height:var(--tap)}
 .casilla input{width:20px;height:20px;accent-color:var(--accent)}
 .ayuda{font-size:13px;color:var(--muted)}
@@ -198,12 +199,30 @@ form.en-linea{display:inline}
 .k-mision{--k:var(--warn-text);--kb:var(--warn-bg)} .k-secreto{--k:var(--muted);--kb:var(--neutral-bg)}
 .k-giro{--k:#7A4F00;--kb:#F3E5C4}
 .k-color{color:var(--k)} .k-fondo{background:var(--k)} .k-pastilla{background:var(--kb);color:var(--k)}
+/* Adventures lane under the events: the general path of the party, one bar per adventure. */
+.tl-carril-titulo{position:absolute;left:8px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.tl-aventura{position:absolute;height:26px;padding:0 10px;border-radius:13px;display:flex;align-items:center;gap:8px;overflow:hidden;white-space:nowrap;
+  font-size:13px;text-decoration:none;color:#FFFFFF;background:#B7791F;border:2px solid #B7791F}
+.tl-aventura b{overflow:hidden;text-overflow:ellipsis}
+.tl-aventura span{font-size:11px;opacity:.9}
+.tl-aventura.completada{background:#2F855A;border-color:#2F855A}
+.tl-aventura.fallida{background:#C53030;border-color:#C53030}
+/* Still going on: an open, dashed bar that runs into «Próxima». */
+.tl-aventura.abierta{background:var(--surface);color:#7A4A12;border-style:dashed;border-radius:13px 0 0 13px}
+.tl-aventura:hover,.tl-aventura:focus-visible{filter:brightness(1.1);outline:2px solid var(--text);outline-offset:1px}
+.tl-estado{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;background:#B7791F}
+.tl-estado.completada{background:#2F855A}
+.tl-estado.fallida{background:#C53030}
 .tl-detalle{border-radius:var(--r-card);padding:16px 18px;display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--line)}
 .tl-detalle.oculto{background:var(--secret-bg);border:1px dashed var(--secret-text)}
 
 /* ---------- Pizarra (única excepción material) ---------- */
 .corcho-marco{flex:999 1 600px;min-width:0;overflow:auto;border-radius:var(--r-card);border:8px solid #6B4A2B;background:#6B4A2B}
 .corcho{position:relative;width:1100px;height:640px;background-color:#B98B5E}
+/* With JavaScript the frame is a window onto the board: the board is scaled (transform) and moved
+   inside it. No will-change, so the browser redraws the text sharp at each zoom level. */
+.js .corcho-marco[data-zoom]{position:relative;overflow:hidden;aspect-ratio:1.72;max-height:78vh}
+.js .corcho-marco[data-zoom]>.corcho{position:absolute;left:0;top:0;transform-origin:0 0}
 .nota{position:absolute;width:200px;min-height:112px;padding:24px 14px 12px;border-radius:3px;text-align:left;display:flex;flex-direction:column;gap:4px;background:#FFFBEF;border:1px solid #E9DFC7;color:#2B2622;text-decoration:none;box-shadow:0 6px 12px rgba(0,0,0,.35)}
 .nota strong{font-size:17px;line-height:1.2}
 .nota span{font-size:13px;line-height:1.4;color:#5A5148}
@@ -253,7 +272,44 @@ form.en-linea{display:inline}
 
 /* ---------- Mapa ---------- */
 .mapa{position:relative;width:100%;border-radius:var(--r-card);overflow:hidden;border:1px solid var(--line);background:#BCC6B0}
-.mapa>img,.mapa>svg.fondo{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* .mapa-lienzo holds the image and everything placed on it. Zoom changes its real size (not a transform),
+   so the image is always resampled from the original file at the size it is shown: no blurry scaled bitmap. */
+/* container-type gives 1cqw / 1cqh = 1 % of the layer, used to point the route arrows. */
+.mapa-lienzo{position:absolute;inset:0;container-type:size}
+.mapa-lienzo>img{position:absolute;inset:0;width:100%;height:100%;display:block;-webkit-user-drag:none;user-select:none}
+
+/* Zoomable windows (map and board). Without JavaScript the buttons are hidden and nothing changes. */
+.zoom-botones{position:absolute;top:8px;right:8px;z-index:5;display:none;flex-direction:column;gap:6px}
+.js .zoom-botones{display:flex}
+.zoom-botones .btn{font-size:20px;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.zoom-botones .btn:disabled{opacity:.55;cursor:default}
+.js [data-zoom]{touch-action:none;user-select:none;cursor:grab}
+.js [data-zoom].arrastrando{cursor:grabbing}
+.js .mapa[data-zoom].colocando,.js [data-zoom] .colocando{cursor:crosshair}
+[data-zoom]:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* Route: an arrow head just before each stop, pointing at it. --dx/--dy is the direction of the
+   last part of the stretch in % of the image; × 1cqw / 1cqh turns it into on-screen pixels, so the
+   angle is right whatever the image proportions and the zoom. It sits 24px before the stop (or
+   halfway along a shorter last part). */
+.ruta-flecha{position:absolute;width:0;height:0;pointer-events:none;
+  transform:rotate(atan2(calc(var(--dy) * 1cqh), calc(var(--dx) * 1cqw)))
+            translateX(calc(-1 * min(24px, .5 * hypot(calc(var(--dx) * 1cqw), calc(var(--dy) * 1cqh)))))}
+.ruta-flecha::before{content:"";position:absolute;left:-9px;top:-9px;width:18px;height:18px;background:#BC6C25;
+  clip-path:polygon(0 0,100% 50%,0 100%,28% 50%);filter:drop-shadow(0 0 1px #FEFAE0)}
+.ruta-flecha[hidden]{display:none}
+
+/* Route editor (master): waypoints to drag and "+" handles halfway along each part to add one. */
+.ruta-punto,.ruta-medio{position:absolute;z-index:3;width:28px;height:28px;margin:-14px 0 0 -14px;padding:0;border:none;
+  background:transparent;display:flex;align-items:center;justify-content:center;cursor:move;touch-action:none}
+.ruta-punto::before{content:"";width:14px;height:14px;border-radius:50%;background:#FEFAE0;border:3px solid #BC6C25;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.ruta-medio::before{content:"+";width:16px;height:16px;border-radius:50%;background:rgba(254,250,224,.85);border:1px solid #BC6C25;
+  color:#7A4A12;font-size:14px;font-weight:700;line-height:14px;text-align:center;opacity:.8}
+.ruta-medio{cursor:copy}
+.ruta-punto:hover::before,.ruta-punto:focus-visible::before,.ruta-punto.activo::before{background:#BC6C25;border-color:#FEFAE0}
+.ruta-medio:hover::before,.ruta-medio:focus-visible::before{opacity:1;background:#FEFAE0}
+.ruta-punto:focus-visible,.ruta-medio:focus-visible{outline:none}
+.mapa.editando-ruta{outline:3px dashed #BC6C25;outline-offset:-3px}
 .mapa .vacio{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;color:var(--muted);background:var(--surface2)}
 .mapa svg.ruta{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .pin{position:absolute;transform:translate(-50%,-50%);width:var(--tap);height:var(--tap);display:flex;align-items:center;justify-content:center;text-decoration:none}
@@ -294,10 +350,6 @@ form.en-linea{display:inline}
 .pips{display:flex;flex-wrap:wrap;gap:5px}
 .pip{width:14px;height:14px;border-radius:50%;border:2px solid var(--line)}
 .pip.lleno{background:var(--magic);border-color:var(--magic)}
-.salvacion{width:var(--tap);height:var(--tap);padding:0;border:none;background:transparent;display:inline-flex;align-items:center;justify-content:center}
-.salvacion i{width:22px;height:22px;border-radius:50%;border:2px solid var(--line)}
-.salvacion.exito[aria-pressed="true"] i{background:var(--ok-text);border-color:var(--ok-text)}
-.salvacion.fallo[aria-pressed="true"] i{background:var(--danger-text);border-color:var(--danger-text)}
 .fila-tabla{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 16px;border-bottom:1px solid var(--line)}
 .fila-tabla:last-child{border-bottom:none}
 .cabeza-tabla{display:flex;gap:12px;padding:10px 16px;background:var(--surface2);border-bottom:1px solid var(--line);font-size:14px;font-weight:700;color:var(--label)}

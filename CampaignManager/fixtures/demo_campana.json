@@ -208,8 +208,6 @@
   "background": "Aprendiz expulsada de la Academia de Puerto Gris por leer libros prohibidos. Busca a quien escribió las runas del pacto.",
   "notes": "Preguntar a Oswin qué hay en la caja.",
   "status": "aprobado",
-  "death_successes": 0,
-  "death_failures": 0,
   "magic_points": 9,
   "magic_points_bonus": 0,
   "player": [
@@ -262,8 +260,6 @@
   "background": "Herrero de Robleda. Su hermano desapareció en el incendio de los muelles de Puerto Gris.",
   "notes": "Le debo 20 po a Kaida.",
   "status": "aprobado",
-  "death_successes": 0,
-  "death_failures": 0,
   "magic_points": 0,
   "magic_points_bonus": 0,
   "player": [
@@ -304,8 +300,6 @@
   "background": "Ladrona con deudas en los muelles. Dice que la corona no le importa; nadie la cree.",
   "notes": "",
   "status": "aprobado",
-  "death_successes": 0,
-  "death_failures": 0,
   "magic_points": 0,
   "magic_points_bonus": 0,
   "player": [
@@ -346,8 +340,6 @@
   "background": "Monja del templo del río. Busca al ladrón que se llevó las linternas sagradas.",
   "notes": "",
   "status": "aprobado",
-  "death_successes": 0,
-  "death_failures": 0,
   "magic_points": 0,
   "magic_points_bonus": 0,
   "player": [
@@ -387,8 +379,6 @@
   "background": "",
   "notes": "",
   "status": "aprobado",
-  "death_successes": 0,
-  "death_failures": 0,
   "magic_points": 0,
   "magic_points_bonus": 0,
   "player": null,
@@ -424,8 +414,6 @@
   "background": "",
   "notes": "",
   "status": "aprobado",
-  "death_successes": 0,
-  "death_failures": 0,
   "magic_points": 2,
   "magic_points_bonus": 0,
   "player": null,
@@ -463,8 +451,6 @@
   "background": "",
   "notes": "",
   "status": "aprobado",
-  "death_successes": 0,
-  "death_failures": 0,
   "magic_points": 6,
   "magic_points_bonus": 0,
   "player": null,
@@ -502,8 +488,6 @@
   "background": "",
   "notes": "",
   "status": "aprobado",
-  "death_successes": 0,
-  "death_failures": 0,
   "magic_points": 0,
   "magic_points_bonus": 0,
   "player": null,
@@ -541,8 +525,6 @@
   "background": "",
   "notes": "",
   "status": "aprobado",
-  "death_successes": 0,
-  "death_failures": 0,
   "magic_points": 0,
   "magic_points_bonus": 0,
   "player": null,
@@ -2736,7 +2718,9 @@
   "title": "La Corona de Ceniza",
   "description": "Misión principal. Recompensa: 2.000 po.",
   "status": "activa",
-  "giver": 9
+  "giver": 9,
+  "start_session": 1,
+  "end_session": null
  }
 },
 {
@@ -2747,7 +2731,9 @@
   "title": "Las runas del pacto",
   "description": "Misión personal de Aria. Recompensa: respuestas.",
   "status": "activa",
-  "giver": null
+  "giver": null,
+  "start_session": 4,
+  "end_session": null
  }
 },
 {
@@ -2758,7 +2744,9 @@
   "title": "Saqueadores en el Camino del Faro",
   "description": "Misión secundaria. Recompensa: 300 po.",
   "status": "completada",
-  "giver": 11
+  "giver": 11,
+  "start_session": 2,
+  "end_session": 2
  }
 },
 {
@@ -2769,7 +2757,9 @@
   "title": "Una deuda en los muelles",
   "description": "Misión personal de Kaida, por encargo de un contrabandista. Recompensa: que la dejen en paz. El contrabandista huyó de Puerto Gris.",
   "status": "fallida",
-  "giver": null
+  "giver": null,
+  "start_session": 1,
+  "end_session": 3
  }
 },
 {
@@ -2780,7 +2770,9 @@
   "title": "El ladrón de linternas",
   "description": "Misión principal, por encargo de la dama del río. Recompensa: un favor.",
   "status": "activa",
-  "giver": null
+  "giver": null,
+  "start_session": 7,
+  "end_session": null
  }
 },
 {
@@ -2922,8 +2914,8 @@
   "campaign": 1,
   "title": "La Corona de Ceniza",
   "text": "Partida en dos. Tenemos una mitad.",
-  "x": 440,
-  "y": 30,
+  "x": 1540,
+  "y": 670,
   "page": 15,
   "classified": false,
   "revealed": false,
@@ -2939,8 +2931,8 @@
   "campaign": 1,
   "title": "Oswin, el mercader",
   "text": "¿Por qué paga tanto por ella?",
-  "x": 80,
-  "y": 50,
+  "x": 1180,
+  "y": 690,
   "page": 9,
   "classified": false,
   "revealed": false,
@@ -2956,8 +2948,8 @@
   "campaign": 1,
   "title": "Lady Morwen",
   "text": "En Robleda bajan la voz al nombrarla.",
-  "x": 820,
-  "y": 40,
+  "x": 1920,
+  "y": 680,
   "page": 10,
   "classified": false,
   "revealed": false,
@@ -2973,8 +2965,8 @@
   "campaign": 1,
   "title": "Saqueadores orcos",
   "text": "Llevan un emblema que no reconocemos.",
-  "x": 830,
-  "y": 300,
+  "x": 1930,
+  "y": 940,
   "page": 13,
   "classified": false,
   "revealed": false,
@@ -2990,8 +2982,8 @@
   "campaign": 1,
   "title": "Las runas del bosque",
   "text": "Juntas forman una llave. ¿Quién las escribió?",
-  "x": 450,
-  "y": 270,
+  "x": 1550,
+  "y": 910,
   "page": null,
   "classified": false,
   "revealed": false,
@@ -3007,8 +2999,8 @@
   "campaign": 1,
   "title": "Barrio Alto",
   "text": "Alguien de allí compró la corona.",
-  "x": 90,
-  "y": 225,
+  "x": 1190,
+  "y": 865,
   "page": null,
   "classified": false,
   "revealed": false,
@@ -3024,8 +3016,8 @@
   "campaign": 1,
   "title": "El vendedor",
   "text": "Oswin vendió la corona al ladrón hace años.",
-  "x": 70,
-  "y": 420,
+  "x": 1170,
+  "y": 1060,
   "page": null,
   "classified": true,
   "revealed": false,
@@ -3041,8 +3033,8 @@
   "campaign": 1,
   "title": "La otra mitad",
   "text": "Está bajo el mar, en el Santuario hundido.",
-  "x": 450,
-  "y": 470,
+  "x": 1550,
+  "y": 1110,
   "page": null,
   "classified": true,
   "revealed": false,
@@ -3058,8 +3050,8 @@
   "campaign": 1,
   "title": "La torre vigila",
   "text": "Morwen sabe que estamos en las ruinas.",
-  "x": 830,
-  "y": 480,
+  "x": 1930,
+  "y": 1120,
   "page": null,
   "classified": true,
   "revealed": true,

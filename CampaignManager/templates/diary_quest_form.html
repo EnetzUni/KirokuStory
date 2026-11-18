@@ -3,10 +3,11 @@
 {% block diary %}
 <form method="post" class="tarjeta lectura">
     {% csrf_token %}
-    <h2>{% if object %}{% translate "Editar misión" %}{% else %}{% translate "Nueva misión" %}{% endif %}</h2>
+    <h2>{% if object %}{% translate "Editar aventura" %}{% else %}{% translate "Nueva aventura" %}{% endif %}</h2>
     {{ form.non_field_errors }}
     {% for field in form %}{% include "partials/field.html" %}{% endfor %}
     <h3>{% translate "Objetivos" %}</h3>
+    <p class="ayuda">{% translate "Los jugadores ven la lista. Un objetivo oculto les aparece como «Objetivo oculto» hasta que lo marcas como cumplido." %}</p>
     {{ objectives.management_form }}
     {{ objectives.non_form_errors }}
     {% for sub in objectives %}
@@ -15,6 +16,6 @@
     </fieldset>
     {% endfor %}
     <div class="fila-s"><button type="submit" class="btn btn-principal">{% translate "Guardar" %}</button>
-        <a class="btn" href="{% url 'diary_quests' campaign.pk %}">{% translate "Cancelar" %}</a></div>
+        <a class="btn" href="{% url 'diary' campaign.pk %}">{% translate "Cancelar" %}</a></div>
 </form>
 {% endblock %}

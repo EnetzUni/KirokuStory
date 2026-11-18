@@ -14,9 +14,9 @@ urlpatterns = [
     path(campaign, views_home.HomeView.as_view(), name="home"),
 
     # Diario
-    path(campaign + "diario/", views_diary.ChronicleListView.as_view(), name="diary"),
-    path(campaign + "diario/cronica/nueva/", views_diary.SessionCreateView.as_view(), name="diary_session_new"),
-    path(campaign + "diario/cronica/<int:pk>/editar/", views_diary.SessionUpdateView.as_view(), name="diary_session_edit"),
+    path(campaign + "diario/", views_diary.AdventureListView.as_view(), name="diary"),
+    path(campaign + "diario/sesion/nueva/", views_diary.SessionCreateView.as_view(), name="diary_session_new"),
+    path(campaign + "diario/sesion/<int:pk>/editar/", views_diary.SessionUpdateView.as_view(), name="diary_session_edit"),
     path(campaign + "diario/linea/", views_diary.TimelineView.as_view(), name="diary_timeline"),
     path(campaign + "diario/linea/suceso/", views_diary.event_add, name="diary_event_add"),
     path(campaign + "diario/linea/suceso/<int:pk>/visibilidad/", views_diary.event_toggle, name="diary_event_toggle"),
@@ -28,10 +28,11 @@ urlpatterns = [
     path(campaign + "diario/escenas/<int:pk>/", views_diary.SceneView.as_view(), name="diary_scene"),
     path(campaign + "diario/escenas/<int:pk>/publicar/", views_diary.post_add, name="diary_post"),
     path(campaign + "diario/escenas/<int:pk>/estado/", views_diary.scene_toggle, name="diary_scene_toggle"),
-    path(campaign + "diario/misiones/", views_diary.QuestListView.as_view(), name="diary_quests"),
-    path(campaign + "diario/misiones/nueva/", views_diary.QuestCreateView.as_view(), name="diary_quest_new"),
-    path(campaign + "diario/misiones/<int:pk>/editar/", views_diary.QuestUpdateView.as_view(), name="diary_quest_edit"),
-    path(campaign + "diario/misiones/objetivo/<int:pk>/", views_diary.objective_toggle, name="diary_objective_toggle"),
+    # «Misiones» are now the adventures; the old address takes you there.
+    path(campaign + "diario/misiones/", views_diary.OldQuestsRedirect.as_view(), name="diary_quests"),
+    path(campaign + "diario/aventuras/nueva/", views_diary.QuestCreateView.as_view(), name="diary_quest_new"),
+    path(campaign + "diario/aventuras/<int:pk>/editar/", views_diary.QuestUpdateView.as_view(), name="diary_quest_edit"),
+    path(campaign + "diario/aventuras/objetivo/<int:pk>/", views_diary.objective_toggle, name="diary_objective_toggle"),
 
     # Mundo
     path(campaign + "mundo/", views_world.WorldIndexView.as_view(), name="world"),
@@ -47,6 +48,8 @@ urlpatterns = [
     path(campaign + "mapa/<int:map_id>/editar/", views_map.map_edit, name="map_edit"),
     path(campaign + "mapa/<int:map_id>/lugar/", views_map.location_add, name="map_location_add"),
     path(campaign + "mapa/lugar/<int:pk>/", views_map.location_action, name="map_location_action"),
+    path(campaign + "mapa/tramo/<int:pk>/", views_map.move_path, name="map_move_path"),
+    path(campaign + "mapa/tramo/<int:pk>/quitar/", views_map.move_delete, name="map_move_delete"),
 
     # Personajes
     path(campaign + "personajes/", views_characters.CharacterListView.as_view(), name="characters"),

@@ -1848,12 +1848,11 @@ msgstr "Long rest"
 
 #: CampaignManager/templates/partials/sheet_panel.html:168
 msgid ""
-"El descanso largo recupera la vida, el AP, los puntos de magia, todos los "
-"usos y las salvaciones. El corto, los usos que se recargan con descanso "
-"corto."
+"El descanso largo recupera la vida, el AP, los puntos de magia y todos los "
+"usos. El corto, los usos que se recargan con descanso corto."
 msgstr ""
-"A long rest restores hit points, AP, magic points, every use and the death "
-"saves. A short rest, the uses that recharge on a short rest."
+"A long rest restores hit points, AP, magic points and every use. A short "
+"rest, the uses that recharge on a short rest."
 
 #: CampaignManager/templates/partials/sheet_panel.html:173
 #: CampaignManager/views_characters.py:36
@@ -2517,3 +2516,178 @@ msgstr "Spanish"
 #: KirokuStory/settings.py:95
 msgid "English"
 msgstr "English"
+
+#: CampaignManager/templates/partials/map_canvas.html:4
+msgid "Mapa: rueda o pellizco para acercar, arrastra para moverte"
+msgstr "Map: scroll or pinch to zoom, drag to move around"
+
+#: CampaignManager/templates/partials/zoom_buttons.html:1
+msgid "Zoom"
+msgstr "Zoom"
+
+#: CampaignManager/templates/partials/zoom_buttons.html:2
+msgid "Acercar"
+msgstr "Zoom in"
+
+#: CampaignManager/templates/partials/zoom_buttons.html:3
+msgid "Alejar"
+msgstr "Zoom out"
+
+#: CampaignManager/templates/partials/map_canvas.html:21
+msgid "Ver el mapa entero"
+msgstr "Show the whole map"
+
+#: CampaignManager/templates/partials/board.html:12
+msgid "Pizarra: rueda o pellizco para acercar, arrastra para moverte"
+msgstr "Board: scroll or pinch to zoom, drag to move around"
+
+#: CampaignManager/templates/partials/board.html:37
+msgid "Ver toda la pizarra"
+msgstr "Show the whole board"
+
+#: CampaignManager/templates/partials/map_section.html:9
+msgid "Arrastra los puntos para trazar el camino que siguió el grupo. Pulsa o arrastra un «+» para añadir un punto; doble clic o Supr sobre un punto lo quita. Se guarda solo."
+msgstr "Drag the points to trace the way the party went. Click or drag a «+» to add a point; double-click or Delete on a point removes it. Changes save automatically."
+
+#: CampaignManager/templates/partials/map_section.html:10
+msgid "Terminar"
+msgstr "Done"
+
+#: CampaignManager/templates/partials/map_section.html:12
+msgid "Editar el camino"
+msgstr "Edit the route"
+
+msgid "Muerto"
+msgstr "Dead"
+
+msgid "Derribado"
+msgstr "Knocked down"
+
+msgid "Revivir"
+msgstr "Revive"
+
+msgid "Solo el máster puede revivirlo."
+msgstr "Only the master can bring them back."
+
+msgid "o si vuelve a caer en este combate"
+msgstr "or if knocked down again in this fight"
+
+msgid "Penetrante"
+msgstr "Penetrating"
+
+msgid "Triturante"
+msgstr "Shredding"
+
+msgid "Cantidad de AP"
+msgstr "AP amount"
+
+msgid "Sumar"
+msgstr "Add"
+
+msgid "Cambiar o quitar"
+msgstr "Change or remove"
+
+msgid "Quitar habilidad única"
+msgstr "Remove unique skill"
+
+msgid "Retirar la propuesta"
+msgstr "Withdraw the proposal"
+
+#, python-format
+msgid "%(name)s ha muerto."
+msgstr "%(name)s is dead."
+
+#, python-format
+msgid "Muere si llega a %(hp)s de vida"
+msgstr "Dies at %(hp)s hit points"
+
+#, python-format
+msgid "El daño pasa por la armadura: daño − AP (%(ap)s) = daño real. Penetrante ignora esos AP en este golpe; triturante los quita después."
+msgstr "Damage goes through the armor: damage − AP (%(ap)s) = true damage. Penetrating ignores that many AP for this hit; shredding takes them away afterwards."
+
+#, python-format
+msgid "¿Quitar la habilidad única «%(name)s»? El jugador podrá proponer otra."
+msgstr "Remove the unique skill «%(name)s»? The player will be able to propose another."
+
+msgid "Pen."
+msgstr "Pen."
+
+msgid "Penetrante: AP que ignora este golpe"
+msgstr "Penetrating: AP this hit ignores"
+
+msgid "Trit."
+msgstr "Shr."
+
+msgid "Triturante: AP que quita después del daño"
+msgstr "Shredding: AP taken away after the damage"
+
+msgid "Tramos del camino"
+msgstr "Route stretches"
+
+msgid "Quita un tramo añadido por error: el camino irá directo de la parada anterior a la siguiente."
+msgstr "Remove a stretch added by mistake: the route will go straight from the stop before to the next one."
+
+msgid "Borrar este lugar"
+msgstr "Delete this place"
+
+#, python-format
+msgid "¿Quitar el tramo %(a)s → %(b)s?"
+msgstr "Remove the stretch %(a)s → %(b)s?"
+
+#, python-format
+msgid "¿Borrar %(name)s del mapa? También se quitan los tramos del camino que llegan allí. Su página del Mundo se conserva."
+msgstr "Delete %(name)s from the map? The route stretches leading there are removed too. Its World page is kept."
+
+msgid "Aventuras"
+msgstr "Adventures"
+
+msgid "En curso"
+msgstr "In progress"
+
+msgid "Cada aventura va de la sesión en que empieza a la que termina. Marca sus objetivos a medida que el grupo los cumple."
+msgstr "Each adventure runs from the session it starts in to the one it ends in. Tick its objectives as the party completes them."
+
+msgid "Las aventuras del grupo, con sus objetivos y lo que pasó en cada sesión."
+msgstr "The party's adventures, with their objectives and what happened in each session."
+
+msgid "Nueva aventura"
+msgstr "New adventure"
+
+msgid "Nueva sesión"
+msgstr "New session"
+
+msgid "Sesiones sin aventura"
+msgstr "Sessions outside any adventure"
+
+msgid "Todavía no hay aventuras ni sesiones."
+msgstr "No adventures or sessions yet."
+
+msgid "Editar sesión"
+msgstr "Edit session"
+
+msgid "en curso"
+msgstr "in progress"
+
+msgid "Editar aventura"
+msgstr "Edit adventure"
+
+msgid "Los jugadores ven la lista. Un objetivo oculto les aparece como «Objetivo oculto» hasta que lo marcas como cumplido."
+msgstr "Players see the list. A hidden objective shows to them as «Hidden objective» until you mark it as done."
+
+msgid "Aventuras en curso"
+msgstr "Adventures in progress"
+
+msgid "No hay aventuras en curso."
+msgstr "No adventures in progress."
+
+msgid "Filtrar por aventura"
+msgstr "Filter by adventure"
+
+msgid "Escribe antes una sesión"
+msgstr "Create a session first"
+
+#, python-format
+msgid "%(n)s sesión de esta aventura"
+msgid_plural "%(n)s sesiones de esta aventura"
+msgstr[0] "%(n)s session of this adventure"
+msgstr[1] "%(n)s sessions of this adventure"

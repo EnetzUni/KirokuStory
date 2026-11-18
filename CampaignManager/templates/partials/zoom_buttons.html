@@ -1,0 +1,5 @@
+{% load i18n %}<div class="zoom-botones" role="group" aria-label="{% translate 'Zoom' %}">
+    <button type="button" class="btn btn-cuadrado" data-zoom-accion="mas" aria-label="{% translate 'Acercar' %}" title="{% translate 'Acercar' %}">+</button>
+    <button type="button" class="btn btn-cuadrado" data-zoom-accion="menos" aria-label="{% translate 'Alejar' %}" title="{% translate 'Alejar' %}" disabled>&minus;</button>
+    <button type="button" class="btn btn-cuadrado" data-zoom-accion="entero" aria-label="{{ whole_label }}" title="{{ whole_label }}" disabled>&#x2922;</button>
+</div>

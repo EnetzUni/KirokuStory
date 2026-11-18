@@ -23,7 +23,6 @@ ABILITY_ABBR = {"strength": "FUE", "dexterity": "DES", "constitution": "CON",
 ABILITY_BY_CODE = {"str": "strength", "dex": "dexterity", "con": "constitution",
                    "int": "intelligence", "wis": "wisdom", "cha": "charisma"}
 
-DEATH_SAVES = 3  # successes or failures needed
 
 # Levelling up. Every class chooses its subclass at level 3 (SRD 5.2.1).
 # House rule: every 4 levels, from level 4, the player chooses the ability score
@@ -141,3 +140,21 @@ def ap_after_attack(current_ap, armor_damages):
     """Current AP once the attack is over: minus the triturante amounts, never below 0."""
     shredded = sum(amount for kind, amount in armor_damages if kind == "shredding")
     return max(0, current_ap - shredded)
+
+
+def true_damage(damage, current_ap, armor_damages=()):
+    """Damage that reaches the hit points: the damage minus the AP it meets
+    (Damage - AP = True Damage), never below 0. Penetrante lowers the AP it meets."""
+    return max(0, damage - ap_against_attack(current_ap, armor_damages))
+
+
+# ---------------------------------------------------------------------------
+# Knocked down and death (house rule)
+# ---------------------------------------------------------------------------
+# At 0 hit points or fewer a character is knocked down. It dies when its hit points
+# reach minus half its maximum (90 -> -45; 45 -> -23, the first whole number past
+# -22.5), or when it is knocked down for the second time in the same fight.
+
+def death_hp(max_hp):
+    """Hit points at which (or below which) the character dies."""
+    return -((max(0, max_hp) + 1) // 2)

@@ -14,7 +14,7 @@ from django.urls import reverse
 from . import rules
 from .models import (
     Ability, Armor, ArmorDamage, ArmorType, BoardCard, Campaign, Character, CharacterAbility, CharacterClass,
-    ClassAbility, Combatant, Encounter, Inventory, Item, MapLocation, Page, Post, QuestObjective, Race, Session,
+    ClassAbility, Combatant, Encounter, Inventory, Item, MapLocation, Page, PartyMove, Post, Quest, QuestObjective, Race, Session,
     Spell, Subclass, TimelineEvent, UniqueSkill, User, Weapon,
 )
 
@@ -560,8 +560,9 @@ class HiddenContentTests(DemoData):
 
     def pages(self):
         corona = self.corona
-        urls = [self.url(name) for name in ("home", "diary", "diary_timeline", "diary_board", "diary_scenes", "diary_quests",
+        urls = [self.url(name) for name in ("home", "diary", "diary_timeline", "diary_board", "diary_scenes",
                                             "world", "map", "characters", "turns")]
+        urls += [self.url("diary_timeline") + f"?aventura={quest.pk}" for quest in corona.quests.all()]
         urls += [self.url("world") + f"?cat={category}" for category in ("lugar", "pnj", "faccion", "objeto", "historia")]
         urls += [self.url("diary_scene", scene.pk) for scene in corona.scenes.all()]
         urls += [self.url("world_page", page.slug) for page in Page.objects.filter(campaign=corona, revealed=True)]
@@ -598,7 +599,7 @@ class HiddenContentTests(DemoData):
 
     def test_hidden_objective_text_is_not_sent(self):
         objective = QuestObjective.objects.filter(quest__campaign=self.corona, hidden=True, done=False).first()
-        response = self.player().get(self.url("diary_quests"))
+        response = self.player().get(self.url("diary"))
         self.assertNotContains(response, objective.text)
         self.assertContains(response, "Objetivo oculto")
 
@@ -657,16 +658,16 @@ class AccessTests(DemoData):
 
 
 class SheetTests(DemoData):
-    def test_hit_points_stay_between_zero_and_maximum(self):
+    def test_hit_points_stay_between_death_and_maximum(self):
         aria = Character.objects.get(name="Aria")
         client = self.player()
         url = self.url("sheet_action", aria.pk)
-        client.post(url, {"accion": "dano", "cantidad": "999"}, **AJAX)
-        aria.refresh_from_db()
-        self.assertEqual(aria.temp_hp, 0)
         client.post(url, {"accion": "curar", "cantidad": "999"}, **AJAX)
         aria.refresh_from_db()
         self.assertEqual(aria.temp_hp, aria.hp)
+        client.post(url, {"accion": "dano", "cantidad": "999"}, **AJAX)
+        aria.refresh_from_db()
+        self.assertEqual((aria.temp_hp, aria.dead), (rules.death_hp(aria.hp), True))
 
     def test_casting_with_a_level_n_slot_costs_n_magic_points(self):
         aria = Character.objects.get(name="Aria")
@@ -699,3 +700,375 @@ class TurnsTests(DemoData):
         self.assertFalse(ActiveEffect.objects.filter(pk=effect.pk).exists())
         ability.refresh_from_db()
         self.assertEqual(ability.cooldown_left, 1)
+
+
+class RouteTests(DemoData):
+    """The way followed between two stops: waypoints the master draws, and an arrow to each stop."""
+
+    def setUp(self):
+        self.moves = list(PartyMove.objects.filter(map__campaign=self.corona).select_related("location", "map"))
+        self.move = self.moves[1]  # the stretch from the first stop to the second
+        self.start, self.end = self.moves[0].location, self.move.location
+
+    def save_path(self, user, puntos):
+        self.client.force_login(user)
+        return self.client.post(self.url("map_move_path", self.move.pk), {"puntos": puntos}, **AJAX)
+
+    def test_every_stretch_has_a_line_and_an_arrow_to_its_stop(self):
+        page = self.player().get(self.url("map") + f"?mapa={self.move.map_id}").content.decode()
+        self.assertEqual(page.count("<polyline"), len(self.moves) - 1)
+        self.assertIn(f'data-flecha="{self.move.pk}" style="left:{self.end.x:g}%;top:{self.end.y:g}%', page)
+
+    def test_the_master_draws_the_way_between_two_stops(self):
+        response = self.save_path(self.carlos, "10,20 30.556,40")
+        self.assertEqual(response.json()["error"], False)
+        self.move.refresh_from_db()
+        self.assertEqual(self.move.path, [[10, 20], [30.56, 40]])
+        page = self.player().get(self.url("map") + f"?mapa={self.move.map_id}").content.decode()
+        self.assertIn(f'points="{self.start.x:g},{self.start.y:g} 10,20 30.56,40 {self.end.x:g},{self.end.y:g}"', page)
+        # The arrow points along the last part: from the last waypoint to the stop.
+        self.assertIn(f"--dx:{round(self.end.x - 30.56, 2):g};--dy:{round(self.end.y - 40, 2):g}", page)
+
+    def test_an_empty_way_is_a_straight_line_again(self):
+        self.move.path = [[10, 20]]
+        self.move.save()
+        self.save_path(self.carlos, "")
+        self.move.refresh_from_db()
+        self.assertEqual(self.move.path, [])
+
+    def test_players_cannot_draw_the_way(self):
+        self.assertEqual(self.save_path(self.lucia, "10,20").status_code, 403)
+        self.move.refresh_from_db()
+        self.assertEqual(self.move.path, [])
+
+    def test_points_outside_the_map_are_refused(self):
+        for bad in ("10,abc", "150,20", "10", "nan,5"):
+            self.assertEqual(self.save_path(self.carlos, bad).status_code, 400, bad)
+        self.move.refresh_from_db()
+        self.assertEqual(self.move.path, [])
+
+    def test_only_the_master_gets_the_route_editor(self):
+        url = self.url("map") + f"?mapa={self.move.map_id}&recorrido=1"
+        self.assertNotContains(self.player().get(url), "data-guardar")
+        self.client.force_login(self.carlos)
+        self.assertContains(self.client.get(url), self.url("map_move_path", self.move.pk))
+
+
+class BigBoardTests(DemoData):
+    """The board is three times bigger each way and is seen through a zoomable window."""
+
+    def add_note(self, **position):
+        self.player().post(self.url("diary_card_add"), {"title": "Pista nueva", **position}, **AJAX)
+        return BoardCard.objects.get(campaign=self.corona, title="Pista nueva")
+
+    def test_a_new_note_goes_where_the_window_is_looking(self):
+        card = self.add_note(x="2600", y="1500")
+        self.assertEqual((card.x, card.y), (2600, 1500))
+
+    def test_a_new_note_stays_on_the_board(self):
+        card = self.add_note(x="99999", y="-50")
+        self.assertEqual((card.x, card.y), (3300 - 200, 0))
+
+    def test_without_a_position_the_note_goes_near_the_middle(self):
+        card = self.add_note()
+        self.assertTrue(1300 < card.x < 1800 and 700 < card.y < 1100, (card.x, card.y))
+
+    def test_notes_can_be_moved_anywhere_on_the_big_board(self):
+        card = self.add_note()
+        self.client.post(self.url("diary_card_action", card.pk), {"accion": "mover", "x": "3000", "y": "1750"}, **AJAX)
+        card.refresh_from_db()
+        self.assertEqual((card.x, card.y), (3000, 1750))
+
+    def test_the_board_window_is_zoomable(self):
+        page = self.player().get(self.url("diary_board")).content.decode()
+        self.assertIn(f'data-zoom="pizarra-{self.corona.pk}"', page)
+        self.assertIn('data-ancho="3300" data-alto="1920"', page)
+
+
+class UniqueSkillChangeTests(RulesData):
+    """After approval the master can rewrite the unique skill or take it away; before it,
+    the player can withdraw the proposal."""
+
+    def act(self, user, character, **data):
+        self.client.force_login(user)
+        return self.client.post(reverse("sheet_action", args=[self.campaign.pk, character.pk]), data, **AJAX)
+
+    def approved(self):
+        brom = self.character(campaigns=[self.campaign])
+        self.act(self.master, brom, accion="unica_proponer", name="Puño de piedra", description="Rompe muros.")
+        return brom, UniqueSkill.objects.get(character=brom)
+
+    def test_the_master_rewrites_it_and_it_stays_the_same_ability(self):
+        brom, skill = self.approved()
+        self.act(self.master, brom, accion="unica_editar", name="Puño de hierro", description="Rompe puertas.", nota="Más corta.")
+        skill.refresh_from_db()
+        self.assertEqual((skill.name, skill.ability.name, skill.ability.description, skill.master_note),
+                         ("Puño de hierro", "Puño de hierro", "Rompe puertas.", "Más corta."))
+        self.assertEqual(list(brom.abilities.all()), [skill.ability])
+
+    def test_the_master_takes_it_away_and_the_player_can_propose_another(self):
+        brom, skill = self.approved()
+        self.act(self.master, brom, accion="unica_quitar")
+        self.assertFalse(UniqueSkill.objects.filter(character=brom).exists())
+        self.assertFalse(Ability.objects.filter(pk=skill.ability_id).exists())
+        self.assertFalse(brom.abilities.exists())
+        self.act(self.player, brom, accion="unica_proponer", name="Otra", description="Otra cosa.")
+        self.assertEqual(UniqueSkill.objects.get(character=brom).status, UniqueSkill.Status.PENDIENTE)
+
+    def test_players_cannot_change_an_approved_one(self):
+        brom, skill = self.approved()
+        self.assertEqual(self.act(self.player, brom, accion="unica_editar", name="Dios", description="Todo.").status_code, 403)
+        self.assertEqual(self.act(self.player, brom, accion="unica_quitar").status_code, 403)
+        self.assertTrue(self.act(self.player, brom, accion="unica_retirar").json()["error"])
+        skill.refresh_from_db()
+        self.assertEqual(skill.ability.name, "Puño de piedra")
+
+    def test_the_player_withdraws_a_proposal(self):
+        brom = self.character(campaigns=[self.campaign])
+        self.act(self.player, brom, accion="unica_proponer", name="Inmortal", description="No puede morir.")
+        self.act(self.player, brom, accion="unica_retirar")
+        self.assertFalse(UniqueSkill.objects.filter(character=brom).exists())
+
+
+class KnockdownAndDeathTests(RulesData):
+    """House rule: at 0 hit points a character is knocked down; it dies at minus half its
+    maximum, or when it is knocked down a second time in the same fight."""
+
+    def setUp(self):
+        self.brom = self.character(campaigns=[self.campaign], hp=20, temp_hp=20)  # dies at -10
+
+    def act(self, user=None, **data):
+        self.client.force_login(user or self.player)
+        response = self.client.post(reverse("sheet_action", args=[self.campaign.pk, self.brom.pk]), data, **AJAX)
+        self.brom.refresh_from_db()
+        return response
+
+    def hit(self, amount, user=None):
+        return self.act(user, accion="dano", cantidad=str(amount))
+
+    def test_death_hp_is_minus_half_the_maximum(self):
+        self.assertEqual((rules.death_hp(90), rules.death_hp(45), rules.death_hp(20)), (-45, -23, -10))
+
+    def test_at_zero_it_is_knocked_down_not_dead(self):
+        msg = self.hit(20).json()["msg"]
+        self.assertEqual((self.brom.temp_hp, self.brom.knocked_down, self.brom.dead), (0, True, False))
+        self.assertIn("derribado", msg)
+        self.assertContains(self.client.get(reverse("sheet", args=[self.campaign.pk, self.brom.pk])), "Muere si llega a -10 de vida")
+
+    def test_it_dies_at_minus_half_its_maximum(self):
+        self.hit(29)
+        self.assertEqual((self.brom.temp_hp, self.brom.dead), (-9, False))
+        self.hit(1)
+        self.assertEqual((self.brom.temp_hp, self.brom.dead), (-10, True))
+        self.hit(50)  # dead: nothing changes any more
+        self.assertEqual(self.brom.temp_hp, -10)
+
+    def test_a_second_knockdown_in_the_same_fight_kills(self):
+        Encounter.objects.create(campaign=self.campaign)
+        self.hit(20)
+        self.act(accion="curar", cantidad="5")
+        self.assertEqual((self.brom.temp_hp, self.brom.dead), (5, False))
+        msg = self.hit(5).json()["msg"]
+        self.assertTrue(self.brom.dead)
+        self.assertIn("segunda vez", msg)
+
+    def test_falls_in_different_fights_do_not_add_up(self):
+        first = Encounter.objects.create(campaign=self.campaign)
+        self.hit(20)
+        self.act(accion="curar", cantidad="5")
+        first.active = False
+        first.save()
+        Encounter.objects.create(campaign=self.campaign)
+        self.hit(5)
+        self.assertEqual((self.brom.knocked_down, self.brom.dead), (True, False))
+
+    def test_out_of_a_fight_falls_do_not_add_up(self):
+        self.hit(20)
+        self.act(accion="curar", cantidad="5")
+        self.hit(5)
+        self.assertEqual((self.brom.knocked_down, self.brom.dead), (True, False))
+
+    def test_only_the_master_revives(self):
+        self.hit(30)
+        self.assertTrue(self.brom.dead)
+        self.assertTrue(self.act(accion="curar", cantidad="10").json()["error"])
+        self.assertTrue(self.act(accion="descanso_largo").json()["error"])
+        self.assertEqual(self.act(accion="revivir").status_code, 403)
+        self.act(self.master, accion="revivir")
+        self.assertEqual((self.brom.dead, self.brom.temp_hp), (False, 1))
+
+    def test_the_turns_list_follows_the_same_rule(self):
+        encounter = Encounter.objects.create(campaign=self.campaign)
+        combatant = Combatant.objects.create(encounter=encounter, character=self.brom)
+        self.client.force_login(self.master)
+        url = reverse("turns_action", args=[self.campaign.pk])
+        self.client.post(url, {"accion": "dano", "cantidad": "20", "combatiente": combatant.pk}, **AJAX)
+        self.client.post(url, {"accion": "curar", "cantidad": "3", "combatiente": combatant.pk}, **AJAX)
+        self.client.post(url, {"accion": "dano", "cantidad": "3", "combatiente": combatant.pk}, **AJAX)
+        self.brom.refresh_from_db()
+        self.assertTrue(self.brom.dead)
+
+
+class DamageThroughArmorTests(RulesData):
+    """House rule with game rule 3: True Damage = Damage - AP. The AP stay, unless the hit
+    is triturante (AP lost after the damage); penetrante ignores that many AP for the hit."""
+
+    def setUp(self):
+        self.brom = self.character(campaigns=[self.campaign], hp=30, temp_hp=30)
+        self.carry(self.brom, self.mail, equipped=True)  # max AP 5
+        self.brom.temp_ap = 5
+        self.brom.save()
+
+    def act(self, **data):
+        self.client.force_login(self.player)
+        response = self.client.post(reverse("sheet_action", args=[self.campaign.pk, self.brom.pk]), data, **AJAX)
+        self.brom.refresh_from_db()
+        return response
+
+    def test_the_ap_take_off_part_of_the_damage_and_stay(self):
+        msg = self.act(accion="dano", cantidad="12").json()["msg"]
+        self.assertEqual((self.brom.temp_hp, self.brom.temp_ap), (23, 5))
+        self.assertIn("12 − 5 AP = 7", msg)
+
+    def test_a_hit_smaller_than_the_ap_does_nothing(self):
+        self.act(accion="dano", cantidad="4")
+        self.assertEqual((self.brom.temp_hp, self.brom.temp_ap), (30, 5))
+
+    def test_penetrante_ignores_ap_for_that_hit(self):
+        self.act(accion="dano", cantidad="12", penetrante="2")
+        self.assertEqual((self.brom.temp_hp, self.brom.temp_ap), (21, 5))
+
+    def test_triturante_takes_ap_after_the_damage(self):
+        self.act(accion="dano", cantidad="12", triturante="3")
+        self.assertEqual((self.brom.temp_hp, self.brom.temp_ap), (23, 2))  # the hit met the full 5 AP
+
+    def test_healing_and_the_one_point_buttons_do_not_go_through_ap(self):
+        self.act(accion="vida_menos")
+        self.assertEqual(self.brom.temp_hp, 29)
+
+    def test_ap_are_added_and_taken_by_amounts_up_to_the_armor_maximum(self):
+        self.act(accion="ap_quitar", cantidad="4")
+        self.assertEqual(self.brom.temp_ap, 1)
+        self.act(accion="ap_sumar", cantidad="10")
+        self.assertEqual(self.brom.temp_ap, 5)
+        self.act(accion="ap_quitar", cantidad="99")
+        self.assertEqual(self.brom.temp_ap, 0)
+        self.assertTrue(self.act(accion="ap_sumar", cantidad="").json()["error"])
+
+
+class MapDeletionTests(DemoData):
+    """The master removes a stretch of the route added by mistake, or a whole place,
+    which takes with it the stretches that lead to it."""
+
+    def setUp(self):
+        self.moves = list(PartyMove.objects.filter(map__campaign=self.corona).select_related("location"))
+
+    def test_removing_a_stretch_joins_the_stops_around_it(self):
+        middle = self.moves[1]
+        self.client.force_login(self.carlos)
+        response = self.client.post(self.url("map_move_delete", middle.pk), **AJAX)
+        self.assertIn("quitado del camino", response.json()["msg"])
+        self.assertFalse(PartyMove.objects.filter(pk=middle.pk).exists())
+        self.assertTrue(MapLocation.objects.filter(pk=middle.location_id).exists())  # the place stays
+        page = self.client.get(self.url("map") + f"?mapa={middle.map_id}").content.decode()
+        self.assertEqual(page.count("<polyline"), len(self.moves) - 2)
+
+    def test_removing_a_place_removes_the_stretches_that_lead_to_it(self):
+        place = self.moves[1].location
+        stops = PartyMove.objects.filter(location=place).count()
+        page = Page.objects.filter(location=place).first() or Page.objects.create(
+            campaign=self.corona, category=Page.Category.LUGAR, title=place.name, location=place, revealed=True)
+        self.client.force_login(self.carlos)
+        self.client.post(self.url("map_location_action", place.pk), {"accion": "borrar"}, **AJAX)
+        self.assertFalse(MapLocation.objects.filter(pk=place.pk).exists())
+        self.assertFalse(PartyMove.objects.filter(location_id=place.pk).exists())
+        self.assertEqual(PartyMove.objects.filter(map__campaign=self.corona).count(), len(self.moves) - stops)
+        page.refresh_from_db()  # its page in the World stays, no longer linked to the map
+        self.assertIsNone(page.location_id)
+
+    def test_players_cannot_remove_anything(self):
+        client = self.player()
+        self.assertEqual(client.post(self.url("map_move_delete", self.moves[1].pk), **AJAX).status_code, 403)
+        self.assertEqual(client.post(self.url("map_location_action", self.moves[1].location_id), {"accion": "borrar"}, **AJAX).status_code, 403)
+        self.assertEqual(PartyMove.objects.filter(map__campaign=self.corona).count(), len(self.moves))
+
+
+class AdventureTests(DemoData):
+    """«Aventuras» (once «Crónicas» and «Misiones»): an adventure is in progress, completed or
+    failed, spans from one session to another, has the master's checklist (hidden objectives
+    show as «Objetivo oculto» until checked) and appears as a bar on the timeline."""
+
+    def quest(self, title):
+        return Quest.objects.get(campaign=self.corona, title=title)
+
+    def master(self):
+        self.client.force_login(self.carlos)
+        return self.client
+
+    def save(self, quest=None, **fields):
+        data = {"title": "La torre", "description": "", "status": "activa", "start_session": "", "end_session": "", "giver": "",
+                "objectives-TOTAL_FORMS": "0", "objectives-INITIAL_FORMS": "0", **fields}
+        url = self.url("diary_quest_edit", quest.pk) if quest else self.url("diary_quest_new")
+        return self.master().post(url, data)
+
+    def session(self, number):
+        return Session.objects.get(campaign=self.corona, number=number)
+
+    def test_the_tab_is_called_aventuras_and_misiones_is_part_of_it(self):
+        page = self.player().get(self.url("diary")).content.decode()
+        self.assertIn(">Aventuras<", page)
+        self.assertNotIn("Crónicas", page)
+        self.assertNotIn(">Misiones<", page)
+        self.assertRedirects(self.player().get(self.url("diary_quests")), self.url("diary"))
+
+    def test_each_adventure_shows_its_span_and_its_sessions(self):
+        page = self.player().get(self.url("diary")).content.decode()
+        raiders = page[page.index('id="aventura-%d"' % self.quest("Saqueadores en el Camino del Faro").pk):]
+        raiders = raiders[:raiders.index("</section>")]
+        self.assertIn("Sesión 2 → 2", raiders)
+        self.assertIn('id="sesion-%d"' % self.session(2).pk, raiders)
+        self.assertNotIn('id="sesion-%d"' % self.session(3).pk, raiders)
+        self.assertIn("Sesión 1 → en curso", page)
+
+    def test_an_adventure_can_start_in_one_session_and_end_in_another(self):
+        self.save(title="La torre", status="completada", start_session=self.session(3).pk, end_session=self.session(5).pk)
+        tower = self.quest("La torre")
+        self.assertEqual((tower.start_session.number, tower.end_session.number, tower.status), (3, 5, "completada"))
+        self.assertEqual([n for n in range(1, 7) if tower.covers(n, 6)], [3, 4, 5])
+
+    def test_the_span_must_make_sense(self):
+        in_progress = self.save(status="activa", start_session=self.session(3).pk, end_session=self.session(5).pk)
+        self.assertContains(in_progress, "Una aventura en curso todavía no ha terminado")
+        backwards = self.save(status="fallida", start_session=self.session(5).pk, end_session=self.session(3).pk)
+        self.assertContains(backwards, "No puede terminar antes de empezar")
+        self.assertFalse(Quest.objects.filter(title="La torre").exists())
+
+    def test_a_hidden_objective_is_revealed_when_checked(self):
+        objective = QuestObjective.objects.filter(quest__campaign=self.corona, hidden=True, done=False).first()
+        self.assertNotContains(self.player().get(self.url("diary")), objective.text)
+        self.master().post(self.url("diary_objective_toggle", objective.pk), **AJAX)
+        page = self.player().get(self.url("diary"))
+        self.assertContains(page, objective.text)
+
+    def test_the_timeline_shows_the_path_of_adventures(self):
+        page = self.player().get(self.url("diary_timeline")).content.decode()
+        for quest in self.corona.quests.all():
+            self.assertIn(f"#aventura-{quest.pk}", page)
+        self.assertIn("tl-aventura activa abierta", page)
+        self.assertIn("tl-aventura fallida", page)
+
+    def test_the_timeline_of_one_adventure(self):
+        raiders = self.quest("Saqueadores en el Camino del Faro")
+        page = self.player().get(self.url("diary_timeline") + f"?aventura={raiders.pk}").content.decode()
+        self.assertIn("S2 · ", page)
+        self.assertNotIn("S5 · ", page)
+        self.assertIn(f"#aventura-{raiders.pk}", page)
+        self.assertNotIn(f"#aventura-{self.quest('La Corona de Ceniza').pk}", page)
+
+    def test_players_do_not_see_unpublished_sessions_of_an_adventure(self):
+        last = self.session(6)
+        last.published = False
+        last.save()
+        page = self.player().get(self.url("diary")).content.decode()
+        self.assertNotIn(f'id="sesion-{last.pk}"', page)
+        self.assertNotIn("S6 · ", self.player().get(self.url("diary_timeline")).content.decode())

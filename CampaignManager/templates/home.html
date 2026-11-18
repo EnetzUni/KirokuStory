@@ -91,13 +91,13 @@
                 {% empty %}<p class="atenuado">{% translate "El grupo todavía no tiene personajes." %}</p>{% endfor %}
             </div>
             <div class="tarjeta compacta">
-                <h2 class="rotulo">{% translate "Misiones activas" %}</h2>
+                <h2 class="rotulo">{% translate "Aventuras en curso" %}</h2>
                 {% for q in quests %}
                 <div class="pila-s" style="gap:6px">
                     <div class="fila-s" style="justify-content:space-between;font-size:14px"><b>{{ q.quest.title }}</b><span class="atenuado">{{ q.done }} {% translate "de" %} {{ q.total }}</span></div>
                     <span class="barra"><span style="width:{% pct q.done q.total %}%"></span></span>
                 </div>
-                {% empty %}<p class="atenuado">{% translate "No hay misiones activas." %}</p>{% endfor %}
+                {% empty %}<p class="atenuado">{% translate "No hay aventuras en curso." %}</p>{% endfor %}
             </div>
         </aside>
     </div>

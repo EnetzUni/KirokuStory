@@ -1,7 +1,8 @@
-"""Diario: crónicas, línea del tiempo, pizarra, escenas de rol y misiones."""
+"""Diario: aventuras (con sus sesiones y objetivos), línea del tiempo, pizarra y escenas de rol."""
 import math
 import re
 import secrets
+from urllib.parse import urlencode
 
 from django.core.exceptions import PermissionDenied
 from django.db.models import Prefetch
@@ -10,7 +11,7 @@ from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.views.decorators.http import require_POST
-from django.views.generic import CreateView, ListView, TemplateView, UpdateView
+from django.views.generic import CreateView, RedirectView, TemplateView, UpdateView
 from django.utils.translation import gettext_noop
 
 from .ajax import is_ajax, respond
@@ -18,13 +19,13 @@ from .forms import BoardCardForm, EventForm, ObjectiveFormSet, PostForm, QuestFo
 from .models import (
     BoardCard, BoardLink, Character, Page, Post, Quest, QuestObjective, Scene, Session, TimelineEvent,
 )
-from .campaign_models import BOARD_HEIGHT, BOARD_WIDTH, CARD_HEIGHT, CARD_WIDTH
+from .campaign_models import BOARD_CENTRE_X, BOARD_CENTRE_Y, BOARD_HEIGHT, BOARD_WIDTH, CARD_HEIGHT, CARD_WIDTH
 from .permissions import CampaignMemberMixin, MasterRequiredMixin, campaign_member, master_only
 from .services import scenes_awaiting
 from .wiki import WikiResolver
 
-TABS = [("diary", gettext_noop("Crónicas")), ("diary_timeline", gettext_noop("Línea del tiempo")), ("diary_board", gettext_noop("Pizarra")),
-        ("diary_scenes", gettext_noop("Escenas de rol")), ("diary_quests", gettext_noop("Misiones"))]
+TABS = [("diary", gettext_noop("Aventuras")), ("diary_timeline", gettext_noop("Línea del tiempo")), ("diary_board", gettext_noop("Pizarra")),
+        ("diary_scenes", gettext_noop("Escenas de rol"))]
 
 
 def diary_tabs(request, campaign, is_master, current):
@@ -48,15 +49,44 @@ def last_session(campaign):
 
 
 # ---------------------------------------------------------------------------
-# Crónicas
+# Aventuras: each adventure with its objectives and the sessions it spans
 # ---------------------------------------------------------------------------
 
-class ChronicleListView(DiaryMixin, ListView):
-    template_name = "diary_chronicles.html"
-    context_object_name = "sessions"
+def adventure_quests(campaign):
+    return list(Quest.objects.of(campaign).select_related("giver", "start_session", "end_session")
+                .prefetch_related("objectives"))
 
-    def get_queryset(self):
-        return Session.objects.visible_for(self.request.user, self.campaign).order_by("-number")
+
+class AdventureListView(DiaryMixin, TemplateView):
+    template_name = "diary_adventures.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        sessions = list(Session.objects.visible_for(self.request.user, self.campaign).order_by("number"))
+        last_number = sessions[-1].number if sessions else 0
+        quests = adventure_quests(self.campaign)
+        # Newest first inside each group; adventures without a start session at the end.
+        quests.sort(key=lambda q: (q.start_session is None, -(q.start_session.number if q.start_session else 0), -q.pk))
+        covered, groups = set(), []
+        for status, label in STATUS_GROUPS:
+            items = []
+            for quest in quests:
+                if quest.status != status:
+                    continue
+                own = [s for s in sessions if quest.covers(s.number, last_number)]
+                covered.update(s.pk for s in own)
+                items.append({"q": quest_card(quest, self.is_master), "sessions": own})
+            if items:
+                groups.append({"label": label, "items": items})
+        context.update(groups=groups, loose=[s for s in reversed(sessions) if s.pk not in covered])
+        return context
+
+
+class OldQuestsRedirect(RedirectView):
+    """«Misiones» is now part of «Aventuras»."""
+
+    def get_redirect_url(self, *args, **kwargs):
+        return reverse("diary", args=[kwargs["campaign_id"]])
 
 
 class SessionFormMixin:
@@ -71,7 +101,7 @@ class SessionFormMixin:
         return Session.objects.filter(campaign=self.campaign)
 
     def get_success_url(self):
-        return reverse("diary", args=[self.campaign.pk])
+        return reverse("diary", args=[self.campaign.pk]) + f"#sesion-{self.object.pk}"
 
 
 class SessionCreateView(MasterRequiredMixin, SessionFormMixin, DiaryMixin, CreateView):
@@ -91,6 +121,31 @@ class SessionUpdateView(MasterRequiredMixin, SessionFormMixin, DiaryMixin, Updat
 SLOT = 160
 
 
+EVENTS_HEIGHT = 296   # the events part of the timeline (cards above and below the axis)
+LANE_ROW = 34         # one row of adventure bars under it
+
+
+def _adventure_lane(quests, spans, sessions, last_number, future_right):
+    """Bars for the adventures under the events: from the first to the last session each
+    one covers (into «Próxima» while in progress), packed in rows so they do not overlap."""
+    bars, row_ends = [], []
+    for quest in sorted((q for q in quests if q.start_session), key=lambda q: (q.start_session.number, q.pk)):
+        own = [s for s in sessions if s.pk in spans and quest.covers(s.number, last_number)]
+        if not own:
+            continue
+        left = spans[own[0].pk][0] + 4
+        open_ = quest.status == Quest.Status.ACTIVA
+        right = future_right - 8 if open_ else spans[own[-1].pk][0] + spans[own[-1].pk][1] - 4
+        row = next((i for i, end in enumerate(row_ends) if end < left), len(row_ends))
+        if row == len(row_ends):
+            row_ends.append(right)
+        row_ends[row] = right
+        first, last = own[0].number, (quest.end_session.number if quest.end_session else None)
+        bars.append({"quest": quest, "left": left, "width": max(24, right - left), "top": EVENTS_HEIGHT + 14 + row * LANE_ROW,
+                     "open": open_, "first": first, "last": last})
+    return bars, len(row_ends)
+
+
 def timeline_context(request, campaign, is_master, selected=None):
     user = request.user
     show_hidden = is_master and request.GET.get("ocultos") != "0"
@@ -103,35 +158,59 @@ def timeline_context(request, campaign, is_master, selected=None):
     if pc_filter and pc_filter.isdigit():
         events = events.filter(characters__pk=int(pc_filter))
     sessions = list(Session.objects.visible_for(user, campaign).order_by("number"))
+    last_number = sessions[-1].number if sessions else 0
+    quests = [q for q in adventure_quests(campaign) if q.start_session]
+    # One adventure: only its sessions and their events.
+    adventure = next((q for q in quests if str(q.pk) == request.GET.get("aventura")), None)
+    if adventure is not None:
+        sessions = [s for s in sessions if adventure.covers(s.number, last_number)]
     visible_ids = {s.pk for s in sessions}
     by_session = {}
     for event in events:
         key = event.session_id if event.session_id in visible_ids else None
+        if key is None and adventure is not None:
+            continue
         by_session.setdefault(key, []).append(event)
 
-    segments, marks, x = [], [], 0
+    # Links keep the other filters.
+    params = {"pj": pc_filter if pc_filter and pc_filter.isdigit() else "", "ocultos": "" if show_hidden or not is_master else "0",
+              "aventura": str(adventure.pk) if adventure else ""}
+
+    def link(**changes):
+        query = {k: v for k, v in {**params, **changes}.items() if v}
+        return "?" + urlencode(query) if query else "?"
+
+    segments, marks, spans, x = [], [], {}, 0
     groups = ([(None, "Sin sesión", "Sucesos sin sesión")] if by_session.get(None) else []) + [
         (s.pk, f"S{s.number} · {s.title}", f"Sesión {s.number} · {s.title} · {s.played_on:%d/%m/%Y}") for s in sessions]
     for index, (key, label, full) in enumerate(groups):
         group_events = by_session.get(key, [])
         width = max(1, len(group_events)) * SLOT
         segments.append({"left": x, "width": width, "label": label, "full": full, "even": index % 2 == 1})
+        if key is not None:
+            spans[key] = (x, width)
         for j, event in enumerate(group_events):
             up = len(marks) % 2 == 0
             mx = x + SLOT // 2 + j * SLOT
-            marks.append({"event": event, "x": mx, "card_left": mx - 72,
+            marks.append({"event": event, "x": mx, "card_left": mx - 72, "href": link(evento=event.pk),
                           "card_top": 36 if up else 180, "stem_top": 130 if up else 160})
         x += width
+    bars, rows = _adventure_lane([adventure] if adventure else quests, spans, sessions, last_number, x + SLOT)
+    height = EVENTS_HEIGHT + (rows * LANE_ROW + 24 if rows else 0)
     selected_id = selected or request.GET.get("evento")
     chosen = next((m for m in marks if str(m["event"].pk) == str(selected_id)), marks[-1] if marks else None)
     last = last_session(campaign)
-    query = request.GET.copy()
     return {
-        "segments": segments, "marks": marks, "chosen": chosen, "past_width": x,
+        "segments": segments, "marks": marks, "chosen": chosen, "past_width": x, "height": height,
         "future_left": x, "future_label": f"Próxima · S{(last.number + 1) if last else 1}", "width": x + SLOT + 24,
-        "party": party, "pc_filter": pc_filter or "", "show_hidden": show_hidden,
+        "party": party, "pc_filter": params["pj"], "show_hidden": show_hidden,
         "event_form": EventForm(campaign=campaign) if is_master else None, "add_session": last,
-        "query_hidden": "0" if show_hidden else "1", "query": query.urlencode(),
+        "adventure": adventure, "bars": bars,
+        "pc_links": [{"label": pc.name, "href": link(pj=pc.pk), "on": params["pj"] == str(pc.pk)} for pc in party],
+        "all_pcs_link": link(pj=""), "hidden_link": link(ocultos="0" if show_hidden else ""),
+        "adventure_links": [{"label": q.title, "href": link(aventura=q.pk, evento=""), "on": adventure == q, "status": q.status}
+                            for q in quests],
+        "all_adventures_link": link(aventura="", evento=""),
     }
 
 
@@ -159,7 +238,7 @@ def event_add(request, campaign):
     form = EventForm(request.POST, campaign=campaign)
     session = last_session(campaign)
     if session is None:
-        return _timeline_response(request, campaign, "Escribe antes la crónica de una sesión.", error=True)
+        return _timeline_response(request, campaign, "Crea antes una sesión.", error=True)
     if not form.is_valid():
         return _timeline_response(request, campaign, "Falta el título del suceso.", error=True)
     event = form.save(commit=False)
@@ -222,6 +301,7 @@ def board_context(request, campaign, is_master, selected=None, mode=None):
     return {
         "board_items": items, "board_lines": lines, "board_pins": [pin(c) for c in cards], "detail": detail,
         "mode": mode if chosen is not None else None, "board_w": BOARD_WIDTH, "board_h": BOARD_HEIGHT,
+        "card_max_x": BOARD_WIDTH - CARD_WIDTH, "card_max_y": BOARD_HEIGHT - CARD_HEIGHT,
         "card_form": BoardCardForm(campaign=campaign, is_master=is_master, visible_pages=visible_pages),
         "visible_pages": visible_pages,
         "hidden_count": sum(1 for c in cards if c.classified and not c.revealed),
@@ -261,8 +341,15 @@ def card_add(request, campaign):
     if not form.is_valid():
         return _board_response(request, campaign, "La nota necesita un título.", error=True)
     card = form.save(commit=False)
-    n = BoardCard.objects.of(campaign).count()
-    card.author, card.x, card.y = request.user, 260 + (n % 3) * 40, 150 + (n % 4) * 30
+    # Where the board window was looking (sent by mesa.js); otherwise near the middle of the board.
+    try:
+        x, y = int(float(request.POST["x"])), int(float(request.POST["y"]))
+    except (KeyError, ValueError):
+        n = BoardCard.objects.of(campaign).count()
+        x, y = BOARD_CENTRE_X - 40 + (n % 3) * 40, BOARD_CENTRE_Y - 45 + (n % 4) * 30
+    card.author = request.user
+    card.x = max(0, min(BOARD_WIDTH - CARD_WIDTH, x))
+    card.y = max(0, min(BOARD_HEIGHT - CARD_HEIGHT, y))
     card.save()
     return _board_response(request, campaign, "Nota clavada. Pulsa «Mover» para colocarla donde quieras.", selected=card.pk)
 
@@ -486,7 +573,7 @@ def scene_toggle(request, campaign, pk):
 # Misiones
 # ---------------------------------------------------------------------------
 
-STATUS_GROUPS = [(Quest.Status.ACTIVA, gettext_noop("Activas")), (Quest.Status.COMPLETADA, gettext_noop("Completadas")), (Quest.Status.FALLIDA, gettext_noop("Fallidas"))]
+STATUS_GROUPS = [(Quest.Status.ACTIVA, gettext_noop("En curso")), (Quest.Status.COMPLETADA, gettext_noop("Completadas")), (Quest.Status.FALLIDA, gettext_noop("Fallidas"))]
 
 
 def quest_card(quest, is_master):
@@ -500,27 +587,10 @@ def quest_card(quest, is_master):
     return {"quest": quest, "objectives": objectives, "done": done, "total": len(objectives)}
 
 
-class QuestListView(DiaryMixin, TemplateView):
-    template_name = "diary_quests.html"
-    tab = "diary_quests"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        quests = Quest.objects.of(self.campaign).select_related("giver").prefetch_related("objectives")
-        groups = []
-        for status, label in STATUS_GROUPS:
-            items = [quest_card(q, self.is_master) for q in quests if q.status == status]
-            if items:
-                groups.append({"label": label, "items": items})
-        context.update(groups=groups)
-        return context
-
-
 class QuestFormMixin:
     model = Quest
     form_class = QuestForm
     template_name = "diary_quest_form.html"
-    tab = "diary_quests"
 
     def get_form_kwargs(self):
         return {**super().get_form_kwargs(), "campaign": self.campaign}
@@ -541,7 +611,8 @@ class QuestFormMixin:
             self.object = form.save()
             objectives.instance = self.object
             objectives.save()
-            return respond(request, redirect_to=reverse("diary_quests", args=[self.campaign.pk]), msg="Misión guardada.")
+            return respond(request, redirect_to=reverse("diary", args=[self.campaign.pk]) + f"#aventura-{self.object.pk}",
+                           msg="Aventura guardada.")
         return self.render_to_response(self.get_context_data(form=form, objectives=objectives))
 
 
@@ -560,7 +631,7 @@ def objective_toggle(request, campaign, pk):
     objective = get_object_or_404(QuestObjective, pk=pk, quest__campaign=campaign)
     objective.done = not objective.done
     objective.save()  # marking a hidden objective as done reveals it
-    quest = Quest.objects.prefetch_related("objectives").get(pk=objective.quest_id)
+    quest = Quest.objects.select_related("giver", "start_session", "end_session").prefetch_related("objectives").get(pk=objective.quest_id)
     context = {"campaign": campaign, "is_master": True, "q": quest_card(quest, True)}
-    return respond(request, redirect_to=reverse("diary_quests", args=[campaign.pk]),
+    return respond(request, redirect_to=reverse("diary", args=[campaign.pk]),
                    template="partials/quest_card.html", context=context, target=f"#mision-{quest.pk}")

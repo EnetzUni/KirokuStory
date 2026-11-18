@@ -1,0 +1,45 @@
+{% extends "diary_base.html" %}
+{% load i18n %}
+{% block diary %}
+<div class="pila lectura">
+    <div class="cabeza-seccion">
+        <p class="atenuado">{% if is_master %}{% translate "Cada aventura va de la sesión en que empieza a la que termina. Marca sus objetivos a medida que el grupo los cumple." %}{% else %}{% translate "Las aventuras del grupo, con sus objetivos y lo que pasó en cada sesión." %}{% endif %}</p>
+        {% if is_master %}
+        <div class="fila-s">
+            <a class="btn btn-principal" href="{% url 'diary_quest_new' campaign.pk %}">+ {% translate "Nueva aventura" %}</a>
+            <a class="btn" href="{% url 'diary_session_new' campaign.pk %}">+ {% translate "Nueva sesión" %}</a>
+        </div>
+        {% endif %}
+    </div>
+
+    {% for group in groups %}
+    <div class="pila-s" style="gap:16px">
+        <h2 style="font-size:22px">{% translate group.label %}</h2>
+        {% for item in group.items %}
+        <section id="aventura-{{ item.q.quest.pk }}" class="pila-s" style="gap:10px" aria-label="{{ item.q.quest.title }}">
+            {% include "partials/quest_card.html" with q=item.q %}
+            {% if item.sessions %}
+            <details id="sesiones-{{ item.q.quest.pk }}" class="pila-s" {% if item.q.quest.status == "activa" %}open{% endif %}>
+                <summary class="btn btn-texto" style="align-self:flex-start">
+                    {% blocktranslate count n=item.sessions|length %}{{ n }} sesión de esta aventura{% plural %}{{ n }} sesiones de esta aventura{% endblocktranslate %}
+                </summary>
+                <div class="pila-s" style="gap:12px;padding-left:14px;border-left:3px solid var(--line)">
+                    {% for session in item.sessions %}{% include "partials/session_article.html" %}{% endfor %}
+                </div>
+            </details>
+            {% endif %}
+        </section>
+        {% endfor %}
+    </div>
+    {% endfor %}
+
+    {% if loose %}
+    <div class="pila-s" style="gap:12px">
+        <h2 style="font-size:22px">{% translate "Sesiones sin aventura" %}</h2>
+        {% for session in loose %}{% include "partials/session_article.html" %}{% endfor %}
+    </div>
+    {% endif %}
+
+    {% if not groups and not loose %}<p class="atenuado">{% translate "Todavía no hay aventuras ni sesiones." %}</p>{% endif %}
+</div>
+{% endblock %}
