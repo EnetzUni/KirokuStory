@@ -1,4 +1,4 @@
-"""Tests of the house rules (data-model.md, «Game rules»: 2, 3, 5 and 6) and of
+"""Tests of the house rules (data-model.md, «Game rules»: 2, 3, 5, 6 and 16) and of
 what players may see (spec, section 6).
 
     python manage.py test CampaignManager
@@ -14,8 +14,8 @@ from django.urls import reverse
 from . import rules
 from .models import (
     Ability, Armor, ArmorDamage, ArmorType, BoardCard, Campaign, Character, CharacterAbility, CharacterClass,
-    Combatant, Encounter, Inventory, Item, MapLocation, Page, Post, QuestObjective, Race, Session, TimelineEvent,
-    User, Weapon,
+    ClassAbility, Combatant, Encounter, Inventory, Item, MapLocation, Page, Post, QuestObjective, Race, Session,
+    Spell, Subclass, TimelineEvent, UniqueSkill, User, Weapon,
 )
 
 AJAX = {"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"}
@@ -243,6 +243,281 @@ class UniqueAbilityTests(RulesData):
 # Visibility (spec, section 6): with the demo campaign
 # ---------------------------------------------------------------------------
 
+class LevelUpTests(RulesData):
+    """The master gives XP; the level waits until the player levels up from the
+    sheet, one level at a time, with that level's choices (game rule 16)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.wizard = CharacterClass.objects.create(name="Mago", primary_ability="Inteligencia", magic="completa",
+                                                   description="Dado de puntos de golpe: 1d6 por nivel de mago.")
+        cls.evoker = Subclass.objects.create(name="Evocador", char_class=cls.wizard)
+        Subclass.objects.create(name="Adivino", char_class=cls.wizard)
+        ClassAbility.objects.create(char_class=cls.wizard, ability=Ability.objects.create(name="Académico"), level_required=2)
+        spell = dict(casting_time="1 acción", duration="Instantáneo")
+        cls.cantrip = Spell.objects.create(name="Rayo de escarcha", level=0, **spell)
+        cls.missile = Spell.objects.create(name="Proyectil mágico", level=1, **spell)
+        cls.shield = Spell.objects.create(name="Escudo", level=1, **spell)
+        cls.misty_step = Spell.objects.create(name="Paso brumoso", level=2, **spell)
+        cls.wizard.spells.set([cls.cantrip, cls.missile, cls.shield, cls.misty_step])
+
+    def mage(self, name="Aria", **fields):
+        # Constitution 14: +2.
+        return self.character(name, campaigns=[self.campaign], char_class=self.wizard, **fields)
+
+    def level_up(self, character, user=None, **data):
+        self.client.force_login(user or self.player)
+        data = {"nivel": character.level + 1, "hp_roll": "3", **data}
+        return self.client.post(reverse("level_up", args=[self.campaign.pk, character.pk]), data)
+
+    def test_master_xp_does_not_change_the_level(self):
+        aria = self.mage()
+        self.client.force_login(self.master)
+        self.client.post(reverse("sheet_action", args=[self.campaign.pk, aria.pk]), {"accion": "xp_dar", "cantidad": "300"}, **AJAX)
+        aria.refresh_from_db()
+        self.assertEqual((aria.xp, aria.level, aria.can_level_up), (300, 1, True))
+        self.client.force_login(self.player)
+        response = self.client.get(reverse("sheet", args=[self.campaign.pk, aria.pk]))
+        self.assertContains(response, reverse("level_up", args=[self.campaign.pk, aria.pk]))
+
+    def test_players_cannot_give_xp(self):
+        aria = self.mage()
+        self.client.force_login(self.player)
+        response = self.client.post(reverse("sheet_action", args=[self.campaign.pk, aria.pk]),
+                                    {"accion": "xp_dar", "cantidad": "300"}, **AJAX)
+        self.assertEqual(response.status_code, 403)
+        aria.refresh_from_db()
+        self.assertEqual(aria.xp, 0)
+
+    def test_party_xp_goes_to_the_ticked_characters(self):
+        aria, brom = self.mage(), self.character("Brom", campaigns=[self.campaign])
+        url = reverse("party_xp", args=[self.campaign.pk])
+        self.client.force_login(self.player)
+        self.assertEqual(self.client.post(url, {"cantidad": "300", "personajes": [aria.pk]}).status_code, 403)
+        self.client.force_login(self.master)
+        self.client.post(url, {"cantidad": "300", "personajes": [aria.pk]})
+        aria.refresh_from_db()
+        brom.refresh_from_db()
+        self.assertEqual((aria.xp, brom.xp), (300, 0))
+
+    def test_level_up_needs_the_xp(self):
+        aria = self.mage(xp=299)
+        self.client.force_login(self.player)
+        response = self.client.get(reverse("level_up", args=[self.campaign.pk, aria.pk]))
+        self.assertRedirects(response, reverse("sheet", args=[self.campaign.pk, aria.pk]))
+        self.level_up(aria)
+        aria.refresh_from_db()
+        self.assertEqual(aria.level, 1)
+
+    def test_players_cannot_level_up_other_characters(self):
+        other = User.objects.create_user("other", password="x")
+        self.campaign.players.add(other)
+        aria = self.mage(xp=300, player=other)
+        self.assertEqual(self.level_up(aria).status_code, 403)
+        aria.refresh_from_db()
+        self.assertEqual(aria.level, 1)
+
+    def test_hit_points_are_the_1d4_rolled_at_the_table_plus_constitution(self):
+        aria = self.mage(xp=300, hp=20, temp_hp=15)
+        self.client.force_login(self.player)
+        self.assertContains(self.client.get(reverse("level_up", args=[self.campaign.pk, aria.pk])), "Académico")
+        self.level_up(aria, hp_roll="3")
+        aria.refresh_from_db()
+        # 3 on the 1d4 + Constitution 2, whatever the class's hit die (d6). Current hit points go up the same.
+        self.assertEqual((aria.level, aria.hp, aria.temp_hp), (2, 25, 20))
+
+    def test_the_1d4_result_goes_from_1_to_4(self):
+        aria = self.mage(xp=300, hp=20, temp_hp=20, constitution=6)  # Constitution -2
+        for wrong in ("", "0", "5"):
+            self.assertContains(self.level_up(aria, hp_roll=wrong), "1d4")
+            aria.refresh_from_db()
+            self.assertEqual(aria.level, 1)
+        self.level_up(aria, hp_roll="1")
+        aria.refresh_from_db()
+        # 1 - 2 is below 1: a new level always adds at least 1 hit point.
+        self.assertEqual((aria.level, aria.hp), (2, 21))
+
+    def test_the_subclass_is_chosen_at_level_3(self):
+        aria = self.mage(xp=900, level=2)
+        response = self.level_up(aria)
+        self.assertContains(response, "Elige una subclase.")
+        aria.refresh_from_db()
+        self.assertEqual(aria.level, 2)
+        self.level_up(aria, subclass=self.evoker.pk)
+        aria.refresh_from_db()
+        self.assertEqual((aria.level, aria.subclass), (3, self.evoker))
+
+    def test_ability_score_improvement_and_constitution_for_every_level(self):
+        aria = self.mage(xp=2700, level=3, subclass=self.evoker, hp=20, temp_hp=20, intelligence=19)
+        self.assertContains(self.level_up(aria, asi_first="intelligence", asi_second="intelligence"), "no puede pasar de 20")
+        aria.refresh_from_db()
+        self.assertEqual((aria.level, aria.intelligence), (3, 19))
+        self.level_up(aria, asi_first="constitution", asi_second="constitution")
+        aria.refresh_from_db()
+        # Constitution 14 -> 16 (+3): 3 on the 1d4 + 3 for level 4, and +1 for each of the 3 levels already had.
+        self.assertEqual((aria.level, aria.constitution, aria.hp), (4, 16, 20 + 6 + 3))
+
+    def test_feats_or_the_improvement_every_4_levels(self):
+        self.assertEqual([level for level in range(1, 21) if rules.is_feat_level(level)], [4, 8, 12, 16, 20])
+        tough = Ability.objects.create(name="Duro", feat=True, description="+2 puntos de golpe por nivel.")
+        Ability.objects.create(name="Don del destino", feat=True, feat_min_level=19)
+        aria = self.mage(xp=300)
+        self.client.force_login(self.player)
+        page = self.client.get(reverse("level_up", args=[self.campaign.pk, aria.pk]))
+        self.assertNotContains(page, 'name="choice"')  # level 2: nothing to choose
+        self.assertNotContains(page, 'name="asi_first"')
+        aria = self.mage(xp=2700, level=3, subclass=self.evoker, name="Lira")
+        page = self.client.get(reverse("level_up", args=[self.campaign.pk, aria.pk]))
+        self.assertContains(page, "Duro")
+        self.assertNotContains(page, "Don del destino")  # epic boons from level 20
+        self.assertContains(self.level_up(aria), "Elige la mejora de característica o una dote.")
+        self.assertContains(self.level_up(aria, choice="caracteristica"), "Elige a qué característica va este punto.")
+        aria.refresh_from_db()
+        self.assertEqual(aria.level, 3)
+        self.level_up(aria, choice=str(tough.pk), asi_first="strength", asi_second="strength")
+        aria.refresh_from_db()
+        # The feat instead of the improvement: the scores do not change.
+        self.assertEqual((aria.level, aria.strength), (4, 16))
+        self.assertTrue(aria.characterability_set.filter(ability=tough).exists())
+
+    def test_spells_are_given_by_the_master(self):
+        aria = self.mage(xp=300)
+        self.client.force_login(self.player)
+        self.assertNotContains(self.client.get(reverse("level_up", args=[self.campaign.pk, aria.pk])), self.missile.name)
+        url = reverse("sheet_action", args=[self.campaign.pk, aria.pk])
+        self.assertEqual(self.client.post(url, {"accion": "conjuro_ensenar", "conjuro": self.missile.pk}, **AJAX).status_code, 403)
+        self.client.force_login(self.master)
+        self.client.post(url, {"accion": "conjuro_ensenar", "conjuro": self.missile.pk}, **AJAX)
+        self.assertEqual(list(aria.spells.all()), [self.missile])
+        self.assertTrue(self.client.post(url, {"accion": "conjuro_ensenar", "conjuro": self.missile.pk}, **AJAX).json()["error"])
+        self.client.post(url, {"accion": "conjuro_olvidar", "conjuro": self.missile.pk}, **AJAX)
+        self.assertFalse(aria.spells.exists())
+
+    def test_magic_points_come_from_the_class_and_the_level(self):
+        self.assertEqual([rules.class_magic_points(kind, 5) for kind in ("completa", "media", "pacto", "ninguna")], [16, 8, 6, 0])
+        aria = self.mage(xp=300, magic_points=2)
+        self.assertEqual((aria.magic_points_max, aria.has_magic), (2, True))
+        self.assertFalse(self.character("Brom").has_magic)  # this Guerrero has no magic
+        self.level_up(aria)
+        aria.refresh_from_db()
+        # Level 2: 3. The current points go up the same as the maximum.
+        self.assertEqual((aria.level, aria.magic_points, aria.magic_points_max), (2, 3, 3))
+
+    def test_the_master_adjusts_the_magic_points(self):
+        aria, brom = self.mage(magic_points=2), self.character("Brom", campaigns=[self.campaign])
+        url = reverse("sheet_action", args=[self.campaign.pk, aria.pk])
+        self.client.force_login(self.player)
+        self.assertEqual(self.client.post(url, {"accion": "magia_ajuste", "ajuste": "3"}, **AJAX).status_code, 403)
+        self.client.force_login(self.master)
+        self.client.post(url, {"accion": "magia_ajuste", "ajuste": "3"}, **AJAX)
+        aria.refresh_from_db()
+        self.assertEqual((aria.magic_points_bonus, aria.magic_points_max, aria.magic_points), (3, 5, 5))
+        self.client.post(url, {"accion": "magia_ajuste", "ajuste": "-10"}, **AJAX)
+        aria.refresh_from_db()
+        self.assertEqual((aria.magic_points_max, aria.magic_points, aria.has_magic), (0, 0, False))
+        # A class without magic can get some from the master.
+        self.client.post(reverse("sheet_action", args=[self.campaign.pk, brom.pk]), {"accion": "magia_ajuste", "ajuste": "4"}, **AJAX)
+        brom.refresh_from_db()
+        self.assertEqual((brom.magic_points_max, brom.magic_points), (4, 4))
+
+    def test_sending_the_form_twice_levels_up_once(self):
+        aria = self.mage(xp=900, hp=20, temp_hp=20)
+        data = {"nivel": 2, "hp_roll": "3"}
+        url = reverse("level_up", args=[self.campaign.pk, aria.pk])
+        self.client.force_login(self.player)
+        self.client.post(url, data)
+        self.client.post(url, data)
+        aria.refresh_from_db()
+        self.assertEqual((aria.level, aria.hp, aria.can_level_up), (2, 25, True))
+
+    def test_a_unique_ability_of_the_new_level_is_checked(self):
+        ward = Ability.objects.create(name="Guardián único", unique=True)
+        rival = self.character("Rival", campaigns=[self.campaign])
+        CharacterAbility.objects.create(character=rival, ability=ward)
+        aria = self.mage(xp=300)
+        ClassAbility.objects.create(char_class=self.wizard, ability=ward, level_required=2)
+        self.assertContains(self.level_up(aria), "already has the unique ability")
+        aria.refresh_from_db()
+        self.assertEqual(aria.level, 1)
+
+
+class UniqueSkillTests(RulesData):
+    """The player proposes the unique skill, in the creator or later from the sheet;
+    a master approves it (changing it if needed) or rejects it (game rule 17)."""
+
+    def create(self, user, **draft):
+        from django.test import RequestFactory
+        from . import views_characters
+        request = RequestFactory().post("/")
+        request.user = user
+        scores = dict(strength=15, dexterity=14, constitution=13, intelligence=12, wisdom=10, charisma=8)
+        draft = {"name": "Lira", "race": self.race.pk, "char_class": self.char_class.pk, "scores": scores, **draft}
+        return views_characters._create_character(request, self.campaign, draft)
+
+    def act(self, user, character, **data):
+        self.client.force_login(user)
+        return self.client.post(reverse("sheet_action", args=[self.campaign.pk, character.pk]), data, **AJAX)
+
+    def test_proposed_in_the_creator(self):
+        lira = self.create(self.player, skill_name="Ojo de halcón", skill_description="Ve en la oscuridad total.")
+        self.assertEqual((lira.unique_skill.status, lira.unique_skill.ability), (UniqueSkill.Status.PENDIENTE, None))
+        self.assertFalse(lira.abilities.exists())
+        # Without one, the character is created all the same.
+        self.assertFalse(UniqueSkill.objects.filter(character=self.create(self.player, name="Sin")).exists())
+
+    def test_a_master_creating_the_character_approves_it(self):
+        lira = self.create(self.master, skill_name="Ojo de halcón", skill_description="Ve en la oscuridad total.")
+        skill = lira.unique_skill
+        self.assertEqual(skill.status, UniqueSkill.Status.APROBADA)
+        self.assertTrue(skill.ability.unique)
+        self.assertEqual(list(lira.abilities.all()), [skill.ability])
+
+    def test_proposed_later_from_the_sheet_and_approved_with_changes(self):
+        brom = self.character(campaigns=[self.campaign])
+        response = self.act(self.player, brom, accion="unica_proponer", name="", description="Algo")
+        self.assertTrue(response.json()["error"])
+        self.act(self.player, brom, accion="unica_proponer", name="Puño de piedra", description="Rompe muros de un golpe.")
+        skill = UniqueSkill.objects.get(character=brom)
+        self.assertEqual(skill.status, UniqueSkill.Status.PENDIENTE)
+        self.assertEqual(self.act(self.player, brom, accion="unica_aprobar", name="X", description="Y").status_code, 403)
+        # The master sees it waiting in «Personajes», with the menu badge.
+        self.client.force_login(self.master)
+        page = self.client.get(reverse("characters", args=[self.campaign.pk]))
+        self.assertContains(page, "Puño de piedra")
+        self.assertContains(page, 'class="insignia">1<')
+        self.client.post(reverse("unique_skill_review", args=[self.campaign.pk, skill.pk]),
+                         {"accion": "aprobar", "name": "Puño de roca", "description": "Rompe una puerta de un golpe.", "nota": "Solo puertas."})
+        skill.refresh_from_db()
+        self.assertEqual((skill.status, skill.ability.name, skill.ability.unique, skill.master_note),
+                         (UniqueSkill.Status.APROBADA, "Puño de roca", True, "Solo puertas."))
+        self.assertTrue(brom.characterability_set.filter(ability=skill.ability).exists())
+        self.client.force_login(self.player)
+        sheet = self.client.get(reverse("sheet", args=[self.campaign.pk, brom.pk]) + "?tab=feats")
+        self.assertContains(sheet, "habilidad-unica")
+        self.assertContains(sheet, "Puño de roca")
+        # One per character.
+        self.assertTrue(self.act(self.player, brom, accion="unica_proponer", name="Otra", description="Otra.").json()["error"])
+
+    def test_rejected_with_a_note_and_proposed_again(self):
+        brom = self.character(campaigns=[self.campaign])
+        self.act(self.player, brom, accion="unica_proponer", name="Inmortal", description="No puede morir.")
+        self.act(self.master, brom, accion="unica_rechazar", nota="Demasiado fuerte.")
+        skill = UniqueSkill.objects.get(character=brom)
+        self.assertEqual((skill.status, skill.master_note), (UniqueSkill.Status.RECHAZADA, "Demasiado fuerte."))
+        self.assertFalse(brom.abilities.exists())
+        self.client.force_login(self.player)
+        self.assertContains(self.client.get(reverse("sheet", args=[self.campaign.pk, brom.pk]) + "?tab=feats"), "Demasiado fuerte.")
+        self.act(self.player, brom, accion="unica_proponer", name="Duro de pelar", description="Una vez al día, queda a 1 de vida.")
+        skill.refresh_from_db()
+        self.assertEqual((skill.status, skill.name, skill.master_note), (UniqueSkill.Status.PENDIENTE, "Duro de pelar", ""))
+
+    def test_a_master_gives_one_directly(self):
+        brom = self.character(campaigns=[self.campaign])
+        self.act(self.master, brom, accion="unica_proponer", name="Puño de piedra", description="Rompe muros.")
+        self.assertEqual(UniqueSkill.objects.get(character=brom).status, UniqueSkill.Status.APROBADA)
+
+
 class DemoData(TestCase):
     fixtures = ["datos_iniciales_srd", "armas_caseras", "demo_campana"]
 
@@ -276,6 +551,10 @@ class HiddenContentTests(DemoData):
         texts += Session.objects.filter(campaign=corona, published=False).exclude(body="").values_list("body", flat=True)
         texts += (Post.objects.filter(scene__campaign=corona, whisper_to__isnull=False)
                   .exclude(author=self.lucia).exclude(whisper_to__player=self.lucia).values_list("text", flat=True))
+        # Unique skills not approved yet of other players' characters, and the master's notes on them.
+        others = UniqueSkill.objects.filter(character__campaigns=corona).exclude(character__player=self.lucia)
+        texts += others.exclude(status=UniqueSkill.Status.APROBADA).values_list("description", flat=True)
+        texts += others.exclude(master_note="").values_list("master_note", flat=True)
         # The longest plain piece of each: it survives HTML escaping, line breaks and [[links]].
         return {max(re.split(r"[\n<>&\"'\[\]]", text), key=len).strip()[:60] for text in texts if text.strip()}
 
@@ -291,6 +570,7 @@ class HiddenContentTests(DemoData):
             urls += [self.url("map") + f"?mapa={map_.pk}&lugar={location.pk}" for location in map_.locations.all()]
         aria = Character.objects.get(name="Aria")
         urls += [self.url("sheet", aria.pk) + f"?tab={tab}" for tab in ("res", "act", "spells", "inv", "feats", "bio")]
+        urls += [self.url("sheet", Character.objects.get(name="Kaida").pk) + "?tab=feats"]  # her unique skill is pending
         return urls
 
     def test_demo_has_secrets_to_hide(self):

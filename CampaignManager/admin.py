@@ -4,12 +4,11 @@ from django import forms
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
 
-from . import rules
 from .models import (
     Ability, ActiveEffect, Armor, ArmorDamage, ArmorType, Attack, BoardCard, BoardLink, Campaign, Character,
     CharacterAbility, CharacterClass, ClassAbility, Combatant, Component, DiceRoll, Effect, Encounter, Inventory,
     Item, ItemEffect, Map, MapLocation, Page, PartyMove, Post, Quest, QuestObjective, Race, RaceAbility, Scene,
-    Session, Spell, Subclass, SubclassAbility, Subrace, SubraceAbility, TimelineEvent, User, Weapon,
+    Session, Spell, Subclass, SubclassAbility, Subrace, SubraceAbility, TimelineEvent, UniqueSkill, User, Weapon,
     granted_ability_ids, unique_ability_conflicts,
 )
 
@@ -66,7 +65,8 @@ class SubraceAdmin(admin.ModelAdmin):
 
 @admin.register(CharacterClass)
 class CharacterClassAdmin(admin.ModelAdmin):
-    list_display = ("name", "primary_ability")
+    list_display = ("name", "primary_ability", "magic")
+    list_filter = ("magic",)
     search_fields = ["name"]
     filter_horizontal = ["spells"]
     inlines = [ClassAbilityInline]
@@ -82,8 +82,8 @@ class SubclassAdmin(admin.ModelAdmin):
 
 @admin.register(Ability)
 class AbilityAdmin(admin.ModelAdmin):
-    list_display = ("name", "unique")
-    list_filter = ("unique",)
+    list_display = ("name", "unique", "feat", "feat_min_level")
+    list_filter = ("feat", "unique")
     search_fields = ["name", "description"]
     filter_horizontal = ["effects"]
 
@@ -263,7 +263,7 @@ class CharacterAdminForm(forms.ModelForm):
                 cleaned_data.get("subrace"),
                 cleaned_data["char_class"],
                 cleaned_data.get("subclass"),
-                level=rules.level_for_xp(cleaned_data.get("xp") or 0),
+                level=cleaned_data.get("level") or 1,
             )
             campaigns = cleaned_data.get("campaigns") or []
             for message in unique_ability_conflicts(self.instance, campaigns, ability_ids):
@@ -284,6 +284,14 @@ class InventoryInline(admin.TabularInline):
     autocomplete_fields = ["item"]
 
 
+class UniqueSkillInline(admin.StackedInline):
+    model = UniqueSkill
+    fk_name = "character"
+    extra = 0
+    max_num = 1
+    autocomplete_fields = ["ability"]
+
+
 class ActiveEffectInline(admin.TabularInline):
     model = ActiveEffect
     extra = 0
@@ -293,8 +301,8 @@ class ActiveEffectInline(admin.TabularInline):
 @admin.register(Character)
 class CharacterAdmin(admin.ModelAdmin):
     form = CharacterAdminForm
-    inlines = [CharacterAbilityInline, InventoryInline, ActiveEffectInline]
-    list_display = ("name", "is_npc", "status", "template", "player", "race", "char_class", "xp")
+    inlines = [CharacterAbilityInline, InventoryInline, ActiveEffectInline, UniqueSkillInline]
+    list_display = ("name", "is_npc", "status", "template", "player", "race", "char_class", "level", "xp")
     list_filter = ("is_npc", "status", "campaigns", "char_class")
     search_fields = ["name", "background"]
     list_select_related = ["template", "player", "race", "char_class"]
@@ -312,6 +320,15 @@ class CharacterAdmin(admin.ModelAdmin):
             except ValueError as error:
                 self.message_user(request, f"{character} skipped: {error}", level=messages.WARNING)
         self.message_user(request, f"{made} NPC copies made.")
+
+
+@admin.register(UniqueSkill)
+class UniqueSkillAdmin(admin.ModelAdmin):
+    list_display = ("character", "name", "status", "updated_at")
+    list_filter = ("status",)
+    search_fields = ["character__name", "name", "description"]
+    list_select_related = ["character"]
+    autocomplete_fields = ["character", "ability"]
 
 
 @admin.register(CharacterAbility)

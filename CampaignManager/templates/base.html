@@ -1,4 +1,4 @@
-{% load static i18n %}<!DOCTYPE html>
+{% load static i18n mesa %}<!DOCTYPE html>
 {% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}">
 <head>
@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cardo:ital,wght@0,400;0,700;1,400&amp;display=swap">
-    <link rel="stylesheet" href="{% static 'css/mesa.css' %}">
+    <link rel="stylesheet" href="{% asset 'css/mesa.css' %}">
 </head>
 <body>
 <a class="saltar" href="#principal">{% translate "Saltar al contenido" %}</a>
@@ -35,7 +35,7 @@
         {% endif %}
 
         {% if nav_items %}
-        <button type="button" class="boton-menu" aria-controls="nav-secciones" aria-expanded="false">{% translate "Menú" %}</button>
+        <button type="button" class="boton-menu" aria-controls="nav-secciones" aria-expanded="false">{% translate "Menú" %}{% if nav_waiting %} <span class="insignia">{{ nav_waiting }}</span>{% endif %}</button>
         <nav id="nav-secciones" class="nav" aria-label="{% translate 'Secciones de la campaña' %}">
             {% for item in nav_items %}
             <a href="{{ item.url }}" {% if item.current %}aria-current="page"{% endif %}>{{ item.label }}{% if item.badge %} <span class="insignia">{{ item.badge }}</span>{% endif %}</a>
@@ -87,7 +87,7 @@
 </footer>
 
 <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
-<script src="{% static 'js/mesa.js' %}"></script>
+<script src="{% asset 'js/mesa.js' %}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

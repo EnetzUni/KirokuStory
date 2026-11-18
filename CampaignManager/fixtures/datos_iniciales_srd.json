@@ -10530,6 +10530,7 @@
   "fields": {
    "name": "Bárbaro",
    "primary_ability": "Fuerza",
+   "magic": "ninguna",
    "description": "Dado de puntos de golpe: 1d12 por nivel de bárbaro.\nCompetencias en tiradas de salvación: Fuerza y Constitución.\nCompetencias en habilidades: Elige dos: Atletismo, Intimidación, Naturaleza, Percepción, Supervivencia o Trato con animales.\nCompetencias con armas: Armas sencillas y marciales.\nEntrenamiento con armaduras: Armaduras ligeras y medias y escudos.\nEquipo inicial: Elige A o B: (A) hacha a dos manos, 4 hachas de mano, paquete de explorador y 15 po, o (B) 75 po.",
    "spells": []
   }
@@ -10540,6 +10541,7 @@
   "fields": {
    "name": "Bardo",
    "primary_ability": "Carisma",
+   "magic": "completa",
    "description": "Dado de puntos de golpe: 1d8 por nivel de bardo.\nCompetencias en tiradas de salvación: Destreza y Carisma.\nCompetencias en habilidades: Elige tres cualesquiera (consulta el capítulo “Cómo jugar”).\nCompetencias con armas: Armas sencillas.\nCompetencias con herramientas: Elige tres instrumentos musicales (consulta el capítulo “Equipo”).\nEntrenamiento con armaduras: Armaduras ligeras.\nEquipo inicial: Elige A o B: (A) armadura de cuero, 2 dagas, instrumento musical de tu elección, paquete de artista y 19 po, o (B) 90 po.",
    "spells": [
     1,
@@ -10681,6 +10683,7 @@
   "fields": {
    "name": "Brujo",
    "primary_ability": "Carisma",
+   "magic": "pacto",
    "description": "Dado de puntos de golpe: 1d8 por nivel de brujo.\nCompetencias en tiradas de salvación: Sabiduría y Carisma.\nCompetencias en habilidades: Elige dos: Conocimiento arcano, Engaño, Historia, Intimidación, Investigación, Naturaleza o Religión.\nCompetencias con armas: Amas sencillas.\nEntrenamiento con armaduras: Armaduras ligeras.\nEquipo inicial: Elige A o B: (A) armadura de cuero, hoz, 2 dagas, canalizador arcano (orbe), libro (de conocimiento oculto), paquete de erudito y 15 po, o (B) 100 po.",
    "spells": [
     21,
@@ -10764,6 +10767,7 @@
   "fields": {
    "name": "Clérigo",
    "primary_ability": "Sabiduría",
+   "magic": "completa",
    "description": "Dado de puntos de golpe: 1d8 por nivel de clérigo.\nCompetencias en tiradas de salvación: Sabiduría y Carisma.\nCompetencias en habilidades: Elige dos: Historia, Medicina, Perspicacia, Persuasión o Religión.\nCompetencias con armas: Amas sencillas.\nEntrenamiento con armaduras: Armaduras ligeras y medias y escudos.\nEquipo inicial: Elige A o B: (A) camisa de malla, escudo, maza, paquete de sacerdote, símbolo sagrado y 7 po, o (B) 110 po.",
    "spells": [
     3,
@@ -10884,6 +10888,7 @@
   "fields": {
    "name": "Druida",
    "primary_ability": "Sabiduría",
+   "magic": "completa",
    "description": "Dado de puntos de golpe: 1d8 por nivel de druida.\nCompetencias en tiradas de salvación: Inteligencia y Sabiduría.\nCompetencias en habilidades: Elige dos: Conocimiento arcano, Medicina, Naturaleza, Percepción, Perspicacia, Religión, Supervivencia o Trato con animales.\nCompetencias con armas: Armas sencillas.\nCompetencias con herramientas: Útiles de herborista.\nEntrenamiento con armaduras: Armaduras ligeras y escudos.\nEquipo inicial: Elige A o B: (A) armadura de cuero, escudo, hoz, canalizador druídico (bastón), paquete de explorador, útiles de herborista y 9 po, o (B) 50 po.",
    "spells": [
     3,
@@ -11019,6 +11024,7 @@
   "fields": {
    "name": "Explorador",
    "primary_ability": "Destreza y Sabiduría",
+   "magic": "media",
    "description": "Dado de puntos de golpe: 1d10 por nivel de explorador.\nCompetencias en tiradas de salvación: Fuerza y Destreza.\nCompetencias en habilidades: Elige tres: Atletismo, Investigación, Naturaleza, Percepción, Perspicacia, Sigilo, Supervivencia o Trato con animales.\nCompetencias con armas: Armas sencillas y marciales.\nEntrenamiento con armaduras: Armaduras ligeras y medias y escudos.\nEquipo inicial: Elige A o B: (A) armadura de cuero tachonado, cimitarra, espada corta, arco largo, 20 flechas, aljaba, canalizador druídico (rama de muérdago), paquete de explorador y 7 po, o (B) 150 po.",
    "spells": [
     6,
@@ -11078,6 +11084,7 @@
   "fields": {
    "name": "Guerrero",
    "primary_ability": "Fuerza o Destreza",
+   "magic": "ninguna",
    "description": "Dado de puntos de golpe: 1d10 por nivel de guerrero.\nCompetencias en tiradas de salvación: Fuerza y Constitución.\nCompetencias en habilidades: Elige dos: Acrobacias, Atletismo, Historia, Intimidación, Percepción, Perspicacia, Persuasión, Supervivencia o Trato con animales.\nCompetencias con armas: Armas sencillas y marciales.\nEntrenamiento con armaduras: Armaduras ligeras, medias y pesadas y escudos.\nEquipo inicial: Elige A, B o C: (A) cota de malla, espadón, mangual, 8 jabalinas, paquete de explorador de mazmorras y 4 po; (B) armadura de cuero tachonado, cimitarra, espada corta, arco largo, 20 flechas, aljaba, paquete de explorador de mazmorras y 11 po, o (C) 155 po.",
    "spells": []
   }
@@ -11088,6 +11095,7 @@
   "fields": {
    "name": "Hechicero",
    "primary_ability": "Carisma",
+   "magic": "completa",
    "description": "Dado de puntos de golpe: 1d6 por nivel de hechicero.\nCompetencias en tiradas de salvación: Constitución y Carisma.\nCompetencias en habilidades: Elige dos: Conocimiento arcano, Engaño, Intimidación, Perspicacia, Persuasión o Religión.\nCompetencias con armas: Amas sencillas.\nEntrenamiento con armaduras: Ninguna.\nEquipo inicial: Elige A o B: (A) lanza, 2 dagas, canalizador arcano (cristal), paquete de explorador de mazmorras y 28 po, o (B) 50 po.",
    "spells": [
     1,
@@ -11239,6 +11247,7 @@
   "fields": {
    "name": "Mago",
    "primary_ability": "Inteligencia",
+   "magic": "completa",
    "description": "Dado de puntos de golpe: 1d6 por nivel de mago.\nCompetencias en tiradas de salvación: Inteligencia y Sabiduría.\nCompetencias en habilidades: Elige dos: Conocimiento arcano, Historia, Investigación, Medicina, Naturaleza, Perspicacia o Religión.\nCompetencias con armas: Amas sencillas.\nEntrenamiento con armaduras: Ninguna.\nEquipo inicial: Elige A o B: (A) 2 dagas, canalizador arcano (bastón), libro de conjuros, paquete de erudito, túnica y 5 po, o (B) 55 po.",
    "spells": [
     1,
@@ -11468,6 +11477,7 @@
   "fields": {
    "name": "Monje",
    "primary_ability": "Destreza y Sabiduría",
+   "magic": "ninguna",
    "description": "Dado de puntos de golpe: 1d8 por nivel de monje.\nCompetencias en tiradas de salvación: Fuerza y Destreza.\nCompetencias en habilidades: Elige dos: Acrobacias, Atletismo, Historia, Perspicacia, Religión o Sigilo.\nCompetencias con armas: Armas sencillas, además de marciales que tengan la propiedad “ligera”.\nCompetencias con herramientas: Elige un tipo de herramientas de artesano o instrumento musical (consulta el capítulo “Equipo”).\nEntrenamiento con armaduras: Ninguna.\nEquipo inicial: Elige A o B: (A) lanza, 5 dagas, herramientas de artesano o instrumento musical que has elegido para la competencia con herramientas, paquete de explorador y 11 po, o (B) 50 po.",
    "spells": []
   }
@@ -11478,6 +11488,7 @@
   "fields": {
    "name": "Paladín",
    "primary_ability": "Fuerza y Carisma",
+   "magic": "media",
    "description": "Dado de puntos de golpe: 1d10 por nivel de Paladín.\nCompetencias en tiradas de salvación: Sabiduría y Carisma.\nCompetencias en habilidades: Elige dos: Atletismo, Intimidación, Medicina, Perspicacia, Persuasión o Religión.\nCompetencias con armas: Armas sencillas y marciales.\nEntrenamiento con armaduras: Armaduras ligeras, medias y pesadas y escudos.\nEquipo inicial: Elige A o B: (A) cota de malla, escudo, espada larga, 6 jabalinas, símbolo sagrado, paquete de sacerdote y 9 po, o (B) 150 po.",
    "spells": [
     11,
@@ -11527,6 +11538,7 @@
   "fields": {
    "name": "Pícaro",
    "primary_ability": "Destreza",
+   "magic": "ninguna",
    "description": "Dado de puntos de golpe: 1d8 por nivel de pícaro.\nCompetencias en tiradas de salvación: Destreza e Inteligencia.\nCompetencias en habilidades: Elige cuatro: Acrobacias, Atletismo, Engaño, Intimidación, Investigación, Juego de manos, Percepción, Perspicacia, Persuasión o Sigilo.\nCompetencias con armas: Armas sencillas, además de marciales que tengan las propiedades “ligera” o “sutil”.\nCompetencias con herramientas: Herramientas de ladrón.\nEntrenamiento con armaduras: Armaduras ligeras.\nEquipo inicial: Elige A o B: (A) armadura de cuero, 2 dagas, espada corta, arco corto, 20 flechas, aljaba, herramientas de ladrón, paquete de ladrón y 8 po, o (B) 100 po.",
    "spells": []
   }

@@ -5,7 +5,7 @@ from django.forms import inlineformset_factory
 from . import rules
 from .models import (
     BoardCard, Character, CharacterClass, Item, Map, MapLocation, Page, Post, Quest, QuestObjective, Race, Scene,
-    Session, Subrace, TimelineEvent, User,
+    Session, Subclass, Subrace, TimelineEvent, User,
 )
 
 
@@ -236,3 +236,102 @@ class EquipmentStepForm(forms.Form):
     armor = forms.ModelChoiceField(
         Item.objects.filter(armor__isnull=False, template__isnull=True).order_by("name"),
         label="Armadura", required=False, empty_label="Sin armadura", widget=forms.RadioSelect)
+
+
+class UniqueSkillForm(forms.Form):
+    """A unique skill as the player proposes it, or as a master approves it (changed or not)."""
+    name = forms.CharField(label="Nombre de la habilidad", max_length=100,
+                           error_messages={"required": "Ponle un nombre a la habilidad única."})
+    description = forms.CharField(label="Qué hace", max_length=3000, widget=forms.Textarea(attrs={"rows": 4}),
+                                  error_messages={"required": "Describe qué hace la habilidad única."})
+
+
+class UniqueSkillStepForm(UniqueSkillForm):
+    """Creator step: optional, but a name needs its description and the other way round."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.required = False
+
+    def clean(self):
+        cleaned = super().clean()
+        name, description = (cleaned.get("name") or "").strip(), (cleaned.get("description") or "").strip()
+        if name and not description:
+            self.add_error("description", "Describe qué hace la habilidad única, o deja también el nombre en blanco.")
+        if description and not name:
+            self.add_error("name", "Ponle un nombre a la habilidad única, o deja también la descripción en blanco.")
+        return cleaned
+
+
+# ---------------------------------------------------------------------------
+# Subir de nivel: one level at a time. The view works out what the level gives
+# (`plan`) and the form keeps only the fields that level needs.
+# ---------------------------------------------------------------------------
+
+class LevelUpForm(forms.Form):
+    """Hit points, the subclass at level 3, and at the feat levels the ability score
+    improvement or a feat. Hit points follow the house rule: the 1d4 rolled at the
+    table + Constitution. The improvement is two +1: the same score twice is +2."""
+    SCORES = [(key, ScoresStepForm.base_fields[key].label) for key in rules.ABILITY_KEYS]
+    IMPROVEMENT = "caracteristica"
+
+    hp_roll = forms.IntegerField(
+        min_value=1, max_value=rules.LEVEL_UP_HIT_DIE, label=f"Resultado del 1d{rules.LEVEL_UP_HIT_DIE}",
+        error_messages={"required": f"Escribe el resultado del 1d{rules.LEVEL_UP_HIT_DIE}.",
+                        "min_value": f"El 1d{rules.LEVEL_UP_HIT_DIE} da de 1 a {rules.LEVEL_UP_HIT_DIE}.",
+                        "max_value": f"El 1d{rules.LEVEL_UP_HIT_DIE} da de 1 a {rules.LEVEL_UP_HIT_DIE}."})
+    subclass = forms.ModelChoiceField(Subclass.objects.none(), label="Subclase", widget=forms.RadioSelect,
+                                      error_messages={"required": "Elige una subclase."})
+    # At a feat level with feats to choose: "caracteristica" or the pk of a feat.
+    choice = forms.ChoiceField(label="Mejora de característica o dote", widget=forms.RadioSelect,
+                               error_messages={"required": "Elige la mejora de característica o una dote."})
+    asi_first = forms.ChoiceField(choices=SCORES, label="+1 a", required=False)
+    asi_second = forms.ChoiceField(choices=SCORES, label="+1 a", required=False)
+
+    def __init__(self, *args, character, plan, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.character, self.plan = character, plan
+        if plan["subclasses"]:
+            self.fields["subclass"].queryset = character.char_class.subclasses.all()
+        else:
+            del self.fields["subclass"]
+        if not plan["feat_level"]:
+            del self.fields["choice"], self.fields["asi_first"], self.fields["asi_second"]
+        elif plan["feats"]:
+            self.fields["choice"].choices = [(self.IMPROVEMENT, "Mejora de característica")] + [
+                (str(feat.pk), feat.name) for feat in plan["feats"]]
+        else:
+            del self.fields["choice"]  # no feats to choose: the improvement it is
+
+    def feat(self):
+        """The feat chosen instead of the ability score improvement, or None."""
+        choice = self.cleaned_data.get("choice")
+        if not choice or choice == self.IMPROVEMENT:
+            return None
+        return next(feat for feat in self.plan["feats"] if str(feat.pk) == choice)
+
+    def increases(self):
+        """{ability key: points} of the ability score improvement, {} if there is none."""
+        if not self.plan["feat_level"] or self.feat() is not None:
+            return {}
+        points = {}
+        for name in ("asi_first", "asi_second"):
+            key = self.cleaned_data.get(name)
+            if key:
+                points[key] = points.get(key, 0) + 1
+        return points
+
+    def clean(self):
+        cleaned = super().clean()
+        if not self.plan["feat_level"] or self.feat() is not None or self.errors.get("choice"):
+            return cleaned
+        for name in ("asi_first", "asi_second"):
+            if not cleaned.get(name):
+                self.add_error(name, "Elige a qué característica va este punto.")
+        labels = dict(self.SCORES)
+        for key, points in self.increases().items():
+            if getattr(self.character, key) + points > rules.MAX_SCORE:
+                self.add_error(None, f"{labels[key]} no puede pasar de {rules.MAX_SCORE}: "
+                                     f"tiene {getattr(self.character, key)}.")
+        return cleaned

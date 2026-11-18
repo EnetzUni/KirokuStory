@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.files.storage import default_storage
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import F, Q
 from django.forms import ImageField
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -18,10 +18,14 @@ from django.utils.translation import gettext_noop
 
 from . import rules
 from .ajax import is_ajax, respond
-from .forms import ClassStepForm, EquipmentStepForm, IdentityStepForm, RaceStepForm, ScoresStepForm
+from .forms import (
+    ClassStepForm, EquipmentStepForm, IdentityStepForm, LevelUpForm, RaceStepForm, ScoresStepForm, UniqueSkillForm,
+    UniqueSkillStepForm,
+)
 from .models import (
-    ActiveEffect, Armor, Character, CharacterAbility, CharacterClass, ClassAbility, Combatant, Effect, Inventory, Item,
-    Race, RaceAbility, SubclassAbility, Subrace, SubraceAbility, User, Weapon,
+    Ability, ActiveEffect, Armor, Character, CharacterAbility, CharacterClass, ClassAbility, Combatant, Effect, Inventory,
+    Item, Race, RaceAbility, Spell, SubclassAbility, Subrace, SubraceAbility, UniqueSkill, User, Weapon,
+    unique_ability_conflicts,
 )
 from .permissions import (
     CampaignMemberMixin, campaign_member, can_edit_character, character_in_campaign, master_only, npc_templates_for,
@@ -53,6 +57,10 @@ class CharacterListView(CampaignMemberMixin, TemplateView):
             character.can_edit = can_edit_character(user, character, campaign)
         context["party"] = pcs
         if self.is_master:
+            context["skill_requests"] = list(UniqueSkill.objects.filter(
+                status=UniqueSkill.Status.PENDIENTE, character__campaigns=campaign).select_related("character__player")
+                .distinct().order_by("updated_at"))
+            context["xp_party"] = [c for c in pcs if c.status == Character.Status.APROBADO]
             with_character = {c.player_id for c in pcs}
             context["no_character"] = [u for u in campaign.players.order_by("username") if u.pk not in with_character]
             context["npcs"] = list(in_campaign.filter(is_npc=True).select_related("template").order_by("name"))
@@ -106,6 +114,100 @@ def character_copy(request, campaign, pk):
     return respond(request, redirect_to=back, msg=msg)
 
 
+def names_text(names):
+    names = list(names)
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " y " + names[-1]
+
+
+@require_POST
+@campaign_member
+def party_xp(request, campaign):
+    """The master gives the same XP to the party members they tick. Whoever gets
+    enough for the next level sees «Subir de nivel» on their sheet."""
+    master_only(request)
+    back = reverse("characters", args=[campaign.pk])
+    amount = _positive(request.POST.get("cantidad"))
+    if amount is None:
+        return respond(request, redirect_to=back, error=True, msg="Escribe cuánta XP das a cada uno.")
+    ids = [value for value in request.POST.getlist("personajes") if value.isdigit()]
+    chosen = campaign.party.filter(pk__in=ids)
+    if not chosen.exists():
+        return respond(request, redirect_to=back, error=True, msg="Marca al menos un personaje del grupo.")
+    chosen.update(xp=F("xp") + amount)
+    chosen = list(campaign.party.filter(pk__in=ids).order_by("name"))
+    msg = f"{amount} XP para {names_text(c.name for c in chosen)}."
+    ready = [c.name for c in chosen if c.can_level_up]
+    if ready:
+        msg += f" Ya pueden subir de nivel: {names_text(ready)}."
+    return respond(request, redirect_to=back, msg=msg)
+
+
+# ---------------------------------------------------------------------------
+# Habilidad única (game rule 17): the player proposes it, a master approves it
+# (changing it if needed) or rejects it. Used by the sheet and the list.
+# ---------------------------------------------------------------------------
+
+def unique_skill_of(character):
+    return UniqueSkill.objects.filter(character=character).select_related("ability").first()
+
+
+def _skill_text(data):
+    form = UniqueSkillForm(data)
+    if not form.is_valid():
+        raise SheetError(next(iter(form.errors.values()))[0])
+    return form.cleaned_data["name"].strip(), form.cleaned_data["description"].strip()
+
+
+def propose_unique_skill(request, character, data):
+    """A player proposes (or rewrites) their character's unique skill; when a master
+    writes it, it is approved at once. Returns the message."""
+    name, description = _skill_text(data)
+    skill = unique_skill_of(character) or UniqueSkill(character=character)
+    if skill.status == UniqueSkill.Status.APROBADA and skill.pk:
+        raise SheetError(f"{character.name} ya tiene su habilidad única: {skill.name}.")
+    if request.campaign.is_master(request.user):
+        try:
+            skill.approve(name, description)
+        except ValidationError as error:
+            raise SheetError(" ".join(error.messages))
+        return f"{character.name} tiene la habilidad única {name}."
+    skill.propose(name, description)
+    skill.save()
+    return f"Propuesta enviada: el máster aprobará, cambiará o rechazará {name}."
+
+
+def review_unique_skill(skill, action, data):
+    """A master approves the proposal (with their changes, if any) or rejects it. Returns the message."""
+    note = (data.get("nota") or "").strip()[:2000]
+    who = skill.character.name
+    if action == "rechazar":
+        skill.reject(note)
+        return f"Has rechazado la habilidad única de {who}." + (" Verá tu nota." if note else "")
+    name, description = _skill_text(data)
+    changed = (name, description) != (skill.name, skill.description)
+    try:
+        skill.approve(name, description, note)
+    except ValidationError as error:
+        raise SheetError(" ".join(error.messages))
+    return f"{who} tiene la habilidad única {name}" + (", con tus cambios." if changed else ".")
+
+
+@require_POST
+@campaign_member
+def unique_skill_review(request, campaign, pk):
+    """Approve, change or reject a unique skill from the list of things to review."""
+    master_only(request)
+    skill = get_object_or_404(UniqueSkill.objects.select_related("character"), pk=pk,
+                              character__campaigns=campaign, status=UniqueSkill.Status.PENDIENTE)
+    back = reverse("characters", args=[campaign.pk])
+    try:
+        with transaction.atomic():
+            msg = review_unique_skill(skill, request.POST.get("accion"), request.POST)
+    except SheetError as error:
+        return respond(request, redirect_to=back, error=True, msg=str(error))
+    return respond(request, redirect_to=back, msg=msg)
+
+
 # ---------------------------------------------------------------------------
 # Ficha
 # ---------------------------------------------------------------------------
@@ -124,6 +226,16 @@ def spell_info(spell, character, max_slot):
         return [(0, attack.damage_text(character, extra))], rule
     rule = f"Daño base {base}" + (f"; +{per} por cada nivel de espacio por encima del {spell.level}." if per else ".")
     return [(slot, attack.damage_text(character, slot - spell.level)) for slot in range(spell.level, max_slot + 1)], rule
+
+
+def granted_sources(character):
+    """(label, link model, field, source) for the race, subrace, class and subclass
+    of the character that grant abilities; missing ones are left out."""
+    sources = [
+        ("Raza", RaceAbility, "race", character.race), ("Linaje", SubraceAbility, "subrace", character.subrace),
+        ("Clase", ClassAbility, "char_class", character.char_class), ("Subclase", SubclassAbility, "subclass", character.subclass),
+    ]
+    return [source for source in sources if source[3] is not None]
 
 
 def sheet_context(request, campaign, character):
@@ -189,18 +301,17 @@ def sheet_context(request, campaign, character):
         })
 
     granted = []
-    for label, link_model, field, source in [
-        ("Raza", RaceAbility, "race", character.race), ("Linaje", SubraceAbility, "subrace", character.subrace),
-        ("Clase", ClassAbility, "char_class", character.char_class), ("Subclase", SubclassAbility, "subclass", character.subclass),
-    ]:
-        if source is None:
-            continue
+    for label, link_model, field, source in granted_sources(character):
         links = link_model.objects.filter(**{field: source}).select_related("ability").order_by("level_required", "ability__name")
         granted.append({"title": f"{label} · {source.name}",
                         "items": [{"ability": link.ability, "level": link.level_required, "reached": level >= link.level_required}
                                   for link in links]})
 
     abilities = list(character.characterability_set.select_related("ability").order_by("ability__name"))
+    # The unique skill: everyone sees it once approved; the proposal, only its player and the masters.
+    skill = unique_skill_of(character)
+    if skill and skill.status != UniqueSkill.Status.APROBADA and not can_edit:
+        skill = None
     encounter = active_encounter(campaign)
     actor = current_combatant(encounter)
     history = character.events.filter(campaign=campaign)
@@ -211,7 +322,8 @@ def sheet_context(request, campaign, character):
         "character": character, "can_edit": can_edit, "tab": tab,
         "tabs": [{"key": k, "label": label, "current": k == tab} for k, label in SHEET_TABS],
         "level": level, "xp_next": next_xp,
-        "xp_pct": 100 if next_xp is None else round(100 * (character.xp - prev_xp) / (next_xp - prev_xp)),
+        # Past 100 % while the player has not levelled up yet; below 0 if the master took XP back.
+        "xp_pct": 100 if next_xp is None else rules.clamp(round(100 * (character.xp - prev_xp) / (next_xp - prev_xp)), 0, 100),
         "stats": [{"abbr": rules.ABILITY_ABBR[key], "score": getattr(character, key),
                    "mod": rules.ability_modifier(getattr(character, key))} for key in rules.ABILITY_KEYS],
         "armor": armor, "max_ap": character.max_ap, "max_magic_ap": character.max_magic_ap,
@@ -219,11 +331,15 @@ def sheet_context(request, campaign, character):
         "dying": character.temp_hp <= 0,
         "saves": [{"kind": kind, "label": label, "pips": [{"i": i, "on": i < getattr(character, field)} for i in range(rules.DEATH_SAVES)]}
                   for kind, label, field in [("exito", "Éxitos", "death_successes"), ("fallo", "Fallos", "death_failures")]],
-        "mp_pips": [i < character.magic_points for i in range(character.magic_points_max or 0)],
+        "mp_pips": [i < character.magic_points for i in range(character.magic_points_max)],
+        "spell_catalog": _spell_catalog(character) if is_master and tab == "spells" else [],
         "effects": list(character.activeeffect_set.select_related("effect").order_by("effect__name")),
         # States to add: the effects that are not weapon or armor traits.
         "effect_catalog": Effect.objects.filter(itemeffect__isnull=True, armortype__isnull=True).distinct().order_by("name") if can_edit else [],
         "abilities": abilities, "tracked": [a for a in abilities if a.tracked],
+        # «Habilidades propias» without the unique skill, which has its own card.
+        "own_abilities": [a for a in abilities if not (skill and a.ability_id == skill.ability_id)],
+        "unique_skill": skill, "can_propose_skill": can_edit and (skill is None or skill.status != UniqueSkill.Status.APROBADA),
         "weapons": weapons, "spell_groups": sorted(spell_groups.items()), "max_slot": max_slot,
         "inventory": rows, "gold": gold.quantity if gold else 0,
         "catalog": Item.objects.filter(template__isnull=True).order_by("name") if can_edit else [],
@@ -231,6 +347,15 @@ def sheet_context(request, campaign, character):
         "history": history.select_related("session").order_by("session__number", "id"),
         "my_turn": bool(actor and actor.character_id == character.pk), "encounter": encounter,
     }
+
+
+def _spell_catalog(character):
+    """Spells a master can teach the character: those of its class list first, then the rest."""
+    class_ids = set(character.char_class.spells.values_list("pk", flat=True))
+    spells = list(Spell.objects.exclude(pk__in=character.spells.values("pk")).order_by("level", "name"))
+    groups = [(f"Lista de {character.char_class.name}", [sp for sp in spells if sp.pk in class_ids]),
+              ("Otros conjuros", [sp for sp in spells if sp.pk not in class_ids])]
+    return [(label, group) for label, group in groups if group]
 
 
 class SheetView(CampaignMemberMixin, TemplateView):
@@ -329,11 +454,58 @@ def _apply(request, character, action, arg):
             return f"AP restaurado: {character.temp_ap}."
         character.temp_ap = rules.clamp(character.temp_ap + (1 if action == "ap_mas" else -1), 0, character.max_ap)
         return ""
+    if action in ("xp_dar", "xp_quitar"):
+        # Only masters give XP; the level waits until the player levels up.
+        if not request.is_master:
+            raise PermissionDenied("Solo el máster da experiencia.")
+        amount = _positive(post.get("cantidad"))
+        if amount is None:
+            raise SheetError("Escribe cuánta XP.")
+        before = character.xp
+        character.xp = before + amount if action == "xp_dar" else max(0, before - amount)
+        msg = f"{name}: XP {before} → {character.xp}."
+        if character.can_level_up:
+            msg += f" Ya puede subir al nivel {character.level + 1}."
+        return msg
     if action in ("insp_dar", "insp_gastar"):
         if action == "insp_gastar" and character.inspiration <= 0:
             raise SheetError(f"{name} no tiene inspiración.")
         character.inspiration += 1 if action == "insp_dar" else -1
         return ""
+    if action == "magia_ajuste":
+        # The master adds or takes away magic points over what the class gives.
+        if not request.is_master:
+            raise PermissionDenied("Solo el máster ajusta los puntos de magia.")
+        try:
+            bonus = int(post.get("ajuste", ""))
+        except ValueError:
+            raise SheetError("Escribe el ajuste: un número, positivo o negativo.")
+        before = character.magic_points_max
+        character.magic_points_bonus = bonus
+        after = character.magic_points_max
+        character.magic_points = rules.clamp(character.magic_points + after - before, 0, after)
+        return (f"{name}: {character.class_magic_points} puntos de magia por {character.char_class.name} "
+                f"nivel {character.level}, ajuste {bonus:+d}. Máximo {before} → {after}.")
+    if action == "unica_proponer":
+        return propose_unique_skill(request, character, post)
+    if action in ("unica_aprobar", "unica_rechazar"):
+        if not request.is_master:
+            raise PermissionDenied("Solo el máster revisa las habilidades únicas.")
+        skill = get_object_or_404(UniqueSkill, character=character, status=UniqueSkill.Status.PENDIENTE)
+        return review_unique_skill(skill, "rechazar" if action == "unica_rechazar" else "aprobar", post)
+    if action in ("conjuro_ensenar", "conjuro_olvidar"):
+        # Spells are given by the master (bought, learnt in the story...), not chosen when levelling up.
+        if not request.is_master:
+            raise PermissionDenied("Solo el máster enseña conjuros.")
+        if action == "conjuro_olvidar":
+            spell = get_object_or_404(character.spells, pk=post.get("conjuro"))
+            character.spells.remove(spell)
+            return f"{name} olvida {spell.name}."
+        spell = get_object_or_404(Spell, pk=post.get("conjuro"))
+        if character.spells.filter(pk=spell.pk).exists():
+            raise SheetError(f"{name} ya conoce {spell.name}.")
+        character.spells.add(spell)
+        return f"{name} aprende {spell.name}."
     if action in ("magia_gastar", "magia_recuperar"):
         if not character.has_magic:
             raise SheetError(f"{name} no usa puntos de magia.")
@@ -477,8 +649,8 @@ def _portrait(request, campaign, character):
 # the session. A player's character is «pendiente» until the master approves it.
 # ---------------------------------------------------------------------------
 
-STEPS = [gettext_noop("Raza y linaje"), gettext_noop("Clase"), gettext_noop("Características"), gettext_noop("Nombre, retrato y trasfondo"), gettext_noop("Equipo inicial"), gettext_noop("Resumen")]
-STEP_FORMS = [RaceStepForm, ClassStepForm, ScoresStepForm, IdentityStepForm, EquipmentStepForm]
+STEPS = [gettext_noop("Raza y linaje"), gettext_noop("Clase"), gettext_noop("Características"), gettext_noop("Nombre, retrato y trasfondo"), gettext_noop("Equipo inicial"), gettext_noop("Habilidad única"), gettext_noop("Resumen")]
+STEP_FORMS = [RaceStepForm, ClassStepForm, ScoresStepForm, IdentityStepForm, EquipmentStepForm, UniqueSkillStepForm]
 LAST_STEP = len(STEPS) - 1
 
 
@@ -507,7 +679,9 @@ def _initial(draft, step):
         return {"method": draft.get("method", "puntos"), **draft.get("scores", {})}
     if step == 3:
         return {"name": draft.get("name", ""), "background": draft.get("background", ""), "player": draft.get("player")}
-    return {"weapons": draft.get("weapons", []), "armor": draft.get("armor")}
+    if step == 4:
+        return {"weapons": draft.get("weapons", []), "armor": draft.get("armor")}
+    return {"name": draft.get("skill_name", ""), "description": draft.get("skill_description", "")}
 
 
 def _store(draft, step, form):
@@ -529,6 +703,8 @@ def _store(draft, step, form):
     elif step == 4:
         draft["weapons"] = [item.pk for item in data["weapons"]]
         draft["armor"] = data["armor"].pk if data.get("armor") else None
+    elif step == 5:
+        draft["skill_name"], draft["skill_description"] = data["name"].strip(), data["description"].strip()
 
 
 def draft_problems(draft):
@@ -662,6 +838,14 @@ def _create_character(request, campaign, draft):
         background=draft.get("background", ""), portrait=draft.get("portrait", ""), **scores,
     )
     character.campaigns.add(campaign)
+    if draft.get("skill_name"):
+        # The unique skill waits for a master, unless a master is creating the character.
+        skill = UniqueSkill(character=character)
+        if is_master:
+            skill.approve(draft["skill_name"], draft["skill_description"])
+        else:
+            skill.propose(draft["skill_name"], draft["skill_description"])
+            skill.save()
     for pk in draft.get("weapons", []) + ([draft["armor"]] if draft.get("armor") else []):
         template = Item.objects.filter(pk=pk, template__isnull=True).first()
         if template is None:
@@ -671,5 +855,152 @@ def _create_character(request, campaign, draft):
         Weapon.objects.filter(item=copy).update(equipped=True)
         Armor.objects.filter(item=copy).update(equipped=True)
     character.temp_ap = character.max_ap
-    character.save(update_fields=["temp_ap"])
+    character.magic_points = character.magic_points_max  # what the class gives at level 1, full
+    character.save(update_fields=["temp_ap", "magic_points"])
     return character
+
+
+# ---------------------------------------------------------------------------
+# Subir de nivel: the master gives XP, and once it reaches the next level the
+# player (or a master) goes up from the sheet, one level at a time, choosing what
+# that level gives: the subclass (SRD 5.2.1) and, every 4 levels, the ability
+# score improvement or a feat. House rules: hit points are 1d4 rolled at the table
+# + Constitution; magic points come from the class and level; spells are given by
+# the master, not chosen here.
+# ---------------------------------------------------------------------------
+
+class LevelUpError(Exception):
+    """The level cannot be saved: nothing is changed and the message is shown."""
+
+
+def level_up_plan(character):
+    """What going up to the next level gives `character` and what there is to choose."""
+    level = character.level + 1
+    features = []
+    for label, link_model, field, source in granted_sources(character):
+        for link in link_model.objects.filter(**{field: source}, level_required=level).select_related("ability"):
+            features.append({"source": f"{label} · {source.name}", "ability": link.ability})
+    subclasses = []
+    if level >= rules.SUBCLASS_LEVEL and character.subclass_id is None:
+        for subclass in character.char_class.subclasses.order_by("name"):
+            links = SubclassAbility.objects.filter(subclass=subclass, level_required__lte=level).select_related("ability")
+            subclasses.append({"subclass": subclass, "features": [link.ability for link in links.order_by("level_required", "ability__name")]})
+    feat_level = rules.is_feat_level(level)
+    feats = []
+    if feat_level:
+        # Feats it does not have yet, and no unique feat another character of its campaigns has (game rule 6).
+        held, campaigns = character.all_ability_ids(), list(character.campaigns.all())
+        feats = [feat for feat in Ability.objects.filter(feat=True, feat_min_level__lte=level).exclude(pk__in=held).order_by("name")
+                 if not (feat.unique and unique_ability_conflicts(character, campaigns, [feat.pk]))]
+    magic = max(0, rules.class_magic_points(character.char_class.magic, level) + character.magic_points_bonus)
+    return {
+        "level": level, "die": rules.LEVEL_UP_HIT_DIE, "con": character.modifier("con"),
+        "features": features, "subclasses": subclasses, "feat_level": feat_level, "feats": feats,
+        "magic_before": character.magic_points_max, "magic_after": magic,
+    }
+
+
+@transaction.atomic
+def apply_level_up(character_pk, level, form):
+    """Save one level up with the form's choices and return the message for the sheet."""
+    character = Character.objects.select_for_update().select_related("char_class").get(pk=character_pk)
+    if character.level + 1 != level or not character.can_level_up:
+        raise LevelUpError(f"{character.name} ya no puede subir al nivel {level}.")
+    data, old_level, old_con = form.cleaned_data, character.level, character.modifier("con")
+    done = []
+    increases = form.increases()
+    for key, points in increases.items():
+        setattr(character, key, getattr(character, key) + points)
+    if increases:
+        done.append(" y ".join(f"{rules.ABILITY_ABBR[key]} +{points}" for key, points in increases.items()))
+    feat = form.feat()
+    if feat is not None:
+        done.append(f"dote {feat.name}")
+    if data.get("subclass"):
+        character.subclass = data["subclass"]
+        done.append(f"subclase {character.subclass.name}")
+    magic_before = character.magic_points_max
+    character.level = level
+    # The new level's magic points: the maximum and the current ones go up the same.
+    magic_after = character.magic_points_max
+    character.magic_points = rules.clamp(character.magic_points + magic_after - magic_before, 0, magic_after)
+
+    con = character.modifier("con")
+    gain = rules.level_up_hit_points(data["hp_roll"], con)
+    how = f"1d{rules.LEVEL_UP_HIT_DIE}: {data['hp_roll']}, Constitución {con:+d}"
+    # A new Constitution modifier counts for the levels already had too (SRD).
+    if con != old_con:
+        gain += (con - old_con) * old_level
+        how += f", {(con - old_con) * old_level:+d} por la Constitución de los niveles anteriores"
+    before = character.hp
+    character.hp += gain
+    change_hp(character, gain)
+    try:
+        # Unique abilities (game rule 6): the new level, subclass or feat may grant one.
+        character.full_clean(exclude=["portrait"])
+        character.save()
+        if feat is not None:
+            row = CharacterAbility(character=character, ability=feat)
+            row.full_clean()
+            row.save()
+    except ValidationError as error:
+        raise LevelUpError(" ".join(error.messages))
+
+    msg = f"{character.name} sube al nivel {level}. Vida máxima {before} → {character.hp} ({how})."
+    if magic_after != magic_before:
+        msg += f" Puntos de magia máximos {magic_before} → {magic_after}."
+    if done:
+        text = "; ".join(done)
+        msg += f" {text[0].upper()}{text[1:]}."
+    if character.can_level_up:
+        msg += f" Todavía puede subir al nivel {level + 1}."
+    return msg
+
+
+@campaign_member
+def level_up(request, campaign, pk):
+    """The «Subir de nivel» screen. Players level up their own characters; masters, any in their campaign."""
+    character = character_in_campaign(campaign, pk, request.user)
+    if not can_edit_character(request.user, character, campaign):
+        raise PermissionDenied("Esta ficha no es tuya.")
+    sheet_url = reverse("sheet", args=[campaign.pk, character.pk])
+    if not character.can_level_up:
+        next_xp = rules.xp_for_next_level(character.level)
+        messages.error(request, f"{character.name} está en el nivel {character.level}"
+                       + (f" y necesita {next_xp} XP para el siguiente: tiene {character.xp}." if next_xp else ", el máximo."))
+        return redirect(sheet_url)
+    plan = level_up_plan(character)
+    form = LevelUpForm(request.POST if request.method == "POST" else None, character=character, plan=plan)
+    if request.method == "POST":
+        # The choices were made for one level: if it is done already (sent twice), do not repeat them.
+        if request.POST.get("nivel") != str(plan["level"]):
+            messages.error(request, f"{character.name} ya está en el nivel {character.level}.")
+            return redirect(sheet_url)
+        if form.is_valid():
+            try:
+                msg = apply_level_up(character.pk, plan["level"], form)
+            except LevelUpError as error:
+                form.add_error(None, str(error))
+            else:
+                messages.success(request, msg)
+                return redirect(sheet_url)
+    return render(request, "level_up.html", _level_up_context(request, campaign, character, plan, form))
+
+
+def _level_up_context(request, campaign, character, plan, form):
+    bound = form.is_bound
+    chosen_subclass = str(form.data.get("subclass", "")) if bound else ""
+    choice = str(form.data.get("choice", "")) if bound else LevelUpForm.IMPROVEMENT
+    con = plan["con"]
+    return {
+        "campaign": campaign, "is_master": request.is_master,
+        "character": character, "plan": plan, "form": form,
+        "hp_range": (rules.level_up_hit_points(1, con), rules.level_up_hit_points(plan["die"], con)),
+        "stats": [{"key": key, "abbr": rules.ABILITY_ABBR[key], "label": label, "score": getattr(character, key),
+                   "mod": rules.ability_modifier(getattr(character, key))} for key, label in LevelUpForm.SCORES],
+        "asi_first": form.data.get("asi_first", "") if bound else "",
+        "asi_second": form.data.get("asi_second", "") if bound else "",
+        "subclasses": [{**option, "checked": str(option["subclass"].pk) == chosen_subclass} for option in plan["subclasses"]],
+        "improvement_checked": choice == LevelUpForm.IMPROVEMENT,
+        "feats": [{"feat": feat, "checked": str(feat.pk) == choice} for feat in plan["feats"]],
+    }

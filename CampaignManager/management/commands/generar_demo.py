@@ -23,11 +23,12 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
 
+from CampaignManager import rules
 from CampaignManager.models import (
     Ability, ActiveEffect, Armor, ArmorType, BoardCard, BoardLink, Campaign, Character,
     CharacterAbility, CharacterClass, Combatant, Effect, Encounter, Inventory, Item, Map,
     MapLocation, Page, PartyMove, Post, Quest, QuestObjective, Race, Scene, Session, Spell,
-    Subclass, Subrace, TimelineEvent, User, Weapon,
+    Subclass, Subrace, TimelineEvent, UniqueSkill, User, Weapon,
 )
 
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
@@ -76,7 +77,8 @@ ORC = dict(race="Orco", cls="Guerrero", xp=300, hp=15, thp=15, ac=13, tap=2, st=
 
 CHARACTERS = {
     "aria": dict(name="Aria", player="lucia", race="Elfo", sub="alto elfo", cls="Mago", scl="Evocador", xp=6500, hp=28, thp=24,
-                 ac=12, tap=1, st=[8, 14, 13, 17, 12, 10], mp=(9, 12), notes="Preguntar a Oswin qué hay en la caja.",
+                 ac=12, tap=1, st=[8, 14, 13, 17, 12, 10], mp=9, notes="Preguntar a Oswin qué hay en la caja.",
+                 unique=("Lectora de runas", "Entiende cualquier runa o escritura mágica que vea, aunque no conozca la lengua. Una vez por descanso largo, al tocar una runa, sabe quién la trazó y cuándo.", True),
                  bg="Aprendiz expulsada de la Academia de Puerto Gris por leer libros prohibidos. Busca a quien escribió las runas del pacto.",
                  acts=[uses("Recuperación arcana", 1, "largo", 1), cooldown("Alto elfo: paso brumoso", 3, 1)],
                  spells=["Luz", "Mano de mago", "Rayo de escarcha", "Toque helado", "Armadura de mago", "Detectar magia",
@@ -91,6 +93,7 @@ CHARACTERS = {
                       it("Brigantina", "armor"), it(GOLD, "item", 124), it("Poción de curación", "item", 2), it("Antorcha", "item", 3)]),
     "kaida": dict(name="Kaida", player="ane", race="Tiefling", sub="infernal", cls="Pícaro", scl="Ladrón", xp=2700, hp=27, thp=19,
                   ac=14, tap=2, st=[10, 17, 12, 13, 10, 14], fx=[("Envenenado", 2)],
+                  unique=("Suerte de ladrona", "Una vez por descanso largo, cuando falla una tirada de Destreza, puede repetirla y quedarse con el nuevo resultado.", False),
                   bg="Ladrona con deudas en los muelles. Dice que la corona no le importa; nadie la cree.",
                   acts=[cooldown("Golpe astuto", 2, 0), uses("Legado infernal: reprensión infernal", 1, "largo", 0)],
                   inv=[it("Arco corto", "weapon", equipped=True), it("Daga", "weapon", equipped=True), it("Revolver", "weapon"),
@@ -102,9 +105,9 @@ CHARACTERS = {
                  acts=[cooldown("Golpe aturdidor", 1, 0)], inv=[it("Lanza", "weapon", equipped=True), it(GOLD, "item", 30)]),
     "orco": dict(name="Saqueador orco", npc=True, **ORC),
     "oswin": dict(name="Oswin, el mercader", npc=True, race="Mediano", cls="Bardo", xp=0, hp=9, thp=9, ac=10, tap=0,
-                  st=[9, 11, 10, 14, 13, 15], mp=(4, 4), inv=[it(GOLD, "item", 900), it("Poción de curación", "item", 6)]),
+                  st=[9, 11, 10, 14, 13, 15], mp=2, inv=[it(GOLD, "item", 900), it("Poción de curación", "item", 6)]),
     "morwen": dict(name="Lady Morwen", npc=True, race="Tiefling", sub="abisal", cls="Brujo", scl="Patrón infernal", xp=14000,
-                   hp=44, thp=44, ac=15, tap=3, st=[10, 14, 14, 12, 13, 18], mp=(10, 10),
+                   hp=44, thp=44, ac=15, tap=3, st=[10, 14, 14, 12, 13, 18], mp=6,
                    acts=[uses("Pacto de la Ceniza", 1, "largo", 1)],
                    inv=[it("Revolver", "weapon", equipped=True), it("Brigantina", "armor", equipped=True)]),
 }
@@ -341,15 +344,13 @@ class Command(BaseCommand):
         sub = Subrace.objects.get(name=SUBRACES[data["sub"]]) if data.get("sub") else None
         scl = Subclass.objects.get(name=data["scl"]) if data.get("scl") else None
         st = data["st"]
-        mp = data.get("mp")
         character = Character.objects.create(
             name=data["name"], player=self.users.get(data.get("player")), is_npc=data.get("npc", False),
             race=Race.objects.get(name=data["race"]), subrace=sub,
             char_class=CharacterClass.objects.get(name=data["cls"]), subclass=scl,
-            xp=data["xp"], hp=data["hp"], temp_hp=data["thp"], ac=data["ac"], temp_ap=0, inspiration=data.get("insp", 0),
+            xp=data["xp"], level=rules.level_for_xp(data["xp"]), hp=data["hp"], temp_hp=data["thp"], ac=data["ac"], temp_ap=0, inspiration=data.get("insp", 0),
             strength=st[0], dexterity=st[1], constitution=st[2], intelligence=st[3], wisdom=st[4], charisma=st[5],
             background=data.get("bg", ""), notes=data.get("notes", ""),
-            magic_points=mp[0] if mp else 0, magic_points_max=mp[1] if mp else None,
         )
         for act in data.get("acts", []):
             row = CharacterAbility(character=character, ability=Ability.objects.get(name=act["name"]))
@@ -359,6 +360,17 @@ class Command(BaseCommand):
                 row.max_uses, row.uses_left, row.recharge = act["max"], act["left"], act["rest"]
             row.full_clean()
             row.save()
+        if "unique" in data:
+            # Unique skill (rule 17): (name, description, approved by the master?).
+            name, description, approved = data["unique"]
+            skill = UniqueSkill(character=character)
+            if approved:
+                skill.approve(name, description)
+                CharacterAbility.objects.filter(character=character, ability=skill.ability).update(
+                    max_uses=1, uses_left=1, recharge=CharacterAbility.Recharge.LARGO)
+            else:
+                skill.propose(name, description)
+                skill.save()
         character.spells.set(Spell.objects.get(name=n) for n in data.get("spells", []))
         for name, turns in data.get("fx", []):
             ActiveEffect.objects.create(character=character, effect=Effect.objects.get(name=name), remaining_turns=turns)
@@ -370,7 +382,9 @@ class Command(BaseCommand):
                 Weapon.objects.filter(item=item).update(equipped=True)
                 Armor.objects.filter(item=item).update(equipped=True)
         character.temp_ap = min(data["tap"], character.max_ap)
-        character.save(update_fields=["temp_ap"])
+        # Current magic points ("mp"); the maximum comes from the class and the level.
+        character.magic_points = min(data.get("mp", 0), character.magic_points_max)
+        character.save(update_fields=["temp_ap", "magic_points"])
         return character
 
     def build_campaign(self, key, campaign):

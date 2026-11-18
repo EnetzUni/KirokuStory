@@ -26,6 +26,7 @@ import datetime
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
+from CampaignManager import rules
 from CampaignManager.models import (
     Ability,
     Attack,
@@ -231,7 +232,7 @@ class Command(BaseCommand):
         # Balasar, from his level 10 druid character sheet
         balasar = upsert(
             Character, {"name": "Balasar"},
-            xp=50250, hp=56, temp_hp=56, ac=14, temp_ap=0, inspiration=0,
+            xp=50250, level=rules.level_for_xp(50250), hp=56, temp_hp=56, ac=14, temp_ap=0, inspiration=0,
             strength=8, dexterity=14, constitution=17, intelligence=12, wisdom=22, charisma=10,
             player=test_user, race=race, subrace=subrace, char_class=druid, subclass=moon,
             is_npc=False, template=None,

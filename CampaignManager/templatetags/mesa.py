@@ -1,11 +1,23 @@
 """Template helpers for «Mesa de campaña»."""
 import hashlib
+import os
 
 from django import template
+from django.contrib.staticfiles import finders
+from django.templatetags.static import static
 
 from .. import wiki as wiki_module
 
 register = template.Library()
+
+
+@register.simple_tag
+def asset(path):
+    """URL of our own CSS or JS with the file's modification time («mesa.js?v=…»),
+    so browsers load it again when it changes instead of keeping an old copy."""
+    url = static(path)
+    found = finders.find(path)
+    return f"{url}?v={int(os.path.getmtime(found))}" if found else url
 
 # Avatar colors when there is no portrait (contrast >= 4.5:1 with white).
 AVATAR_COLORS = ["#5B3E96", "#8C3B1E", "#1F4E89", "#1D6158", "#7A4F00", "#6B2142", "#4B5D3A", "#4A4640"]

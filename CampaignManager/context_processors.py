@@ -3,6 +3,7 @@ from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_noop
 
+from .models import Character, UniqueSkill
 from .permissions import user_campaigns
 from .services import active_encounter, current_combatant, scenes_awaiting
 
@@ -16,7 +17,8 @@ SECTIONS = [
 ]
 # url_name prefix -> section
 SECTION_OF = {"home": "home", "diary": "diary", "world": "world", "map": "map",
-              "characters": "characters", "sheet": "characters", "creator": "characters", "turns": "turns"}
+              "characters": "characters", "sheet": "characters", "creator": "characters", "level": "characters",
+              "turns": "turns"}
 STATUS_TEXT = {"activa": gettext_noop("Campaña activa"), "pausada": gettext_noop("Campaña en pausa"), "terminada": gettext_noop("Campaña terminada")}
 
 
@@ -46,14 +48,23 @@ def campaign_nav(request):
     encounter = active_encounter(current)
     actor = current_combatant(encounter)
     my_turn = bool(actor and actor.character_id and actor.character.player_id == user.pk)
+    # For masters: characters and unique skills waiting for their review.
+    to_review = 0
+    if is_master:
+        to_review = (Character.objects.filter(campaigns=current, status=Character.Status.PENDIENTE).count()
+                     + UniqueSkill.objects.filter(character__campaigns=current, status=UniqueSkill.Status.PENDIENTE).count())
     nav = []
     for key, label, url in SECTIONS:
         badge = ""
         if key == "diary" and awaiting:
             badge = str(awaiting)
+        if key == "characters" and to_review:
+            badge = str(to_review)
         if key == "turns" and encounter:
             badge = _("Te toca") if my_turn else f"R{encounter.round}"
         nav.append({"key": key, "label": _(label), "url": reverse(url, args=[current.pk]), "current": key == section, "badge": badge})
+    # On the phone the menu is folded: its button shows how many things wait for the reader.
     context.update(nav_campaign=current, nav_is_master=is_master, nav_role=role, nav_items=nav,
+                   nav_waiting=awaiting + to_review,
                    nav_status=_(STATUS_TEXT[current.status]))
     return context

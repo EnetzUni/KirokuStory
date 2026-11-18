@@ -32,7 +32,9 @@
 
   // ---- Formularios por AJAX ----
   // The button that sent the form, so its name/value travels with the data.
-  $(document).on("click", "form[data-ajax] [type=submit]", function () {
+  // ":submit" also matches <button> without a type attribute (submit by default);
+  // "[type=submit]" only matches the attribute, so it missed most buttons.
+  $(document).on("click", "form[data-ajax] :submit", function () {
     $(this).closest("form").data("submitter", this);
   });
 
@@ -87,17 +89,17 @@
     }
     event.preventDefault();
     var data = $form.serializeArray();
-    var submitter = $form.data("submitter");
+    var submitter = (event.originalEvent && event.originalEvent.submitter) || $form.data("submitter");
     if (submitter && submitter.name) { data.push({ name: submitter.name, value: submitter.value }); }
     $form.removeData("submitter");
-    $form.find("[type=submit]").prop("disabled", true);
+    $form.find(":submit").prop("disabled", true);
     $.post($form.attr("action") || window.location.href, $.param(data))
       .done(function (response) { applyResponse(response, $form); })
       .fail(function (xhr) {
         var message = (xhr.responseJSON && xhr.responseJSON.msg) || "No se ha podido guardar. Vuelve a intentarlo.";
         applyResponse({ msg: message, error: true }, $form);
       })
-      .always(function () { $form.find("[type=submit]").prop("disabled", false); });
+      .always(function () { $form.find(":submit").prop("disabled", false); });
   });
 
   // Links that load a part of the page (selecting a note on the board).

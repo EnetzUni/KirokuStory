@@ -146,6 +146,9 @@ form.en-linea{display:inline}
 .pestanas a{min-height:48px;padding:0 14px;border-bottom:3px solid transparent;color:var(--muted);text-decoration:none;display:flex;align-items:center;gap:6px;font-size:15px}
 .pestanas a[aria-current="page"]{color:var(--text);border-bottom-color:var(--accent);font-weight:700}
 .pestanas .insignia{background:var(--accent);color:var(--on-accent)}
+/* The count on the folded menu's button sits on its corner, so the button keeps its width. */
+.boton-menu{position:relative}
+.boton-menu .insignia{position:absolute;top:-7px;right:-7px}
 
 /* Barras de vida, AP y progreso */
 .barra{display:block;height:8px;border-radius:4px;background:var(--track);overflow:hidden}
@@ -283,6 +286,9 @@ form.en-linea{display:inline}
 .caracteristica small{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--muted)}
 .caracteristica b{font-size:28px;line-height:1.2}
 .caracteristica span{font-size:13px;padding:0 10px;border-radius:var(--r-ctl);border:1px solid var(--line);background:var(--surface)}
+/* La habilidad única del personaje: borde morado, como su pastilla «Única». */
+.habilidad-unica{border-color:var(--secret-text);border-left-width:6px}
+.habilidad-unica .rotulo{color:var(--secret-text)}
 .dato{border-radius:var(--r-card);padding:8px;background:var(--surface2);display:flex;flex-direction:column;align-items:center;text-align:center}
 .dato small{font-size:12px;color:var(--muted)} .dato b{font-size:20px}
 .pips{display:flex;flex-wrap:wrap;gap:5px}

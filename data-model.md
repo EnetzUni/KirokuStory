@@ -15,7 +15,7 @@ Text version of the entity-relationship diagram (`ER.drawio`), written as contex
 |---|---|
 | Users and campaigns | User, Campaign |
 | Characters | Character, Race, Subrace, CharacterClass, Subclass |
-| Abilities | Ability, CharacterAbility, RaceAbility, SubraceAbility, ClassAbility, SubclassAbility |
+| Abilities | Ability, CharacterAbility, RaceAbility, SubraceAbility, ClassAbility, SubclassAbility, UniqueSkill |
 | Spells and combat | Spell, Component, Attack, DiceRoll, ArmorDamage |
 | Effects | Effect, ActiveEffect |
 | Items and equipment | Item, ItemEffect, Inventory, Weapon, Armor, ArmorType |
@@ -60,7 +60,8 @@ Use Django's authentication system: a custom user model `class User(AbstractUser
 | Field | Type | Notes |
 |---|---|---|
 | name | string | |
-| xp | int | |
+| xp | int | Given by the master |
+| level | int | 1 to 20. Level reached: it goes up when the player levels up (see game rule 16), so it can be behind the XP |
 | hp | int | Maximum hit points |
 | temp_hp | int | Current hit points |
 | ac | int | Armor class |
@@ -86,7 +87,7 @@ Use Django's authentication system: a custom user model `class User(AbstractUser
 | death_successes | int | 0 to 3. Marked only at 0 hit points; cleared when hit points go above 0 or on a long rest |
 | death_failures | int | 0 to 3. Same as above |
 | magic_points | int | Current magic points |
-| magic_points_max | int | **Optional.** Maximum magic points, set by the master. Empty: the character does not use magic points |
+| magic_points_bonus | int | Default 0. The master's adjustment, positive or negative, to the magic points the class gives at the character's level |
 
 - Belongs to many Campaigns (*contiene*, many-to-many), or to none. There is no `campaign_id` column.
 - Has (*posee*) many Abilities through CharacterAbility, which stores their uses. An Ability can be held by many Characters, unless it is unique: then only one character per campaign (see game rules).
@@ -100,7 +101,8 @@ Not stored, calculated when needed:
 - **maximum AP and maximum magic AP**: from the equipped armor (see game rules).
 - **initiative**: from dexterity.
 - **passive perception**: from wisdom.
-- **level**: from xp, with the SRD table (300, 900, 2700…) in `CampaignManager/rules.py` (`XP_THRESHOLDS`).
+- **maximum magic points** (`magic_points_max`): what the class gives at the character's level (rule 15) + `magic_points_bonus`, at least 0. With 0, the character does not use magic points.
+- **level the XP is enough for** (`xp_level`): from xp, with the SRD table (300, 900, 2700…) in `CampaignManager/rules.py` (`XP_THRESHOLDS`). While it is above `level`, the character can level up (`can_level_up`).
 
 ### NPCs: templates and copies
 
@@ -146,6 +148,7 @@ NPCs are Characters with `is_npc = true`. There can be many of the same NPC (fou
 | name | string | |
 | primary_ability | string | |
 | description | text | |
+| magic | string | `completa` (full caster), `media` (half caster), `pacto` (pact magic) or `ninguna` (default). Gives the magic points at each level (rule 15) |
 
 - Defines (*define*) many Characters.
 - Grants (*otorga*) Abilities through ClassAbility.
@@ -175,6 +178,8 @@ NPCs are Characters with `is_npc = true`. There can be many of the same NPC (fou
 | name | string | |
 | unique | bool | If true, only one character per campaign can have it. Not exclusive for characters without a campaign (see game rules). |
 | description | text | |
+| feat | bool | Default false. A feat (*dote*): chosen when levelling up at levels 4, 8, 12, 16 and 20 instead of the ability score improvement (rule 16) |
+| feat_min_level | int | Default 4. Only for feats: the lowest level at which it can be chosen (19 for epic boons, so only at level 20) |
 
 - Applies (*aplica*) many Effects.
 
@@ -191,6 +196,20 @@ NPCs are Characters with `is_npc = true`. There can be many of the same NPC (fou
 | cooldown_left | int | Up to `cooldown_rounds` |
 
 The abilities a character holds directly (*posee*), with their uses. The master sets the uses and cooldowns: they are not read from the SRD text. «Usar» spends a use and starts the cooldown; a long rest gives back every use, a short rest only those with `recharge = corto`, and both end the cooldowns. In combat, the end of each round takes 1 from `cooldown_left`. Abilities granted by race, subrace, class or subclass appear on the sheet as traits; give the character a row here too if one has uses.
+
+### UniqueSkill
+
+A character's unique skill (*habilidad única*), one per character, with its approval (game rule 17).
+
+| Field | Type | Notes |
+|---|---|---|
+| character_id | FK → Character | One-to-one. Deleting the character deletes it |
+| name | string | |
+| description | text | What it does |
+| status | string | `pendiente` (default), `aprobada` or `rechazada` |
+| master_note | text | **Optional.** The master's note to the player: why it was rejected or changed |
+| ability_id | FK → Ability | **Optional.** One-to-one. The unique Ability created on approval; set only when approved (`CheckConstraint`). Deleting the ability deletes this row |
+| updated_at | datetime | |
 
 ### RaceAbility (link table)
 
@@ -621,7 +640,7 @@ These are house rules or constraints the diagram cannot express.
      - The `clean()` of RaceAbility, SubraceAbility, ClassAbility and SubclassAbility: a race, subrace, class or subclass cannot grant a unique ability that would leave two characters in a campaign with it.
 7. **Ability levels:** a character gets a race, subrace, class or subclass ability only once their level is at least `level_required`.
 8. **One class per character:** no multiclassing. A character has at most one subclass and at most one subrace.
-9. **Calculated, not stored:** speed comes from the race (subraces have no speed); maximum AP and magic AP come from the equipped armor; initiative and passive perception come from the ability scores; level comes from xp with the SRD table (`rules.XP_THRESHOLDS`).
+9. **Calculated, not stored:** speed comes from the race (subraces have no speed); maximum AP and magic AP come from the equipped armor; initiative and passive perception come from the ability scores. The level is stored (rule 16); the level the XP is enough for is calculated with the SRD table (`rules.XP_THRESHOLDS`).
 10. **Units:** distances (race speed, spell and attack range, attack area) are in meters; in melee, 1 square = 1 m. Attack cooldown is in rounds. A spell's or attack's range is empty when it is not a distance. Distances in feet (D&D books, character sheets) are converted with 6 ft = 2 m, rounded to the nearest meter: 30 ft = 10 m, 35 ft = 12 m, 25 ft = 8 m.
 11. **NPCs:**
    - Only NPCs can have a template (checked by a database constraint).
@@ -643,9 +662,22 @@ These are house rules or constraints the diagram cannot express.
    - **In code:** `Weapon.to_hit_bonus(character)` works it out, and `parse_to_hit()` splits a formula into its integer, ability and multiplier. The character page shows the to hit and damage of every weapon the character carries.
 15. **Open decisions (E4), kept in `CampaignManager/rules.py`:**
    - **XP → level:** the SRD table, `XP_THRESHOLDS`.
-   - **Magic points:** casting with a level N slot costs N points (`magic_point_cost`); cantrips cost nothing. The highest slot is `ceil(level / 2)`, at most 9 (`max_spell_slot`). The maximum is `Character.magic_points_max`, set by the master.
+   - **Magic points:** casting with a level N slot costs N points (`magic_point_cost`); cantrips cost nothing. The highest slot is `ceil(level / 2)`, at most 9 (`max_spell_slot`).
+   - **Maximum magic points (house rule):** given by the class and the level (`class_magic_points`): as many points as levels of the spell slots the SRD 5.2.1 gives that class, so the points are worth the same as the slots. A full caster uses the full caster table (level 1: 2, level 5: 16, level 20: 89); a half caster, that table at half its level rounded up; pact magic, the warlock's slots × their level; `ninguna`, 0. The master adds or takes away points per character (`Character.magic_points_bonus`).
    - **Ability uses:** set by the master in CharacterAbility, not read from the SRD.
    - **Character creation:** standard array (15, 14, 13, 12, 10, 8) or point buy (27 points, 8 to 15, SRD costs). Level 1 hit points = the class hit die's maximum + the Constitution modifier; armor class = 10 + the Dexterity modifier.
+16. **Experience and levels:** only masters give or take XP (from the sheet, or to several party members at once). XP never changes the level by itself: once `xp` reaches the next level of the table, the player (or a master) levels up from the sheet, one level at a time, with that level's choices (SRD 5.2.1):
+   - **Hit points (house rule):** 1d4 + the Constitution modifier, at least 1, whatever the class (`LEVEL_UP_HIT_DIE`). The die is rolled at the table in front of the master and the player types the result (1 to 4). Current hit points go up the same. If the Constitution modifier changes, the levels already had count it too.
+   - **Subclass:** chosen on reaching level 3 (`SUBCLASS_LEVEL`) if the character has none.
+   - **Ability score improvement or feat (house rule):** every 4 levels from level 4 (`FEAT_LEVELS`: 4, 8, 12, 16 and 20), for every class. Either two +1, to two scores or both to one, with no score above 20; or a feat: an Ability with `feat = true` and `feat_min_level` up to the new level that the character does not have yet. The feat is added to its abilities (CharacterAbility).
+   - **Magic points:** the maximum follows the new level (rule 15) and the current points go up the same.
+   - **Spells (house rule):** not chosen when levelling up. Only the master gives (or takes away) spells, from the sheet, when the character buys or learns one in the story.
+   - The new level, subclass or feat can grant a unique ability: rule 6 is checked before saving, and nothing changes if it fails. The level-up form says which level it is for, so sending it twice does not go up two levels.
+17. **Unique skill (house rule):** each character can have one unique skill (UniqueSkill).
+   - The player describes it (name and what it does) in the character creator, in an optional step, or later from the «Rasgos» tab of the sheet if the character has none.
+   - It waits for a master (`pendiente`). Masters see a counter on «Personajes» in the menu (and on the folded menu's button on the phone) and review it there or on the sheet: they approve it as it is, change it before approving it, or reject it, with an optional note the player sees. A rejected skill can be rewritten and sent again. When a master writes it, it is approved at once.
+   - Approving it creates an Ability with `unique = true` and gives it to the character (CharacterAbility), so rule 6 applies and the master can give it uses or a cooldown. The sheet shows it at the top of «Rasgos», highlighted.
+   - Until it is approved, only the character's player and the masters see it.
 
 ---
 
@@ -692,7 +724,7 @@ The two User ↔ Campaign relationships need different `related_name` values, ot
 ### Constraints and choices
 
 - `UniqueConstraint` on Inventory (`character`, `item`), ItemEffect (`item`, `effect`), CharacterAbility (`character`, `ability`), RaceAbility (`race`, `ability`), SubraceAbility (`subrace`, `ability`), ClassAbility (`char_class`, `ability`) and SubclassAbility (`subclass`, `ability`).
-- `CheckConstraint` on Character: `template` is empty or `is_npc` is true; death saves up to 3; `magic_points` up to `magic_points_max`.
+- `CheckConstraint` on Character: `template` is empty or `is_npc` is true; death saves up to 3. `magic_points` up to the calculated maximum is checked in `Character.clean()`.
 - `CheckConstraint` on CharacterAbility: `uses_left` up to `max_uses`, `cooldown_left` up to `cooldown_rounds`.
 - Campaign models: `UniqueConstraint` on Session (`campaign`, `number`), Page (`campaign`, `slug`), BoardLink (`card_a`, `card_b`) and one active Encounter per campaign; `CheckConstraint` on BoardLink (`card_a` < `card_b`) and Combatant (a character or a name).
 - `Campaign.status`: use `TextChoices` with `activa`, `pausada`, `terminada`.

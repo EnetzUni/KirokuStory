@@ -25,14 +25,37 @@ ABILITY_BY_CODE = {"str": "strength", "dex": "dexterity", "con": "constitution",
 
 DEATH_SAVES = 3  # successes or failures needed
 
+# Levelling up. Every class chooses its subclass at level 3 (SRD 5.2.1).
+# House rule: every 4 levels, from level 4, the player chooses the ability score
+# improvement (two +1, no score above 20) or a feat (an Ability marked as a feat).
+# Spells are not chosen when levelling up: the master gives them.
+SUBCLASS_LEVEL = 3
+FEAT_LEVELS = (4, 8, 12, 16, 20)
+MAX_SCORE = 20
+# House rule: each new level adds 1d4 + the Constitution modifier to the maximum
+# hit points, whatever the class. The die is rolled at the table, in front of the
+# master, and the player types the result.
+LEVEL_UP_HIT_DIE = 4
+
 
 def level_for_xp(xp):
-    """Character level for an amount of XP (game rule 9)."""
+    """Level an amount of XP is enough for. The character reaches it when the
+    player levels up from the sheet (game rule 16)."""
     level = 1
     for index, threshold in enumerate(XP_THRESHOLDS):
         if xp >= threshold:
             level = index + 1
     return level
+
+
+def is_feat_level(level):
+    """Levels where the player chooses the ability score improvement or a feat."""
+    return level in FEAT_LEVELS
+
+
+def level_up_hit_points(die_result, con_modifier):
+    """Hit points a new level adds: the 1d4 rolled at the table + the Constitution modifier, at least 1."""
+    return max(1, die_result + con_modifier)
 
 
 def xp_for_next_level(level):
@@ -53,6 +76,42 @@ def max_spell_slot(level):
 def magic_point_cost(slot_level):
     """Open decision: casting with a slot of level N costs N magic points; cantrips cost nothing."""
     return max(0, slot_level)
+
+
+# ---------------------------------------------------------------------------
+# Magic points by class and level
+# ---------------------------------------------------------------------------
+# A class gives as many magic points as levels of the spell slots the SRD 5.2.1
+# gives it: casting with a slot of level N costs N points, so the points are worth
+# the same as the slots. The master adds or takes away points per character
+# (Character.magic_points_bonus). The kinds are CharacterClass.Magic.
+
+# Spell slots of a full caster (bard, cleric, druid, sorcerer, wizard): how many of
+# levels 1, 2, 3... at character levels 1 to 20.
+FULL_CASTER_SLOTS = [
+    [2], [3], [4, 2], [4, 3], [4, 3, 2], [4, 3, 3], [4, 3, 3, 1], [4, 3, 3, 2], [4, 3, 3, 3, 1], [4, 3, 3, 3, 2],
+    [4, 3, 3, 3, 2, 1], [4, 3, 3, 3, 2, 1], [4, 3, 3, 3, 2, 1, 1], [4, 3, 3, 3, 2, 1, 1],
+    [4, 3, 3, 3, 2, 1, 1, 1], [4, 3, 3, 3, 2, 1, 1, 1], [4, 3, 3, 3, 2, 1, 1, 1, 1],
+    [4, 3, 3, 3, 3, 1, 1, 1, 1], [4, 3, 3, 3, 3, 2, 1, 1, 1], [4, 3, 3, 3, 3, 2, 2, 1, 1],
+]
+# Pact magic (warlock): (slots, slot level) at character levels 1 to 20.
+PACT_SLOTS = [(1, 1), (2, 1), (2, 2), (2, 2), (2, 3), (2, 3), (2, 4), (2, 4), (2, 5), (2, 5)] + [(3, 5)] * 6 + [(4, 5)] * 4
+
+
+def class_magic_points(magic, level):
+    """Magic points a class with this kind of magic gives at `level`:
+    "completa" (full caster), "media" (half caster: a full caster of half the
+    level, rounded up, like paladins and rangers), "pacto" (warlock) or "ninguna"."""
+    if magic == "pacto":
+        slots, slot_level = PACT_SLOTS[level - 1]
+        return slots * slot_level
+    if magic == "completa":
+        slots = FULL_CASTER_SLOTS[level - 1]
+    elif magic == "media":
+        slots = FULL_CASTER_SLOTS[math.ceil(level / 2) - 1]
+    else:
+        return 0
+    return sum(count * slot_level for slot_level, count in enumerate(slots, start=1))
 
 
 def point_buy_spent(scores):

@@ -51,8 +51,11 @@ urlpatterns = [
     # Personajes
     path(campaign + "personajes/", views_characters.CharacterListView.as_view(), name="characters"),
     path(campaign + "personajes/crear/", views_characters.creator, name="creator"),
+    path(campaign + "personajes/xp/", views_characters.party_xp, name="party_xp"),
+    path(campaign + "personajes/habilidad-unica/<int:pk>/", views_characters.unique_skill_review, name="unique_skill_review"),
     path(campaign + "personajes/<int:pk>/", views_characters.SheetView.as_view(), name="sheet"),
     path(campaign + "personajes/<int:pk>/accion/", views_characters.sheet_action, name="sheet_action"),
+    path(campaign + "personajes/<int:pk>/subir-nivel/", views_characters.level_up, name="level_up"),
     path(campaign + "personajes/<int:pk>/revision/", views_characters.character_review, name="character_review"),
     path(campaign + "personajes/<int:pk>/copiar/", views_characters.character_copy, name="character_copy"),
 

@@ -192,6 +192,7 @@
  "fields": {
   "name": "Aria",
   "xp": 6500,
+  "level": 5,
   "hp": 28,
   "temp_hp": 24,
   "ac": 12,
@@ -210,7 +211,7 @@
   "death_successes": 0,
   "death_failures": 0,
   "magic_points": 9,
-  "magic_points_max": 12,
+  "magic_points_bonus": 0,
   "player": [
    "lucia"
   ],
@@ -245,6 +246,7 @@
  "fields": {
   "name": "Brom",
   "xp": 2700,
+  "level": 4,
   "hp": 40,
   "temp_hp": 33,
   "ac": 16,
@@ -263,7 +265,7 @@
   "death_successes": 0,
   "death_failures": 0,
   "magic_points": 0,
-  "magic_points_max": null,
+  "magic_points_bonus": 0,
   "player": [
    "iker"
   ],
@@ -286,6 +288,7 @@
  "fields": {
   "name": "Kaida",
   "xp": 2700,
+  "level": 4,
   "hp": 27,
   "temp_hp": 19,
   "ac": 14,
@@ -304,7 +307,7 @@
   "death_successes": 0,
   "death_failures": 0,
   "magic_points": 0,
-  "magic_points_max": null,
+  "magic_points_bonus": 0,
   "player": [
    "ane"
   ],
@@ -327,6 +330,7 @@
  "fields": {
   "name": "Hana",
   "xp": 900,
+  "level": 3,
   "hp": 22,
   "temp_hp": 22,
   "ac": 15,
@@ -345,7 +349,7 @@
   "death_successes": 0,
   "death_failures": 0,
   "magic_points": 0,
-  "magic_points_max": null,
+  "magic_points_bonus": 0,
   "player": [
    "ane"
   ],
@@ -367,6 +371,7 @@
  "fields": {
   "name": "Saqueador orco",
   "xp": 300,
+  "level": 2,
   "hp": 15,
   "temp_hp": 15,
   "ac": 13,
@@ -385,7 +390,7 @@
   "death_successes": 0,
   "death_failures": 0,
   "magic_points": 0,
-  "magic_points_max": null,
+  "magic_points_bonus": 0,
   "player": null,
   "char_class": 7,
   "subclass": null,
@@ -403,6 +408,7 @@
  "fields": {
   "name": "Oswin, el mercader",
   "xp": 0,
+  "level": 1,
   "hp": 9,
   "temp_hp": 9,
   "ac": 10,
@@ -420,8 +426,8 @@
   "status": "aprobado",
   "death_successes": 0,
   "death_failures": 0,
-  "magic_points": 4,
-  "magic_points_max": 4,
+  "magic_points": 2,
+  "magic_points_bonus": 0,
   "player": null,
   "char_class": 2,
   "subclass": null,
@@ -441,6 +447,7 @@
  "fields": {
   "name": "Lady Morwen",
   "xp": 14000,
+  "level": 6,
   "hp": 44,
   "temp_hp": 44,
   "ac": 15,
@@ -458,8 +465,8 @@
   "status": "aprobado",
   "death_successes": 0,
   "death_failures": 0,
-  "magic_points": 10,
-  "magic_points_max": 10,
+  "magic_points": 6,
+  "magic_points_bonus": 0,
   "player": null,
   "char_class": 3,
   "subclass": 3,
@@ -479,6 +486,7 @@
  "fields": {
   "name": "Saqueador orco 1",
   "xp": 300,
+  "level": 2,
   "hp": 15,
   "temp_hp": 15,
   "ac": 13,
@@ -497,7 +505,7 @@
   "death_successes": 0,
   "death_failures": 0,
   "magic_points": 0,
-  "magic_points_max": null,
+  "magic_points_bonus": 0,
   "player": null,
   "char_class": 7,
   "subclass": null,
@@ -517,6 +525,7 @@
  "fields": {
   "name": "Saqueador orco 2",
   "xp": 300,
+  "level": 2,
   "hp": 15,
   "temp_hp": 15,
   "ac": 13,
@@ -535,7 +544,7 @@
   "death_successes": 0,
   "death_failures": 0,
   "magic_points": 0,
-  "magic_points_max": null,
+  "magic_points_bonus": 0,
   "player": null,
   "char_class": 7,
   "subclass": null,
@@ -3700,6 +3709,56 @@
   "hp_max": null,
   "order": 4
  }
+},
+{
+ "model": "CampaignManager.ability",
+ "pk": 290,
+ "fields": {
+  "name": "Lectora de runas",
+  "unique": true,
+  "description": "Entiende cualquier runa o escritura mágica que vea, aunque no conozca la lengua. Una vez por descanso largo, al tocar una runa, sabe quién la trazó y cuándo.",
+  "feat": false,
+  "feat_min_level": 4,
+  "effects": []
+ }
+},
+{
+ "model": "CampaignManager.characterability",
+ "pk": 13,
+ "fields": {
+  "character": 1,
+  "ability": 290,
+  "max_uses": 1,
+  "uses_left": 1,
+  "recharge": "largo",
+  "cooldown_rounds": null,
+  "cooldown_left": 0
+ }
+},
+{
+ "model": "CampaignManager.uniqueskill",
+ "pk": 1,
+ "fields": {
+  "character": 1,
+  "name": "Lectora de runas",
+  "description": "Entiende cualquier runa o escritura mágica que vea, aunque no conozca la lengua. Una vez por descanso largo, al tocar una runa, sabe quién la trazó y cuándo.",
+  "status": "aprobada",
+  "master_note": "",
+  "ability": 290,
+  "updated_at": "2026-11-15T19:00:00Z"
+ }
+},
+{
+ "model": "CampaignManager.uniqueskill",
+ "pk": 2,
+ "fields": {
+  "character": 3,
+  "name": "Suerte de ladrona",
+  "description": "Una vez por descanso largo, cuando falla una tirada de Destreza, puede repetirla y quedarse con el nuevo resultado.",
+  "status": "pendiente",
+  "master_note": "",
+  "ability": null,
+  "updated_at": "2026-11-16T10:30:00Z"
+ }
 }
 ]
-

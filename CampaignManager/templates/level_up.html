@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% load i18n mesa %}
+{% block title %}{% translate "Subir de nivel" %} · {{ character.name }}{% endblock %}
+{% block content %}
+<section class="pila" aria-labelledby="h-nivel">
+    <nav class="migas" aria-label="{% translate 'Ruta' %}"><a href="{% url 'characters' campaign.pk %}">{% translate "Personajes" %}</a> <span aria-hidden="true">›</span> <a href="{% url 'sheet' campaign.pk character.pk %}">{{ character.name }}</a> <span aria-hidden="true">›</span> <span>{% translate "Subir de nivel" %}</span></nav>
+    <div class="fila-s">
+        <span class="avatar" style="background:{{ character|avatar_color }}">{% if character.portrait %}<img src="{{ character.portrait.url }}" alt="">{% else %}{{ character.name|initial }}{% endif %}</span>
+        <div class="pila-s" style="gap:2px">
+            <h1 id="h-nivel">{% blocktranslate with name=character.name n=plan.level %}{{ name }} sube al nivel {{ n }}{% endblocktranslate %}</h1>
+            <span class="atenuado">{{ character.race.name }} · {{ character.char_class.name }}{% if character.subclass %} ({{ character.subclass.name }}){% endif %} · {% translate "nivel" %} {{ character.level }} → {{ plan.level }} · {{ character.xp }} XP</span>
+        </div>
+    </div>
+
+    <form method="post" class="pila" novalidate>{% csrf_token %}
+        <input type="hidden" name="nivel" value="{{ plan.level }}">
+        {% if form.non_field_errors %}<div class="aviso" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+
+        {# ---- Rasgos nuevos ---- #}
+        <div class="tarjeta compacta">
+            <h2 class="rotulo">{% blocktranslate with n=plan.level %}Lo que gana en el nivel {{ n }}{% endblocktranslate %}</h2>
+            {% for f in plan.features %}
+            <details><summary><b>{{ f.ability.name }}</b> <span class="pequeno atenuado">· {{ f.source }}</span></summary><p class="pequeno" style="white-space:pre-line">{{ f.ability.description }}</p></details>
+            {% empty %}<p class="atenuado">{% translate "Ningún rasgo nuevo de su raza o su clase en este nivel." %}</p>{% endfor %}
+        </div>
+
+        {# ---- Puntos de golpe ---- #}
+        <div class="tarjeta compacta">
+            <fieldset class="pila-s" style="border:0;padding:0;margin:0">
+                <legend class="rotulo" style="padding:0">{% translate "Puntos de golpe" %}</legend>
+                <p class="ayuda">{% blocktranslate with d=plan.die %}Tira 1d{{ d }} en la mesa, delante del máster, y escribe el resultado.{% endblocktranslate %}</p>
+                <div class="campo">
+                    <label for="id_hp_roll">{% blocktranslate with d=plan.die %}Resultado del 1d{{ d }}{% endblocktranslate %}</label>
+                    <div class="fila-s">
+                        <input id="id_hp_roll" class="entrada-num" style="width:88px" type="number" name="hp_roll" min="1" max="{{ plan.die }}" required inputmode="numeric" value="{{ form.hp_roll.value|default_if_none:'' }}"{% if form.hp_roll.errors %} aria-invalid="true"{% endif %}>
+                        <span>{{ plan.con|signed }} {% translate "de Constitución" %}</span>
+                    </div>
+                    {{ form.hp_roll.errors }}
+                </div>
+                <span class="ayuda">{% blocktranslate with low=hp_range.0 high=hp_range.1 hp=character.hp %}Gana de +{{ low }} a +{{ high }}. Vida máxima ahora: {{ hp }}; la vida actual sube lo mismo.{% endblocktranslate %}{% if plan.feat_level %} {% translate "Si sube la Constitución, la vida de los niveles anteriores sube también." %}{% endif %}</span>
+            </fieldset>
+        </div>
+
+        {# ---- Subclase ---- #}
+        {% if subclasses %}
+        <div class="tarjeta compacta">
+            <fieldset class="pila-s" style="border:0;padding:0;margin:0">
+                <legend class="rotulo" style="padding:0">{% translate "Subclase" %}</legend>
+                <p class="ayuda">{% blocktranslate with c=character.char_class.name %}Desde ahora, la subclase de {{ c }} le da rasgos en ciertos niveles.{% endblocktranslate %}</p>
+                {{ form.subclass.errors }}
+                <div class="rejilla-s" style="grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr))">
+                    {% for s in subclasses %}
+                    <label class="eleccion"><input type="radio" name="subclass" value="{{ s.subclass.pk }}"{% if s.checked or subclasses|length == 1 %} checked{% endif %}>
+                        <strong>{{ s.subclass.name }}</strong>
+                        {% if s.subclass.description %}<span class="pequeno atenuado">{{ s.subclass.description|plain|truncatechars:180 }}</span>{% endif %}
+                        {% if s.features %}<span class="pequeno">{% translate "Rasgos hasta este nivel" %}: {% for a in s.features %}{{ a.name }}{% if not forloop.last %} · {% endif %}{% endfor %}</span>{% endif %}
+                    </label>
+                    {% endfor %}
+                </div>
+            </fieldset>
+        </div>
+        {% endif %}
+
+        {# ---- Mejora de característica o dote (every 4 levels) ---- #}
+        {% if plan.feat_level %}
+        <div class="tarjeta compacta">
+            <fieldset class="pila-s" style="border:0;padding:0;margin:0">
+                <legend class="rotulo" style="padding:0">{% if feats %}{% translate "Mejora de característica o dote" %}{% else %}{% translate "Mejora de característica" %}{% endif %}</legend>
+                {% if feats %}
+                <p class="ayuda">{% translate "Elige una: la mejora de característica o una de las dotes." %}</p>
+                {{ form.choice.errors }}
+                <div class="rejilla-s" style="grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr))">
+                    <label class="eleccion"><input type="radio" name="choice" value="caracteristica"{% if improvement_checked %} checked{% endif %}>
+                        <strong>{% translate "Mejora de característica" %}</strong>
+                        <span class="pequeno atenuado">{% translate "+1 a dos características, o +2 a una. Se eligen debajo." %}</span>
+                    </label>
+                    {% for f in feats %}
+                    <label class="eleccion"><input type="radio" name="choice" value="{{ f.feat.pk }}"{% if f.checked %} checked{% endif %}>
+                        <strong>{{ f.feat.name }}{% if f.feat.unique %} <span class="pastilla p-morado">{% translate "Única" %}</span>{% endif %}</strong>
+                        {% if f.feat.description %}<span class="pequeno atenuado">{{ f.feat.description|plain|truncatechars:180 }}</span>{% endif %}
+                    </label>
+                    {% endfor %}
+                </div>
+                <span class="etiqueta">{% translate "Si eliges la mejora de característica" %}</span>
+                {% endif %}
+                <p class="ayuda">{% translate "Dos puntos: +1 a dos características, o +2 a una si eliges la misma dos veces. Ninguna pasa de 20." %}</p>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px">
+                    {% for s in stats %}<div class="caracteristica"><small>{{ s.abbr }}</small><b>{{ s.score }}</b><span>{{ s.mod|signed }}</span></div>{% endfor %}
+                </div>
+                <div class="fila-s" style="align-items:flex-start">
+                    <div class="campo" style="flex:1 1 180px">
+                        <label for="id_asi_first">{% translate "Primer punto" %}</label>
+                        <select id="id_asi_first" name="asi_first" class="entrada">
+                            <option value="">—</option>
+                            {% for s in stats %}<option value="{{ s.key }}"{% if s.key == asi_first %} selected{% endif %}>+1 {{ s.label }} ({{ s.score }})</option>{% endfor %}
+                        </select>
+                        {{ form.asi_first.errors }}
+                    </div>
+                    <div class="campo" style="flex:1 1 180px">
+                        <label for="id_asi_second">{% translate "Segundo punto" %}</label>
+                        <select id="id_asi_second" name="asi_second" class="entrada">
+                            <option value="">—</option>
+                            {% for s in stats %}<option value="{{ s.key }}"{% if s.key == asi_second %} selected{% endif %}>+1 {{ s.label }} ({{ s.score }})</option>{% endfor %}
+                        </select>
+                        {{ form.asi_second.errors }}
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+        {% endif %}
+
+        {# ---- Puntos de magia: from the class and level, nothing to choose ---- #}
+        {% if plan.magic_after != plan.magic_before %}
+        <div class="tarjeta compacta">
+            <h2 class="rotulo">{% translate "Puntos de magia" %}</h2>
+            <p>{% blocktranslate with a=plan.magic_before b=plan.magic_after c=character.char_class.name %}Máximo {{ a }} → {{ b }}, por {{ c }}. Los actuales suben lo mismo.{% endblocktranslate %}</p>
+        </div>
+        {% endif %}
+
+        {# The confirm button goes first in the HTML so that Enter confirms; row-reverse puts it on the right. #}
+        <div class="fila-s" style="flex-direction:row-reverse;justify-content:space-between;border-top:1px solid var(--line);padding-top:14px">
+            <button class="btn btn-principal">{% blocktranslate with n=plan.level %}Subir al nivel {{ n }}{% endblocktranslate %}</button>
+            <a class="btn btn-texto" href="{% url 'sheet' campaign.pk character.pk %}">{% translate "Ahora no" %}</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

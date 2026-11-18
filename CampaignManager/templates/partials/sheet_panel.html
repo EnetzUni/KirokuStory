@@ -11,7 +11,21 @@
                     {% if character.status == "pendiente" %}<span class="pastilla p-ambar">{% translate "Pendiente de aprobar" %}</span>{% endif %}
                 </div>
                 <span class="atenuado">{{ character.race.name }}{% if character.subrace %} ({{ character.subrace.name }}){% endif %} · {{ character.char_class.name }}{% if character.subclass %} ({{ character.subclass.name }}){% endif %} · {% translate "nivel" %} {{ level }}{% if character.player %} · {{ character.player.username }}{% endif %}{% if character.is_npc %} · {% translate "PNJ" %}{% endif %}</span>
-                <div class="medidor"><span>XP</span><span class="barra"><span style="width:{{ xp_pct }}%"></span></span><b style="min-width:auto">{{ character.xp }}{% if xp_next %} / {{ xp_next }}{% endif %}</b></div>
+                <div class="medidor"><span>XP</span><span class="barra"><span style="width:{{ xp_pct }}%"></span></span><b style="min-width:auto" data-valor="xp">{{ character.xp }}{% if xp_next %} / {{ xp_next }}{% endif %}</b></div>
+                {% if character.can_level_up and can_edit %}
+                <div class="fila-s">
+                    <a class="btn btn-principal" href="{% url 'level_up' campaign.pk character.pk %}"><span aria-hidden="true">↑</span> {% blocktranslate with n=level|add:1 %}Subir al nivel {{ n }}{% endblocktranslate %}</a>
+                    <span class="ayuda">{% if is_master and character.player %}{% blocktranslate with player=character.player.username %}{{ player }} lo verá en su ficha.{% endblocktranslate %}{% else %}{% translate "Ya tiene la experiencia: elige lo que le da el nuevo nivel." %}{% endif %}</span>
+                </div>
+                {% endif %}
+                {% if is_master %}
+                <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="contador">{% include "partials/sheet_hidden.html" %}
+                    <label class="sr-only" for="cantidad-xp">{% translate "Experiencia" %}</label>
+                    <input id="cantidad-xp" class="entrada-num" type="number" name="cantidad" min="1" inputmode="numeric" placeholder="XP">
+                    <button class="btn" name="accion" value="xp_dar">{% translate "Dar XP" %}</button>
+                    <button class="btn btn-texto" name="accion" value="xp_quitar">{% translate "Quitar XP" %}</button>
+                </form>
+                {% endif %}
             </div>
         </div>
     </article>
@@ -78,16 +92,26 @@
             {% endif %}
         </section>
 
-        {# ---- Magia ---- #}
-        {% if character.has_magic %}
+        {# ---- Magia: the maximum comes from the class and level, plus the master's adjustment ---- #}
+        {% if character.has_magic or is_master %}
         <section class="tarjeta compacta" aria-labelledby="h-magia">
             <h2 id="h-magia" class="rotulo">{% translate "Puntos de magia" %}</h2>
+            {% if character.has_magic %}
             <span class="numero-medio"><span data-valor="magia">{{ character.magic_points }}</span> <span class="atenuado" style="font-size:16px">/ {{ character.magic_points_max }}</span></span>
             <span class="pips" aria-hidden="true">{% for on in mp_pips %}<i class="pip{% if on %} lleno{% endif %}"></i>{% endfor %}</span>
             {% if can_edit %}
             <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="contador">{% include "partials/sheet_hidden.html" %}
                 <button class="btn btn-magia" name="accion" value="magia_gastar"{% if not character.magic_points %} disabled{% endif %}>{% translate "Gastar 1" %}</button>
                 <button class="btn" name="accion" value="magia_recuperar">{% translate "Recuperar 1" %}</button>
+            </form>
+            {% endif %}
+            {% else %}<p class="atenuado">{% translate "Sin puntos de magia." %}</p>{% endif %}
+            <span class="pequeno atenuado">{% blocktranslate with n=character.class_magic_points c=character.char_class.name l=level %}{{ n }} por {{ c }} nivel {{ l }}{% endblocktranslate %}{% if character.magic_points_bonus %} · {% blocktranslate with b=character.magic_points_bonus|signed %}ajuste del máster {{ b }}{% endblocktranslate %}{% endif %}</span>
+            {% if is_master %}
+            <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="contador">{% include "partials/sheet_hidden.html" %}
+                <label class="pequeno" for="ajuste-magia">{% translate "Ajuste del máster" %}</label>
+                <input id="ajuste-magia" class="entrada-num" type="number" name="ajuste" value="{{ character.magic_points_bonus }}" inputmode="numeric">
+                <button class="btn" name="accion" value="magia_ajuste">{% translate "Guardar" %}</button>
             </form>
             {% endif %}
         </section>
@@ -208,12 +232,30 @@
                 </form>
                 {% else %}<span class="ayuda">{% translate "Todavía no puede lanzarlo." %}</span>{% endif %}
                 {% endif %}
+                {% if is_master %}
+                <form method="post" action="{{ act }}" data-ajax data-target="#ficha">{% include "partials/sheet_hidden.html" %}<input type="hidden" name="conjuro" value="{{ s.spell.pk }}">
+                    <button class="btn btn-pequeno btn-texto" name="accion" value="conjuro_olvidar">{% translate "Olvidar" %}</button>
+                </form>
+                {% endif %}
             </article>
             {% endfor %}
         </div>
         {% empty %}
         <p class="atenuado">{% translate "No conoce conjuros." %}</p>
         {% endfor %}
+        {% if is_master and spell_catalog %}
+        <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="tarjeta compacta">{% include "partials/sheet_hidden.html" %}
+            <h2 class="rotulo">{% translate "Enseñar un conjuro" %}</h2>
+            <div class="fila-s">
+                <label class="sr-only" for="conjuro-nuevo">{% translate "Conjuro" %}</label>
+                <select id="conjuro-nuevo" name="conjuro" class="entrada" style="flex:1 1 220px;width:auto">
+                    {% for label, group in spell_catalog %}<optgroup label="{{ label }}">{% for sp in group %}<option value="{{ sp.pk }}">{% if sp.level == 0 %}{% translate "Truco" %}{% else %}{% translate "Nivel" %} {{ sp.level }}{% endif %} · {{ sp.name }}</option>{% endfor %}</optgroup>{% endfor %}
+                </select>
+                <button class="btn" name="accion" value="conjuro_ensenar">{% translate "Enseñar" %}</button>
+            </div>
+            <span class="ayuda">{% translate "Los conjuros los da el máster: comprados o aprendidos en la historia. No se eligen al subir de nivel." %}</span>
+        </form>
+        {% endif %}
     </section>
 
     {% elif tab == "inv" %}
@@ -269,11 +311,49 @@
 
     {% elif tab == "feats" %}
     <section class="pila" aria-label="{% translate 'Rasgos' %}">
-        {% if abilities %}
+        {# ---- Habilidad única (game rule 17): proposed by the player, approved by a master ---- #}
+        {% if unique_skill or can_propose_skill %}
+        <div class="tarjeta compacta habilidad-unica" id="habilidad-unica">
+            <div class="fila-s" style="justify-content:space-between">
+                <h2 class="rotulo"><span aria-hidden="true">✦</span> {% translate "Habilidad única" %}</h2>
+                {% if unique_skill.status == "aprobada" %}<span class="pastilla p-morado">{% translate "Única" %}</span>
+                {% elif unique_skill.status == "pendiente" %}<span class="pastilla p-ambar">{% translate "Pendiente del máster" %}</span>
+                {% elif unique_skill.status == "rechazada" %}<span class="pastilla p-coral">{% translate "Rechazada" %}</span>{% endif %}
+            </div>
+            {% if unique_skill.status == "aprobada" %}
+            <h3>{{ unique_skill.ability.name }}</h3>
+            <p style="white-space:pre-line">{{ unique_skill.ability.description }}</p>
+            {% if can_edit and unique_skill.master_note %}<p class="pequeno atenuado">{% translate "Nota del máster" %}: {{ unique_skill.master_note }}</p>{% endif %}
+            {% elif unique_skill.status == "pendiente" and is_master %}
+            <p class="ayuda">{% blocktranslate with player=character.player.username|default:character.name %}Propuesta de {{ player }}. Apruébala tal cual, cámbiala antes de aprobarla o recházala.{% endblocktranslate %}</p>
+            <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="pila-s">{% include "partials/sheet_hidden.html" %}
+                <div class="campo"><label for="unica-nombre">{% translate "Nombre de la habilidad" %}</label><input id="unica-nombre" name="name" maxlength="100" value="{{ unique_skill.name }}"></div>
+                <div class="campo"><label for="unica-descripcion">{% translate "Qué hace" %}</label><textarea id="unica-descripcion" name="description" rows="4">{{ unique_skill.description }}</textarea></div>
+                <div class="campo"><label for="unica-nota">{% translate "Nota para el jugador (opcional)" %}</label><input id="unica-nota" name="nota" maxlength="2000"></div>
+                <div class="fila-s">
+                    <button class="btn btn-bien" name="accion" value="unica_aprobar">{% translate "Aprobar" %}</button>
+                    <button class="btn btn-peligro" name="accion" value="unica_rechazar">{% translate "Rechazar" %}</button>
+                </div>
+            </form>
+            {% else %}
+            {% if unique_skill.status == "pendiente" %}<p class="ayuda">{% translate "El máster la revisará: puede aprobarla, cambiarla o rechazarla. Mientras tanto puedes corregirla." %}</p>
+            {% elif unique_skill.status == "rechazada" %}<p class="pequeno"><b>{{ unique_skill.name }}</b>{% if unique_skill.master_note %}. {% translate "Nota del máster" %}: {{ unique_skill.master_note }}{% endif %}</p><p class="ayuda">{% translate "Puedes proponer otra o corregir esta." %}</p>
+            {% elif is_master %}<p class="ayuda">{% translate "La que escribas como máster queda aprobada al guardarla." %}</p>
+            {% else %}<p class="ayuda">{% translate "Describe la habilidad que hace único a tu personaje. El máster la aprobará, la cambiará o la rechazará." %}</p>{% endif %}
+            <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="pila-s">{% include "partials/sheet_hidden.html" %}
+                <div class="campo"><label for="unica-nombre">{% translate "Nombre de la habilidad" %}</label><input id="unica-nombre" name="name" maxlength="100" value="{{ unique_skill.name|default:'' }}"></div>
+                <div class="campo"><label for="unica-descripcion">{% translate "Qué hace" %}</label><textarea id="unica-descripcion" name="description" rows="4">{{ unique_skill.description|default:'' }}</textarea></div>
+                <button class="btn btn-principal" style="align-self:flex-start" name="accion" value="unica_proponer">{% if is_master %}{% translate "Dar habilidad única" %}{% elif unique_skill.status == "pendiente" %}{% translate "Guardar cambios" %}{% else %}{% translate "Enviar al máster" %}{% endif %}</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if own_abilities %}
         <div class="tarjeta compacta">
             <h2 class="rotulo">{% translate "Habilidades propias" %}</h2>
-            {% for a in abilities %}
-            <details><summary><b>{{ a.ability.name }}</b>{% if a.ability.unique %} <span class="pastilla p-morado">{% translate "Única" %}</span>{% endif %}</summary><p class="pequeno" style="white-space:pre-line">{{ a.ability.description }}</p></details>
+            {% for a in own_abilities %}
+            <details><summary><b>{{ a.ability.name }}</b>{% if a.ability.feat %} <span class="pastilla p-teal">{% translate "Dote" %}</span>{% endif %}{% if a.ability.unique %} <span class="pastilla p-morado">{% translate "Única" %}</span>{% endif %}</summary><p class="pequeno" style="white-space:pre-line">{{ a.ability.description }}</p></details>
             {% endfor %}
         </div>
         {% endif %}

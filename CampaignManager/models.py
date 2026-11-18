@@ -2,7 +2,7 @@ import re
 
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
-from django.core.validators import MaxValueValidator, RegexValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models, transaction
 from django.db.models.signals import m2m_changed, post_delete, pre_delete
 from django.dispatch import receiver
@@ -86,6 +86,13 @@ class Character(models.Model):
 
     name = models.CharField(max_length=100)
     xp = models.IntegerField(default=0)
+    # The master gives XP; the level goes up when the player levels up from the
+    # sheet and makes that level's choices. Until then the XP is ahead of it.
+    level = models.PositiveSmallIntegerField(
+        default=1,
+        validators=[MinValueValidator(1), MaxValueValidator(rules.MAX_LEVEL)],
+        help_text="Level reached. It can be behind the XP until the player levels up",
+    )
     hp = models.IntegerField(help_text="Maximum hit points")
     temp_hp = models.IntegerField(help_text="Current hit points")
     ac = models.IntegerField(help_text="Armor class")
@@ -104,10 +111,11 @@ class Character(models.Model):
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.APROBADO)
     death_successes = models.PositiveSmallIntegerField(default=0, validators=[MaxValueValidator(rules.DEATH_SAVES)])
     death_failures = models.PositiveSmallIntegerField(default=0, validators=[MaxValueValidator(rules.DEATH_SAVES)])
-    # Open decision: the maximum is set by a master until there is a formula.
-    # Empty means the character has no magic points.
+    # Current magic points. The maximum comes from the class and the level
+    # (rules.class_magic_points), plus the master's adjustment.
     magic_points = models.PositiveIntegerField(default=0)
-    magic_points_max = models.PositiveIntegerField(null=True, blank=True)
+    magic_points_bonus = models.IntegerField(
+        default=0, help_text="The master's adjustment to the magic points the class gives at this level (can be negative)")
 
     # controla (optional), define, pertenece a. The subclass must belong to the
     # character's class and the subrace to its race (checked in clean()).
@@ -155,8 +163,8 @@ class Character(models.Model):
                 name="death_saves_up_to_3",
             ),
             models.CheckConstraint(
-                condition=models.Q(magic_points_max__isnull=True) | models.Q(magic_points__lte=models.F("magic_points_max")),
-                name="magic_points_up_to_max",
+                condition=models.Q(level__gte=1, level__lte=rules.MAX_LEVEL),
+                name="level_from_1_to_max",
             ),
         ]
 
@@ -169,8 +177,13 @@ class Character(models.Model):
 
     # ---- Calculated, not stored (game rule 9) ----
     @property
-    def level(self):
+    def xp_level(self):
+        """Level the XP is enough for, with the SRD table."""
         return rules.level_for_xp(self.xp)
+
+    @property
+    def can_level_up(self):
+        return self.xp_level > self.level
 
     @property
     def speed(self):
@@ -200,8 +213,17 @@ class Character(models.Model):
         return armor.magic_ap + armor.armor_type.magic_ap if armor else 0
 
     @property
+    def class_magic_points(self):
+        """Magic points the class gives at the character's level, before the master's adjustment."""
+        return rules.class_magic_points(self.char_class.magic, self.level) if self.char_class_id else 0
+
+    @property
+    def magic_points_max(self):
+        return max(0, self.class_magic_points + self.magic_points_bonus)
+
+    @property
     def has_magic(self):
-        return self.magic_points_max is not None
+        return self.magic_points_max > 0
 
     def all_ability_ids(self):
         """IDs of the abilities held directly or granted by race, subrace, class and
@@ -229,6 +251,8 @@ class Character(models.Model):
             and self.subclass.char_class_id != self.char_class_id
         ):
             errors["subclass"] = f"{self.subclass} is a subclass of {self.subclass.char_class}, not of {self.char_class}."
+        if self.char_class_id is not None and self.magic_points > self.magic_points_max:
+            errors["magic_points"] = f"The maximum is {self.magic_points_max} magic points."
         if self.template_id is not None:
             if self.template_id == self.pk:
                 errors["template"] = "A character cannot be its own template."
@@ -379,6 +403,68 @@ class CharacterAbility(models.Model):
                 raise ValidationError({"ability": conflicts})
 
 
+class UniqueSkill(models.Model):
+    """A character's unique skill (habilidad única), game rule 17.
+
+    The player describes it when creating the character or later from the sheet,
+    and a master approves it (changing it if needed) or rejects it with a note.
+    Once approved it is an Ability with unique = true that the character holds,
+    so rule 6 applies to it. One per character.
+    """
+
+    class Status(models.TextChoices):
+        PENDIENTE = "pendiente", "Pendiente"
+        APROBADA = "aprobada", "Aprobada"
+        RECHAZADA = "rechazada", "Rechazada"
+
+    character = models.OneToOneField("Character", on_delete=models.CASCADE, related_name="unique_skill")
+    name = models.CharField(max_length=100)
+    description = models.TextField()
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDIENTE)
+    master_note = models.TextField(blank=True, help_text="The master's note to the player: why it was rejected or changed")
+    # Created on approval. Deleting the ability deletes this row, and the player can propose another.
+    ability = models.OneToOneField("Ability", on_delete=models.CASCADE, null=True, blank=True, related_name="unique_skill")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(status="aprobada", ability__isnull=False)
+                | (~models.Q(status="aprobada") & models.Q(ability__isnull=True)),
+                name="unique_skill_ability_when_approved",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.character} - {self.name} ({self.get_status_display()})"
+
+    def propose(self, name, description):
+        """The player's text, new or rewritten: it waits for a master again."""
+        if self.status == self.Status.APROBADA and self.pk:
+            raise ValueError("This unique skill is already approved.")
+        self.name, self.description = name, description
+        self.status, self.master_note = self.Status.PENDIENTE, ""
+
+    @transaction.atomic
+    def approve(self, name, description, note=""):
+        """Approve it as proposed or with the master's changes: the character gets a
+        unique Ability with this name and description. Raises ValidationError if the
+        character cannot have it (rule 11: an NPC template with copies)."""
+        if self.status == self.Status.APROBADA and self.pk:
+            raise ValueError("This unique skill is already approved.")
+        ability = Ability.objects.create(name=name, description=description, unique=True)
+        row = CharacterAbility(character=self.character, ability=ability)
+        row.full_clean()
+        row.save()
+        self.name, self.description, self.master_note = name, description, note
+        self.status, self.ability = self.Status.APROBADA, ability
+        self.save()
+
+    def reject(self, note=""):
+        self.status, self.master_note = self.Status.RECHAZADA, note
+        self.save()
+
+
 class Race(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
@@ -405,9 +491,18 @@ class Subrace(models.Model):
 
 
 class CharacterClass(models.Model):
+    class Magic(models.TextChoices):
+        # The magic points each kind gives by level are in rules.class_magic_points().
+        COMPLETA = "completa", "Lanzador completo"
+        MEDIA = "media", "Medio lanzador"
+        PACTO = "pacto", "Magia de pacto"
+        NINGUNA = "ninguna", "Sin magia"
+
     name = models.CharField(max_length=100)
     primary_ability = models.CharField(max_length=50)
     description = models.TextField(blank=True)
+    magic = models.CharField(max_length=10, choices=Magic.choices, default=Magic.NINGUNA,
+                             help_text="Gives the character's magic points at each level")
 
     # otorga, puede lanzar
     abilities = models.ManyToManyField("Ability", through="ClassAbility")
@@ -447,6 +542,14 @@ class Ability(models.Model):
         help_text="If true, only one character per campaign can have it",
     )
     description = models.TextField(blank=True)
+    # Feats (dotes): at the feat levels (rules.FEAT_LEVELS: 4, 8, 12, 16 and 20) the
+    # player chooses one instead of the ability score improvement.
+    feat = models.BooleanField(default=False, help_text="A feat: chosen when levelling up at levels 4, 8, 12, 16 and 20")
+    feat_min_level = models.PositiveSmallIntegerField(
+        default=rules.FEAT_LEVELS[0],
+        validators=[MinValueValidator(1), MaxValueValidator(rules.MAX_LEVEL)],
+        help_text="Only for feats: the lowest level at which it can be chosen (e.g. 19 for epic boons, so from level 20)",
+    )
 
     # aplica
     effects = models.ManyToManyField("Effect", blank=True)

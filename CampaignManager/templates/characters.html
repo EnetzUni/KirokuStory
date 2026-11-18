@@ -9,6 +9,28 @@
     </div>
     <p id="mensaje-ajax" class="mensaje" role="status" hidden></p>
 
+    {% if is_master and skill_requests %}
+    <h2 class="rotulo">{% translate "Habilidades únicas por revisar" %}</h2>
+    <p class="ayuda">{% translate "Apruébalas tal cual, cámbialas antes de aprobarlas o recházalas. El jugador verá tu nota." %}</p>
+    <div class="rejilla">
+        {% for s in skill_requests %}
+        <form method="post" action="{% url 'unique_skill_review' campaign.pk s.pk %}" class="tarjeta compacta habilidad-unica">{% csrf_token %}
+            <div class="fila-s" style="justify-content:space-between">
+                <a href="{% url 'sheet' campaign.pk s.character.pk %}?tab=feats"><b>{{ s.character.name }}</b></a>
+                <span class="pequeno atenuado">{{ s.character.player.username }}{% if s.character.status == "pendiente" %} · <span class="pastilla p-ambar">{% translate "Personaje pendiente" %}</span>{% endif %}</span>
+            </div>
+            <div class="campo"><label for="unica-nombre-{{ s.pk }}">{% translate "Nombre de la habilidad" %}</label><input id="unica-nombre-{{ s.pk }}" name="name" maxlength="100" value="{{ s.name }}"></div>
+            <div class="campo"><label for="unica-descripcion-{{ s.pk }}">{% translate "Qué hace" %}</label><textarea id="unica-descripcion-{{ s.pk }}" name="description" rows="4">{{ s.description }}</textarea></div>
+            <div class="campo"><label for="unica-nota-{{ s.pk }}">{% translate "Nota para el jugador (opcional)" %}</label><input id="unica-nota-{{ s.pk }}" name="nota" maxlength="2000"></div>
+            <div class="fila-s">
+                <button class="btn btn-pequeno btn-bien" name="accion" value="aprobar">{% translate "Aprobar" %}</button>
+                <button class="btn btn-pequeno btn-peligro" name="accion" value="rechazar">{% translate "Rechazar" %}</button>
+            </div>
+        </form>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <h2 class="rotulo">{% translate "El grupo" %}</h2>
     <div class="rejilla">
         {% for c in party %}
@@ -17,7 +39,8 @@
                 <span class="avatar" style="background:{{ c|avatar_color }}">{% if c.portrait %}<img src="{{ c.portrait.url }}" alt="">{% else %}{{ c.name|initial }}{% endif %}</span>
                 <span class="miembro-datos">
                     <span class="fila-s" style="justify-content:space-between"><b>{{ c.name }}</b>
-                        {% if c.status == "pendiente" %}<span class="pastilla p-ambar">{% translate "Pendiente" %}</span>{% endif %}</span>
+                        {% if c.status == "pendiente" %}<span class="pastilla p-ambar">{% translate "Pendiente" %}</span>
+                        {% elif c.can_edit and c.can_level_up %}<a class="pastilla p-acento" href="{% url 'level_up' campaign.pk c.pk %}"><span aria-hidden="true">↑</span> {% translate "Sube de nivel" %}</a>{% endif %}</span>
                     <span class="pequeno atenuado">{{ c.race.name }}{% if c.subrace %} ({{ c.subrace.name }}){% endif %} · {{ c.char_class.name }} {{ c.level }}{% if c.player %} · {{ c.player.username }}{% endif %}</span>
                 </span>
             </div>
@@ -39,6 +62,22 @@
     </div>
     {% if is_master and no_character %}
     <p class="ayuda">{% translate "Sin personaje en esta campaña:" %} {% for u in no_character %}{{ u.username }}{% if not forloop.last %}, {% endif %}{% endfor %}.</p>
+    {% endif %}
+
+    {% if is_master and xp_party %}
+    <form method="post" action="{% url 'party_xp' campaign.pk %}" class="tarjeta compacta" aria-labelledby="h-xp">{% csrf_token %}
+        <h2 id="h-xp" class="rotulo">{% translate "Repartir experiencia" %}</h2>
+        <fieldset class="fila-s" style="border:0;padding:0;margin:0">
+            <legend class="sr-only">{% translate "Quién la recibe" %}</legend>
+            {% for c in xp_party %}<label class="chip"><input type="checkbox" name="personajes" value="{{ c.pk }}" checked>{{ c.name }}</label>{% endfor %}
+        </fieldset>
+        <div class="contador">
+            <label class="sr-only" for="xp-grupo">{% translate "XP para cada uno" %}</label>
+            <input id="xp-grupo" class="entrada-num" type="number" name="cantidad" min="1" required inputmode="numeric" placeholder="XP">
+            <button class="btn btn-principal">{% translate "Dar XP" %}</button>
+        </div>
+        <span class="ayuda">{% translate "Cada personaje marcado recibe esa XP. Si le llega para el siguiente nivel, su jugador verá «Subir de nivel» en la ficha y elegirá lo que le da." %}</span>
+    </form>
     {% endif %}
 
     {% if is_master %}

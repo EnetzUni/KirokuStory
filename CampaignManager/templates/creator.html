@@ -125,6 +125,14 @@
         </fieldset>
         <p class="ayuda">{% translate "Cada arma y armadura que elijas será una copia propia del personaje, ya equipada." %}</p>
 
+        {% elif step == 5 %}
+        <div class="pila-s">
+            <h2 class="rotulo"><span aria-hidden="true">✦</span> {% translate "Habilidad única" %}</h2>
+            <p class="ayuda">{% if is_master %}{% translate "La habilidad que solo tiene este personaje en la campaña. Como la escribes tú, queda aprobada." %}{% else %}{% translate "La habilidad que solo tiene tu personaje en la campaña. El máster la aprobará, la cambiará o la rechazará. Puedes dejarla en blanco y proponerla más tarde desde la ficha." %}{% endif %}</p>
+            {% include "partials/field.html" with field=form.name %}
+            {% include "partials/field.html" with field=form.description %}
+        </div>
+
         {% else %}
         <div class="fila" style="align-items:flex-start">
             <span class="avatar grande" style="background:{{ draft.name|default:'?'|avatar_color }}">{% if portrait_url %}<img src="{{ portrait_url }}" alt="">{% else %}{{ draft.name|initial }}{% endif %}</span>
@@ -141,6 +149,7 @@
                 </div>
                 <span class="pequeno">{% translate "Equipo" %}: {% for w in weapons %}{{ w.name }}, {% endfor %}{{ armor.name|default:_("sin armadura") }}</span>
                 {% if draft.background %}<p class="pequeno" style="white-space:pre-line">{{ draft.background|truncatechars:400 }}</p>{% endif %}
+                {% if draft.skill_name %}<p class="pequeno"><b>{% translate "Habilidad única" %}: {{ draft.skill_name }}</b>{% if not is_master %} ({% translate "pendiente del máster" %}){% endif %}<br>{{ draft.skill_description|truncatechars:300 }}</p>{% endif %}
             </div>
         </div>
         {% if problems %}
