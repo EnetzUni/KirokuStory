@@ -1,4 +1,4 @@
-# Mesa de campaña (KirokuStory): English translation of the fixed texts.
+# Kiroku Story: English translation of the fixed texts.
 # The campaign contents are not translated.
 #
 msgid ""

@@ -1,4 +1,4 @@
-# KirokuStory · Mesa de campaña
+# Kiroku Story
 
 A Django website for running D&D campaigns: a character sheet made for the phone during play, the campaign diary (chronicles, timeline, quests, role-play scenes and an investigation board), a world wiki with secrets, maps with the party's route, character creation with the master's approval, and combat turns. It is built on the SRD 5.2.1 rules catalog in Spanish and our homemade weapons.
 

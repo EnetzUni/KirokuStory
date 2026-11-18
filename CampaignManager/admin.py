@@ -12,8 +12,8 @@ from .models import (
     granted_ability_ids, unique_ability_conflicts,
 )
 
-admin.site.site_header = "Mesa de campaña · administración"
-admin.site.site_title = "Mesa de campaña"
+admin.site.site_header = "Kiroku Story · administración"
+admin.site.site_title = "Kiroku Story"
 
 # UserAdmin hashes the password and shows the proper user forms.
 admin.site.register(User, UserAdmin)

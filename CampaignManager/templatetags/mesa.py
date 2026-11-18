@@ -1,4 +1,4 @@
-"""Template helpers for «Mesa de campaña»."""
+"""Template helpers for «Kiroku Story»."""
 import hashlib
 import os
 

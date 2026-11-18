@@ -1,4 +1,4 @@
-/* Mesa de campaña · estilo único, en plano: fondo crema, cabecera verde bosque
+/* Kiroku Story · estilo único, en plano: fondo crema, cabecera verde bosque
    con filete cobre y tarjetas planas con borde fino. Sin texturas, degradados
    ni sombras (salvo la pizarra). Una sola familia de letra: Cardo. */
 
@@ -44,7 +44,8 @@ button:disabled,.btn[aria-disabled="true"]{cursor:not-allowed;opacity:.5}
 .cabecera a{color:#FEFAE0}
 .cabecera-inner{max-width:1240px;margin:0 auto;padding:0 16px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;min-height:64px}
 .marca{display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px;text-decoration:none;min-height:var(--tap)}
-.marca svg{flex:none}
+/* The logo has a transparent background: a cream tile keeps its green visible on the green header. */
+.marca img{flex:none;width:36px;height:36px;padding:3px;border-radius:var(--r-ctl);background:var(--surface);object-fit:contain}
 .cabecera .sub{color:#C9CBA6}
 .desplegable{position:relative}
 .desplegable>summary{list-style:none;min-height:var(--tap);padding:0 12px;border-radius:var(--r-ctl);border:1px solid #46552C;background:#3A4A24;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;cursor:pointer}

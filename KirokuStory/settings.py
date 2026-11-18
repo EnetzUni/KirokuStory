@@ -1,5 +1,5 @@
 """
-Django settings for KirokuStory («Mesa de campaña»).
+Django settings for KirokuStory («Kiroku Story»).
 
 Sensitive values come from environment variables. The defaults are only for
 development: in production set DJANGO_SECRET_KEY, DJANGO_DEBUG=0 and

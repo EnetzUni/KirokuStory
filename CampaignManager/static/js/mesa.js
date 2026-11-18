@@ -1,4 +1,4 @@
-/* Mesa de campaña · interacción con jQuery.
+/* Kiroku Story · interacción con jQuery.
    Without JavaScript every action still works: forms post and the page reloads.
    With it, forms marked data-ajax are sent with $.post and the server answers
    JSON with the HTML of the part that changed, rendered with the same partial

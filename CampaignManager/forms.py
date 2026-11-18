@@ -1,4 +1,4 @@
-"""Public forms of «Mesa de campaña» (ModelForms with their validation)."""
+"""Public forms of «Kiroku Story» (ModelForms with their validation)."""
 from django import forms
 from django.forms import inlineformset_factory
 

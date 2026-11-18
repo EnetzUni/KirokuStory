@@ -4,7 +4,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}{% if nav_campaign %}{{ nav_campaign.name }} · {% endif %}Mesa de campaña{% endblock %}</title>
+    <title>{% block title %}{% if nav_campaign %}{{ nav_campaign.name }} · {% endif %}Kiroku Story{% endblock %}</title>
+    <link rel="icon" href="{% asset 'img/favicon.ico' %}" sizes="any">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cardo:ital,wght@0,400;0,700;1,400&amp;display=swap">
@@ -16,8 +17,8 @@
 <header class="cabecera">
     <div class="cabecera-inner">
         <a class="marca" href="{% url 'start' %}">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#DDA15E" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 21 7v10l-9 5-9-5V7z"></path><path d="M12 2 7.5 14h9z"></path><path d="M3 7l4.5 7M21 7l-4.5 7M7.5 14 12 22l4.5-8"></path></svg>
-            <span>Mesa de campaña</span>
+            <img src="{% asset 'img/logo-small.png' %}" alt="" width="36" height="36">
+            <span>Kiroku Story</span>
         </a>
 
         {% if user.is_authenticated and nav_campaigns %}
