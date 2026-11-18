@@ -24,6 +24,8 @@
         </li>
         {% endfor %}
     </ul>
-    <span class="barra"><span style="width:{% pct q.done q.total %}%"></span></span>
+    {% if q.total %}
+    <div class="medidor" aria-label="{% translate 'Progreso' %}"><span>{% translate "Progreso" %}</span><span class="barra"><span style="width:{% pct q.done q.total %}%"></span></span><b>{{ q.done }} / {{ q.total }}</b></div>
+    {% endif %}
     {% if is_master %}<a class="btn btn-pequeno" style="align-self:flex-start" href="{% url 'diary_quest_edit' campaign.pk q.quest.pk %}">{% translate "Editar aventura" %}</a>{% endif %}
 </article>

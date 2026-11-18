@@ -2691,3 +2691,289 @@ msgid "%(n)s sesión de esta aventura"
 msgid_plural "%(n)s sesiones de esta aventura"
 msgstr[0] "%(n)s session of this adventure"
 msgstr[1] "%(n)s sessions of this adventure"
+
+msgid "Progreso"
+msgstr "Progress"
+
+msgid "Nuevo objetivo"
+msgstr "New objective"
+
+msgid "Oculto (se revela al cumplirlo)"
+msgstr "Hidden (revealed when done)"
+
+msgid "Añadir objetivo"
+msgstr "Add objective"
+
+msgid "Se añade al pulsar «Guardar»."
+msgstr "It is added when you press «Save»."
+
+msgid "Objetivo"
+msgstr "Objective"
+
+msgid "Cumplido"
+msgstr "Done"
+
+msgid "Oculto"
+msgstr "Hidden"
+
+msgid "(tachada con una cruz roja)"
+msgstr "(crossed out with a red cross)"
+
+msgid "Tachada"
+msgstr "Crossed out"
+
+msgid "Quitar la cruz"
+msgstr "Remove the cross"
+
+msgid "Tachar con una cruz roja"
+msgstr "Cross out with a red cross"
+
+msgid "Cambiar la foto"
+msgstr "Change the photo"
+
+msgid "Poner una foto"
+msgstr "Add a photo"
+
+msgid "Subir"
+msgstr "Upload"
+
+msgid "Quitar la foto"
+msgstr "Remove the photo"
+
+msgid "Tipo de nota"
+msgstr "Note type"
+
+msgid "Pista"
+msgstr "Clue"
+
+msgid "Persona"
+msgstr "Person"
+
+msgid "Foto (solo personas, opcional)"
+msgstr "Photo (people only, optional)"
+
+msgid "Pantalla completa"
+msgstr "Full screen"
+
+msgid "Salir de la pantalla completa"
+msgstr "Exit full screen"
+
+msgid "Salir"
+msgstr "Exit"
+
+msgid "Ficha de personaje"
+msgstr "Character sheet"
+
+msgid "Clase y especie"
+msgstr "Class and species"
+
+msgid "XP y nivel"
+msgstr "XP and level"
+
+msgid "Tiradas"
+msgstr "Skills"
+
+msgid "Tiradas de salvación"
+msgstr "Saving throws"
+
+msgid "Pasiva"
+msgstr "Passive"
+
+msgid "Aura"
+msgstr "Aura"
+
+msgid "Inspir."
+msgstr "Inspir."
+
+msgid "Gastar inspiración"
+msgstr "Spend inspiration"
+
+msgid "Dar inspiración"
+msgstr "Give inspiration"
+
+msgid "CA"
+msgstr "AC"
+
+msgid "MAP"
+msgstr "MAP"
+
+msgid "AP"
+msgstr "AP"
+
+msgid "AP actual"
+msgstr "Current AP"
+
+msgid "HP"
+msgstr "HP"
+
+msgid "HP actual"
+msgstr "Current HP"
+
+msgid "Extra"
+msgstr "Extra"
+
+msgid "Área"
+msgstr "Area"
+
+msgid "Cool"
+msgstr "Cool"
+
+msgid "Afinidad"
+msgstr "Affinity"
+
+msgid "Afinidad NPC"
+msgstr "NPC affinity"
+
+msgid "Apuntes"
+msgstr "Notes"
+
+msgid "Guardar apuntes"
+msgstr "Save notes"
+
+msgid "Habilidades"
+msgstr "Abilities"
+
+msgid "Sin habilidades."
+msgstr "No abilities."
+
+msgid "Ficha de personaje: magia"
+msgstr "Character sheet: magic"
+
+msgid "Gastar 1 punto de magia"
+msgstr "Spend 1 magic point"
+
+msgid "Recuperar 1 punto de magia"
+msgstr "Recover 1 magic point"
+
+msgid "CD de salvación de los conjuros: 8 + modificador de la característica principal"
+msgstr "Spell save DC: 8 + modifier of the primary ability"
+
+msgid "Salvación"
+msgstr "Save DC"
+
+msgid "Ataque de conjuro: modificador de la característica principal"
+msgstr "Spell attack: modifier of the primary ability"
+
+msgid "Ataque"
+msgstr "Attack"
+
+msgid "Magia"
+msgstr "Magic"
+
+msgid "Tiempo"
+msgstr "Time"
+
+msgid "Comp."
+msgstr "Comp."
+
+msgid "Todavía no"
+msgstr "Not yet"
+
+#, python-format
+msgid "Una ronda menos de %(name)s"
+msgstr "One round less of %(name)s"
+
+#, python-format
+msgid "Quitar %(name)s"
+msgstr "Remove %(name)s"
+
+#, python-format
+msgid "Uno menos de %(name)s"
+msgstr "One less %(name)s"
+
+#, python-format
+msgid "Uno más de %(name)s"
+msgstr "One more %(name)s"
+
+msgid "Cómo ver la ficha"
+msgstr "How to see the sheet"
+
+msgid "Vista web"
+msgstr "Web view"
+
+msgid "Vista ficha"
+msgstr "Sheet view"
+
+msgid "Acrobacias"
+msgstr "Acrobatics"
+
+msgid "Arcanos"
+msgstr "Arcana"
+
+msgid "Atletismo"
+msgstr "Athletics"
+
+msgid "Engañar"
+msgstr "Deception"
+
+msgid "Historia"
+msgstr "History"
+
+msgid "Interpretación"
+msgstr "Performance"
+
+msgid "Intimidar"
+msgstr "Intimidation"
+
+msgid "Investigación"
+msgstr "Investigation"
+
+msgid "Juego de manos"
+msgstr "Sleight of Hand"
+
+msgid "Medicina"
+msgstr "Medicine"
+
+msgid "Naturaleza"
+msgstr "Nature"
+
+msgid "Percepción"
+msgstr "Perception"
+
+msgid "Perspicacia"
+msgstr "Insight"
+
+msgid "Persuasión"
+msgstr "Persuasion"
+
+msgid "Religión"
+msgstr "Religion"
+
+msgid "Sigilo"
+msgstr "Stealth"
+
+msgid "Supervivencia"
+msgstr "Survival"
+
+msgid "Trato con animales"
+msgstr "Animal Handling"
+
+msgid "Fuerza"
+msgstr "Strength"
+
+msgid "Destreza"
+msgstr "Dexterity"
+
+msgid "Const."
+msgstr "Con."
+
+msgid "Intel."
+msgstr "Int."
+
+msgid "Sabiduría"
+msgstr "Wisdom"
+
+msgid "Carisma"
+msgstr "Charisma"
+
+msgid "Constitución"
+msgstr "Constitution"
+
+msgid "Inteligencia"
+msgstr "Intelligence"
+
+#, python-format
+msgid "%(n)s ronda"
+msgid_plural "%(n)s rondas"
+msgstr[0] "%(n)s round"
+msgstr[1] "%(n)s rounds"

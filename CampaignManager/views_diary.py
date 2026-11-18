@@ -4,8 +4,10 @@ import re
 import secrets
 from urllib.parse import urlencode
 
-from django.core.exceptions import PermissionDenied
-from django.db.models import Prefetch
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.forms import ImageField
+from django.db import transaction
+from django.db.models import Max, Prefetch
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
@@ -283,6 +285,8 @@ def board_context(request, campaign, is_master, selected=None, mode=None):
         if card.classified:
             stamp = "CLASIFICADO" if locked else ("DESCLASIFICADO" if card.revealed else "CLASIFICADO · SOLO TÚ")
         items.append({"card": card, "locked": locked, "rot": ((index * 37) % 7) - 3, "stamp": stamp,
+                      # A person's photo, name and cross are never sent while the card is classified for this reader.
+                      "person": card.is_person and not locked, "crossed": card.is_person and card.crossed and not locked,
                       "current": chosen is not None and card.pk == chosen.pk,
                       "can_target": mode == "unir" and chosen is not None and card.pk != chosen.pk})
     lines = []
@@ -301,7 +305,8 @@ def board_context(request, campaign, is_master, selected=None, mode=None):
     return {
         "board_items": items, "board_lines": lines, "board_pins": [pin(c) for c in cards], "detail": detail,
         "mode": mode if chosen is not None else None, "board_w": BOARD_WIDTH, "board_h": BOARD_HEIGHT,
-        "card_max_x": BOARD_WIDTH - CARD_WIDTH, "card_max_y": BOARD_HEIGHT - CARD_HEIGHT,
+        "card_max_x": BOARD_WIDTH - CARD_WIDTH,
+        "card_max_y": BOARD_HEIGHT - (chosen.height if chosen is not None else CARD_HEIGHT),
         "card_form": BoardCardForm(campaign=campaign, is_master=is_master, visible_pages=visible_pages),
         "visible_pages": visible_pages,
         "hidden_count": sum(1 for c in cards if c.classified and not c.revealed),
@@ -337,9 +342,10 @@ def _board_response(request, campaign, msg="", error=False, selected=None, mode=
 @campaign_member
 def card_add(request, campaign):
     visible_pages = Page.objects.visible_for(request.user, campaign)
-    form = BoardCardForm(request.POST, campaign=campaign, is_master=request.is_master, visible_pages=visible_pages)
+    form = BoardCardForm(request.POST, request.FILES, campaign=campaign, is_master=request.is_master, visible_pages=visible_pages)
     if not form.is_valid():
-        return _board_response(request, campaign, "La nota necesita un título.", error=True)
+        msg = "La foto tiene que ser una imagen (JPG, PNG o WebP)." if "image" in form.errors else "La nota necesita un título."
+        return _board_response(request, campaign, msg, error=True)
     card = form.save(commit=False)
     # Where the board window was looking (sent by mesa.js); otherwise near the middle of the board.
     try:
@@ -349,9 +355,10 @@ def card_add(request, campaign):
         x, y = BOARD_CENTRE_X - 40 + (n % 3) * 40, BOARD_CENTRE_Y - 45 + (n % 4) * 30
     card.author = request.user
     card.x = max(0, min(BOARD_WIDTH - CARD_WIDTH, x))
-    card.y = max(0, min(BOARD_HEIGHT - CARD_HEIGHT, y))
+    card.y = max(0, min(BOARD_HEIGHT - card.height, y))
     card.save()
-    return _board_response(request, campaign, "Nota clavada. Pulsa «Mover» para colocarla donde quieras.", selected=card.pk)
+    what = "Persona clavada" if card.is_person else "Nota clavada"
+    return _board_response(request, campaign, f"{what}. Pulsa «Mover» para colocarla donde quieras.", selected=card.pk)
 
 
 @require_POST
@@ -368,9 +375,30 @@ def card_action(request, campaign, pk):
         except (KeyError, ValueError):
             return _board_response(request, campaign, "Posición no válida.", error=True, selected=card.pk)
         card.x = max(0, min(BOARD_WIDTH - CARD_WIDTH, x))
-        card.y = max(0, min(BOARD_HEIGHT - CARD_HEIGHT, y))
+        card.y = max(0, min(BOARD_HEIGHT - card.height, y))
         card.save(update_fields=["x", "y"])
         return _board_response(request, campaign, "Nota movida.", selected=card.pk)
+    if action in ("tachar", "foto", "foto_quitar"):
+        # People only: the red cross (dealt with) and their photo.
+        if locked:
+            raise PermissionDenied
+        if not card.is_person:
+            return _board_response(request, campaign, "Solo las personas tienen foto y cruz.", error=True, selected=card.pk)
+        if action == "tachar":
+            card.crossed = not card.crossed
+            card.save(update_fields=["crossed"])
+            msg = f"{card.title}: tachado con una cruz roja." if card.crossed else f"{card.title}: sin la cruz."
+            return _board_response(request, campaign, msg, selected=card.pk)
+        if action == "foto_quitar":
+            card.image = ""
+            card.save(update_fields=["image"])
+            return _board_response(request, campaign, "Foto quitada.", selected=card.pk)
+        try:
+            card.image = ImageField().clean(request.FILES.get("foto"))
+        except ValidationError:
+            return _board_response(request, campaign, "Sube una imagen (JPG, PNG o WebP).", error=True, selected=card.pk)
+        card.save(update_fields=["image"])
+        return _board_response(request, campaign, "Foto cambiada.", selected=card.pk)
     if action == "unir":
         if locked:
             raise PermissionDenied
@@ -600,7 +628,10 @@ class QuestFormMixin:
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["objectives"] = kwargs.get("objectives") or ObjectiveFormSet(instance=getattr(self, "object", None) or Quest())
+        quest = getattr(self, "object", None)
+        context["objectives"] = kwargs.get("objectives") or ObjectiveFormSet(instance=quest or Quest())
+        saved = list(quest.objectives.all()) if quest and quest.pk else []
+        context.update(objectives_total=len(saved), objectives_done=sum(1 for o in saved if o.done))
         return context
 
     def post(self, request, *args, **kwargs):
@@ -608,9 +639,19 @@ class QuestFormMixin:
         form = self.get_form()
         objectives = ObjectiveFormSet(request.POST, instance=self.object or Quest(campaign=self.campaign))
         if form.is_valid() and objectives.is_valid():
-            self.object = form.save()
-            objectives.instance = self.object
-            objectives.save()
+            with transaction.atomic():
+                self.object = form.save()
+                objectives.instance = self.object
+                rows = objectives.save(commit=False)
+                for removed in objectives.deleted_objects:
+                    removed.delete()
+                # New objectives go after the ones already there, in the order they were added.
+                last = self.object.objectives.aggregate(m=Max("order"))["m"]
+                next_order = 0 if last is None else last + 1
+                for row in rows:
+                    if row.pk is None:
+                        row.order, next_order = next_order, next_order + 1
+                    row.save()
             return respond(request, redirect_to=reverse("diary", args=[self.campaign.pk]) + f"#aventura-{self.object.pk}",
                            msg="Aventura guardada.")
         return self.render_to_response(self.get_context_data(form=form, objectives=objectives))

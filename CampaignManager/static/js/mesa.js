@@ -79,6 +79,8 @@
       $old.replaceWith($new);
       highlightChanges($new, before);
       $new.trigger("mesa:actualizado");
+      // The sheet: remember what this version shows, so the refresh below knows when it changes.
+      if (data.version) { $("#ficha-marco").attr("data-version", data.version); }
     }
     var $msg = $(data.msgTarget || $form.data("msg") || "#mensaje-ajax");
     if ($msg.length) {
@@ -92,11 +94,11 @@
 
   $(document).on("submit", "form[data-ajax]", function (event) {
     var $form = $(this);
+    $form.trigger("mesa:enviar"); // last chance to fill fields (e.g. where a new note goes)
     if ($form.find("input[type=file]").filter(function () { return this.files.length; }).length) {
       return; // file uploads go the normal way
     }
     event.preventDefault();
-    $form.trigger("mesa:enviar"); // last chance to fill fields (e.g. where a new note goes)
     var data = $form.serializeArray();
     var submitter = (event.originalEvent && event.originalEvent.submitter) || $form.data("submitter");
     if (submitter && submitter.name) { data.push({ name: submitter.name, value: submitter.value }); }
@@ -117,7 +119,7 @@
     event.preventDefault();
     $.get(link.href).done(function (response) {
       applyResponse(response, $(link));
-      if (window.history && history.replaceState) { history.replaceState(null, "", link.href); }
+      if (window.history && history.replaceState) { history.replaceState(history.state, "", link.href); }
     }).fail(function () { window.location.href = link.href; });
   });
 
@@ -128,7 +130,7 @@
     var url = ($form.attr("action") || window.location.pathname) + "?" + $form.serialize();
     $.get(url).done(function (response) {
       applyResponse(response, $form);
-      if (window.history && history.replaceState) { history.replaceState(null, "", url); }
+      if (window.history && history.replaceState) { history.replaceState(history.state, "", url); }
     });
   });
   $(document).on("change", "form[data-ajax-get] input[type=range]", function () {
@@ -211,6 +213,61 @@
   //    are placed in board pixels, so the board is scaled with a transform
   //    (without will-change, so the text is redrawn sharp at each zoom level).
   var ZOOM_STEP = 1.6;
+
+  // ---- Pantalla completa (mapa y pizarra) ----
+  // The whole page goes into the browser's full screen (when there is one: not on
+  // iPhone) and the window is stretched over it with a class. So the full screen
+  // survives when a click on a pin or a note re-renders the section: the new window
+  // gets the class again (initZoom). It closes with «✕ Salir», the button, Esc, or
+  // the phone's «back»: entering adds a history entry, and going back closes it.
+  var pantalla = { key: null };
+
+  function fullscreenView() {
+    return pantalla.key ? document.querySelector('[data-zoom="' + pantalla.key + '"]') : null;
+  }
+
+  function showFullscreen(view, on) {
+    view.classList.toggle("zoom-pantalla", on);
+    var $button = $(view).find("[data-zoom-accion=pantalla]");
+    var label = $button.data(on ? "etiqueta-cerrar" : "etiqueta-abrir");
+    $button.attr({ "aria-pressed": on ? "true" : "false", "aria-label": label, title: label });
+  }
+
+  function enterFullscreen(view) {
+    if (pantalla.key) { return; }
+    pantalla.key = view.getAttribute("data-zoom");
+    document.documentElement.classList.add("pantalla-abierta");
+    showFullscreen(view, true);
+    var root = document.documentElement;
+    if (root.requestFullscreen) {
+      var request = root.requestFullscreen({ navigationUI: "hide" });
+      if (request && request.catch) { request.catch(function () { /* not allowed: the overlay is enough */ }); }
+    }
+    try { history.pushState({ mesaPantalla: pantalla.key }, ""); } catch (err) { /* no history: Esc and the button still work */ }
+    view.focus({ preventScroll: true }); // so + − 0 and the arrows work straight away
+  }
+
+  function exitFullscreen(fromHistory) {
+    if (!pantalla.key) { return; }
+    var view = fullscreenView();
+    pantalla.key = null;
+    document.documentElement.classList.remove("pantalla-abierta");
+    if (view) { showFullscreen(view, false); }
+    if (document.fullscreenElement && document.exitFullscreen) {
+      var leave = document.exitFullscreen();
+      if (leave && leave.catch) { leave.catch(function () {}); }
+    }
+    // Take away the history entry added on entering (unless «back» already did).
+    if (!fromHistory && history.state && history.state.mesaPantalla) { history.back(); }
+  }
+
+  window.addEventListener("popstate", function () { if (pantalla.key) { exitFullscreen(true); } });
+  document.addEventListener("fullscreenchange", function () {
+    if (!document.fullscreenElement && pantalla.key) { exitFullscreen(false); } // Esc in the browser's full screen
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && pantalla.key) { e.preventDefault(); exitFullscreen(false); } // the overlay (no browser full screen)
+  });
   var zoomMemory = {}; // window key -> {z, fx, fy}: survives the AJAX re-render of a section
 
   function initZoom(view) {
@@ -223,6 +280,7 @@
     view.zoomListo = true;
     var key = view.getAttribute("data-zoom");
     var $buttons = $(view).children(".zoom-botones");
+    if (pantalla.key === key) { showFullscreen(view, true); }
     var s = { z: 1, left: 0, top: 0, bw: 0, bh: 0, max: 4 };
     var ready = false, frame = null;
 
@@ -348,7 +406,7 @@
     }
     view.addEventListener("pointerdown", function (e) {
       if (Object.keys(pointers).length === 0) { moved = false; }
-      if (!ready || (e.pointerType === "mouse" && e.button !== 0) || $(e.target).closest(".zoom-botones").length) { return; }
+      if (!ready || (e.pointerType === "mouse" && e.button !== 0) || $(e.target).closest(".zoom-botones, .zoom-salir").length) { return; }
       pointers[e.pointerId] = local(e);
       if (!startPoint) { startPoint = pointers[e.pointerId]; }
       last = gesture();
@@ -397,8 +455,10 @@
       zoomAt(s.z * 2, p.x, p.y);
     });
 
-    $buttons.on("click", "[data-zoom-accion]", function () {
+    $(view).on("click", "[data-zoom-accion]", function () {
       var action = $(this).data("zoom-accion");
+      if (action === "pantalla") { if (pantalla.key === key) { exitFullscreen(false); } else { enterFullscreen(view); } return; }
+      if (action === "salir") { exitFullscreen(false); return; }
       if (action === "entero") { centreOn(1, 0.5, 0.5); return; }
       zoomAt(s.z * (action === "mas" ? ZOOM_STEP : 1 / ZOOM_STEP), view.clientWidth / 2, view.clientHeight / 2);
     });
@@ -594,8 +654,90 @@
     $(root).find("[data-zoom]").addBack("[data-zoom]").each(function () { initZoom(this); });
     $(root).find(".mapa-lienzo").each(function () { initRouteEditor(this); });
   }
-  $(function () { initWindows(document); });
+  // mesa.js is loaded at the end of <body>: the page is already there, so no need to wait
+  // for jQuery's «ready» (which comes a moment later), and a quick first click works.
+  initWindows(document);
   $(document).on("mesa:actualizado", function (e) { initWindows(e.target); });
+
+  // ---- Ficha al día ----
+  // Every few seconds the sheet asks for itself; the server answers with a fingerprint of
+  // what it shows, and the panel is only replaced when it changed (the master took hit
+  // points away from Turns, another device spent a use...). Never while someone is typing
+  // in it, while another request is going on, or with the tab in the background.
+  var $sheetFrame = $("#ficha-marco[data-refrescar]");
+  if ($sheetFrame.length) {
+    setInterval(function () {
+      if (document.hidden || $.active > 0) { return; }
+      var $panel = $("#ficha");
+      var active = document.activeElement;
+      if (active && $panel.has(active).length && $(active).is("input, textarea, select")) { return; }
+      var typed = $panel.find("input[type=number], input[type=text], textarea").filter(function () {
+        return this.value !== this.defaultValue;
+      }).length;
+      if (typed) { return; }
+      $.ajax({ url: window.location.href, cache: false, dataType: "json" }).done(function (data) {
+        if (!data || data.html === undefined || data.version === $sheetFrame.attr("data-version")) { return; }
+        var $old = $("#ficha"), before = valuesOf($old), $new = $(data.html);
+        keepOpen($old, $new);
+        $old.replaceWith($new);
+        highlightChanges($new, before);
+        $new.trigger("mesa:actualizado");
+        $sheetFrame.attr("data-version", data.version);
+      });
+    }, 6000);
+  }
+
+  // ---- Objetivos de una aventura ----
+  // «Añadir objetivo» (or Enter in the box) turns the «new objective» box into a row
+  // of the list, empties it and leaves it ready for the next one, as many times as
+  // needed. The box is the last form of the formset: the new row takes its number
+  // and the box moves on to the next. Without JavaScript the box is saved with «Guardar».
+  function objectiveProgress($form) {
+    var total = 0, done = 0;
+    $form.find("#objetivos-lista [data-objetivo]").each(function () {
+      if ($(this).find("input[name$='-DELETE']").prop("checked")) { return; }
+      total += 1;
+      if ($(this).find("input[name$='-done']").prop("checked")) { done += 1; }
+    });
+    $form.find("[data-objetivos-cuenta]").text(done + " / " + total);
+    $form.find("[data-objetivos-progreso] .barra > span").css("width", (total ? Math.round(100 * done / total) : 0) + "%");
+  }
+
+  function addObjective($form) {
+    var $box = $form.find("[data-objetivo-nuevo]");
+    var $text = $box.find("input[name$='-text']");
+    var text = $.trim($text.val());
+    if (!text) { $text.trigger("focus"); return; }
+    var $total = $form.find("input[name$='-TOTAL_FORMS']");
+    var index = +$total.val() - 1; // the box's number
+    var html = $.trim($("#objetivo-plantilla").html().replace(/__prefix__/g, index));
+    var $row = $($.parseHTML(html));
+    $row.find("input[name$='-text']").val(text);
+    $row.find("input[name$='-hidden']").prop("checked", $box.find("input[name$='-hidden']").prop("checked"));
+    $form.find("#objetivos-lista").append($row);
+    var from = "-" + index + "-", to = "-" + (index + 1) + "-";
+    $box.find("[name], [id], label[for]").each(function () {
+      var el = this;
+      ["name", "id", "for"].forEach(function (attr) {
+        var value = el.getAttribute(attr);
+        if (value) { el.setAttribute(attr, value.replace(from, to)); }
+      });
+    });
+    $total.val(index + 2);
+    $text.val("");
+    $box.find("input[name$='-hidden']").prop("checked", false);
+    $text.trigger("focus");
+    objectiveProgress($form);
+  }
+
+  $("[data-anadir-objetivo]").prop("hidden", false);
+  $(document).on("click", "[data-anadir-objetivo]", function () { addObjective($(this).closest("form")); });
+  $(document).on("keydown", "[data-objetivo-nuevo] input[name$='-text']", function (event) {
+    if (event.key === "Enter") { event.preventDefault(); addObjective($(this).closest("form")); }
+  });
+  $(document).on("change", "form[data-objetivos] #objetivos-lista input[type=checkbox]", function () {
+    objectiveProgress($(this).closest("form"));
+  });
 
   // ---- Colocar en el corcho o en el mapa ----
   // A click on the surface fills the x/y fields of the form and sends it.

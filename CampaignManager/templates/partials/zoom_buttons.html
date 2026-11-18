@@ -2,4 +2,12 @@
     <button type="button" class="btn btn-cuadrado" data-zoom-accion="mas" aria-label="{% translate 'Acercar' %}" title="{% translate 'Acercar' %}">+</button>
     <button type="button" class="btn btn-cuadrado" data-zoom-accion="menos" aria-label="{% translate 'Alejar' %}" title="{% translate 'Alejar' %}" disabled>&minus;</button>
     <button type="button" class="btn btn-cuadrado" data-zoom-accion="entero" aria-label="{{ whole_label }}" title="{{ whole_label }}" disabled>&#x2922;</button>
+    <button type="button" class="btn btn-cuadrado" data-zoom-accion="pantalla" aria-pressed="false"
+            aria-label="{% translate 'Pantalla completa' %}" title="{% translate 'Pantalla completa' %}"
+            data-etiqueta-abrir="{% translate 'Pantalla completa' %}" data-etiqueta-cerrar="{% translate 'Salir de la pantalla completa' %}">
+        <svg class="icono-abrir" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"></path></svg>
+        <svg class="icono-cerrar" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"></path></svg>
+    </button>
 </div>
+{# Only shown in full screen: a clear way out (Esc on a computer, «back» on a phone also work). #}
+<button type="button" class="btn zoom-salir" data-zoom-accion="salir">✕ {% translate "Salir" %}<span class="tecla-esc"> · Esc</span></button>

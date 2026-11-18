@@ -1,20 +1,40 @@
 {% extends "diary_base.html" %}
-{% load i18n %}
+{% load i18n mesa %}
 {% block diary %}
-<form method="post" class="tarjeta lectura">
+<form method="post" class="tarjeta lectura" data-objetivos>
     {% csrf_token %}
     <h2>{% if object %}{% translate "Editar aventura" %}{% else %}{% translate "Nueva aventura" %}{% endif %}</h2>
     {{ form.non_field_errors }}
     {% for field in form %}{% include "partials/field.html" %}{% endfor %}
+
     <h3>{% translate "Objetivos" %}</h3>
     <p class="ayuda">{% translate "Los jugadores ven la lista. Un objetivo oculto les aparece como «Objetivo oculto» hasta que lo marcas como cumplido." %}</p>
     {{ objectives.management_form }}
     {{ objectives.non_form_errors }}
-    {% for sub in objectives %}
-    <fieldset class="pila-s" style="border:1px solid var(--line);border-radius:6px;padding:10px">
-        {% for field in sub %}{% include "partials/field.html" %}{% endfor %}
-    </fieldset>
-    {% endfor %}
+    <div class="medidor" data-objetivos-progreso>
+        <span>{% translate "Progreso" %}</span>
+        <span class="barra"><span style="width:{% pct objectives_done objectives_total %}%"></span></span>
+        <b data-objetivos-cuenta>{{ objectives_done }} / {{ objectives_total }}</b>
+    </div>
+    {# Every form but the last one is an objective of the list; the last one is the «new objective» box. #}
+    <ol id="objetivos-lista" class="lista-limpia pila-s" style="gap:8px">
+        {% for sub in objectives.forms %}{% if not forloop.last %}{% include "partials/objective_row.html" %}{% endif %}{% endfor %}
+    </ol>
+    {% with sub=objectives.forms|last %}
+    <div class="tarjeta compacta pila-s" data-objetivo-nuevo style="background:var(--surface2)">
+        {{ sub.id }}
+        <label for="{{ sub.text.id_for_label }}"><b>{% translate "Nuevo objetivo" %}</b></label>
+        {{ sub.text }}
+        {{ sub.text.errors }}
+        <div class="fila-s" style="align-items:center">
+            <label class="casilla pequeno">{{ sub.hidden }} {% translate "Oculto (se revela al cumplirlo)" %}</label>
+            <button type="button" class="btn" data-anadir-objetivo hidden>+ {% translate "Añadir objetivo" %}</button>
+        </div>
+        <noscript><p class="ayuda">{% translate "Se añade al pulsar «Guardar»." %}</p></noscript>
+    </div>
+    {% endwith %}
+    <template id="objetivo-plantilla">{% with sub=objectives.empty_form %}{% include "partials/objective_row.html" %}{% endwith %}</template>
+
     <div class="fila-s"><button type="submit" class="btn btn-principal">{% translate "Guardar" %}</button>
         <a class="btn" href="{% url 'diary' campaign.pk %}">{% translate "Cancelar" %}</a></div>
 </form>

@@ -6,9 +6,10 @@ what players may see (spec, section 6).
 import datetime
 import json
 import re
+import tempfile
 
 from django.core.exceptions import ValidationError
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from . import rules
@@ -1072,3 +1073,200 @@ class AdventureTests(DemoData):
         page = self.player().get(self.url("diary")).content.decode()
         self.assertNotIn(f'id="sesion-{last.pk}"', page)
         self.assertNotIn("S6 · ", self.player().get(self.url("diary_timeline")).content.decode())
+
+
+def png_upload(name="foto.png"):
+    """A small real PNG, as a browser would upload it."""
+    import io
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    from PIL import Image
+    buffer = io.BytesIO()
+    Image.new("RGB", (40, 50), "#884422").save(buffer, "PNG")
+    return SimpleUploadedFile(name, buffer.getvalue(), content_type="image/png")
+
+
+class ObjectiveEditorTests(DemoData):
+    """The adventure form has one «new objective» box that the page turns into as many
+    objectives as the master adds; new ones go at the end and the card shows the progress."""
+
+    def post(self, url, objectives, initial=0, **fields):
+        data = {"title": "La torre", "description": "", "status": "activa", "start_session": "", "end_session": "",
+                "giver": "", "objectives-TOTAL_FORMS": str(len(objectives)), "objectives-INITIAL_FORMS": str(initial)}
+        for i, row in enumerate(objectives):
+            for key, value in row.items():
+                data[f"objectives-{i}-{key}"] = value
+        data.update(fields)
+        self.client.force_login(self.carlos)
+        return self.client.post(url, data)
+
+    def test_the_form_has_a_single_new_objective_box(self):
+        self.client.force_login(self.carlos)
+        page = self.client.get(self.url("diary_quest_new")).content.decode()
+        self.assertIn('name="objectives-TOTAL_FORMS" value="1"', page)
+        self.assertIn("data-anadir-objetivo", page)
+        self.assertIn('id="objetivo-plantilla"', page)
+
+    def test_many_objectives_are_saved_at_once_in_the_order_they_were_added(self):
+        rows = [{"text": f"Paso {n}"} for n in range(1, 8)] + [{"text": ""}]  # 7 added, then the empty box
+        rows[2]["hidden"] = "on"
+        self.post(self.url("diary_quest_new"), rows)
+        quest = Quest.objects.get(campaign=self.corona, title="La torre")
+        self.assertEqual([o.text for o in quest.objectives.all()], [f"Paso {n}" for n in range(1, 8)])
+        self.assertEqual([o.order for o in quest.objectives.all()], list(range(7)))
+        self.assertTrue(quest.objectives.get(text="Paso 3").hidden)
+
+    def test_editing_adds_at_the_end_and_removes(self):
+        self.post(self.url("diary_quest_new"), [{"text": "Uno"}, {"text": "Dos"}, {"text": ""}])
+        quest = Quest.objects.get(campaign=self.corona, title="La torre")
+        one, two = quest.objectives.all()
+        rows = [{"id": one.pk, "text": "Uno", "done": "on"}, {"id": two.pk, "text": "Dos", "DELETE": "on"},
+                {"text": "Tres"}, {"text": "Cuatro"}, {"text": ""}]
+        self.post(self.url("diary_quest_edit", quest.pk), rows, initial=2)
+        self.assertEqual([(o.text, o.done) for o in quest.objectives.all()], [("Uno", True), ("Tres", False), ("Cuatro", False)])
+        self.assertEqual(quest.objectives.get(text="Cuatro").order, quest.objectives.get(text="Tres").order + 1)
+
+    def test_the_card_shows_the_progress(self):
+        quest = Quest.objects.get(campaign=self.corona, title="La Corona de Ceniza")
+        done, total = quest.objectives.filter(done=True).count(), quest.objectives.count()
+        page = self.player().get(self.url("diary")).content.decode()
+        card = page[page.index(f'id="mision-{quest.pk}"'):]
+        self.assertIn(f"<b>{done} / {total}</b>", card[:card.index("</article>")])
+        self.assertIn(f"width:{round(100 * done / total)}%", card[:card.index("</article>")])
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp(prefix="kiroku-test-media-"))
+class PersonCardTests(DemoData):
+    """The board also has person cards: with a photo, and a red cross once dealt with."""
+
+    def add(self, user=None, **data):
+        self.client.force_login(user or self.lucia)
+        self.client.post(self.url("diary_card_add"), {"title": "El encapuchado", "kind": "persona", **data})
+        return BoardCard.objects.get(campaign=self.corona, title="El encapuchado")
+
+    def test_a_person_card_with_a_photo(self):
+        card = self.add(image=png_upload())
+        self.assertTrue(card.is_person)
+        self.assertTrue(card.image.name.startswith("pizarra/"))
+        page = self.player().get(self.url("diary_board")).content.decode()
+        self.assertIn("nota persona", page)
+        self.assertIn(card.image.url, page)
+
+    def test_clues_do_not_keep_a_photo(self):
+        card = self.add(kind="pista", image=png_upload())
+        self.assertEqual((card.kind, card.image.name), ("pista", ""))
+
+    def test_crossing_out_a_person_and_back(self):
+        card = self.add()
+        url = self.url("diary_card_action", card.pk)
+        self.client.post(url, {"accion": "tachar"}, **AJAX)
+        card.refresh_from_db()
+        self.assertTrue(card.crossed)
+        self.assertIn('class="tachon"', self.player().get(self.url("diary_board")).content.decode())
+        self.client.post(url, {"accion": "tachar"}, **AJAX)
+        card.refresh_from_db()
+        self.assertFalse(card.crossed)
+
+    def test_changing_and_removing_the_photo(self):
+        card = self.add()
+        url = self.url("diary_card_action", card.pk)
+        self.client.post(url, {"accion": "foto", "foto": png_upload("otra.png")})
+        card.refresh_from_db()
+        self.assertTrue(card.image.name.startswith("pizarra/otra"))
+        self.client.post(url, {"accion": "foto_quitar"}, **AJAX)
+        card.refresh_from_db()
+        self.assertEqual(card.image.name, "")
+
+    def test_clues_cannot_be_crossed_out(self):
+        self.client.force_login(self.lucia)
+        clue = BoardCard.objects.filter(campaign=self.corona, kind="pista", classified=False).first()
+        response = self.client.post(self.url("diary_card_action", clue.pk), {"accion": "tachar"}, **AJAX)
+        self.assertTrue(response.json()["error"])
+
+    def test_a_classified_person_shows_nothing_to_players(self):
+        card = self.add(user=self.carlos, image=png_upload(), classified="on")
+        card.crossed = True
+        card.save()
+        page = self.player().get(self.url("diary_board")).content.decode()
+        self.assertNotIn(card.image.url, page)
+        self.assertNotIn("El encapuchado", page)
+        self.assertNotIn('class="tachon"', page)
+        self.assertEqual(self.client.post(self.url("diary_card_action", card.pk), {"accion": "tachar"}, **AJAX).status_code, 403)
+
+
+class FullScreenTests(DemoData):
+    """The map and the board windows can go full screen, with a clear way out."""
+
+    def test_both_windows_offer_full_screen_and_a_way_out(self):
+        board = self.player().get(self.url("diary_board")).content.decode()
+        self.assertIn('data-zoom-accion="pantalla"', board)
+        self.assertIn('data-zoom-accion="salir"', board)
+        corona_map = self.corona.maps.exclude(image="").first()
+        if corona_map is not None:  # the zoom (and full screen) needs the map's image
+            page = self.player().get(self.url("map") + f"?mapa={corona_map.pk}").content.decode()
+            self.assertIn('data-zoom-accion="pantalla"', page)
+
+
+class SheetViewTests(DemoData):
+    """«Vista web» / «Vista ficha»: the choice is kept on the user, both views share the same
+    actions and permissions, and the sheet's fingerprint lets tablets refresh it."""
+
+    def choose(self, view, character=None, user=None):
+        self.client.force_login(user or self.lucia)
+        character = character or Character.objects.get(name="Aria")
+        return self.client.post(self.url("sheet_view", character.pk), {"vista": view, "tab": "res"}, **AJAX)
+
+    def test_the_choice_is_kept_on_the_user_for_every_sheet(self):
+        response = self.choose("ficha")
+        self.assertIn('class="hoja-vista"', response.json()["html"])
+        self.lucia.refresh_from_db()
+        self.assertEqual(self.lucia.sheet_view, "ficha")
+        # Another sheet (and a full page load) opens in the same view.
+        brom = Character.objects.get(name="Brom")
+        self.assertContains(self.client.get(self.url("sheet", brom.pk)), 'class="hoja-vista"')
+        self.choose("web")
+        self.assertNotContains(self.client.get(self.url("sheet", brom.pk)), 'class="hoja-vista"')
+
+    def test_an_unknown_view_is_404(self):
+        self.assertEqual(self.choose("pdf").status_code, 404)
+
+    def test_actions_answer_in_the_chosen_view_and_both_show_the_same_values(self):
+        aria = Character.objects.get(name="Aria")
+        self.choose("ficha")
+        response = self.client.post(self.url("sheet_action", aria.pk), {"accion": "vida_menos", "tab": "res"}, **AJAX).json()
+        aria.refresh_from_db()
+        self.assertIn('class="hoja-vista"', response["html"])
+        self.assertIn(f'data-valor="vida">{aria.temp_hp}<', response["html"])
+        self.assertTrue(response["version"])
+        self.choose("web")
+        self.assertContains(self.client.get(self.url("sheet", aria.pk)), f'data-valor="vida">{aria.temp_hp}<')
+
+    def test_the_paper_sheet_has_its_sections(self):
+        self.choose("ficha")
+        page = self.client.get(self.url("sheet", Character.objects.get(name="Aria").pk)).content.decode()
+        for text in ("Ficha de personaje", "Juego de manos", "Trato con animales", "Tiradas de salvación", "Inventario",
+                     "Ataques", "Afinidad NPC", "Apuntes", "Habilidades", "Habilidad única", "hoja-magia"):
+            self.assertIn(text, page)
+
+    def test_someone_elses_sheet_is_read_only_in_the_paper_view_too(self):
+        brom = Character.objects.get(name="Brom")
+        self.assertEqual(self.choose("ficha", brom).status_code, 200)  # choosing how to see it is allowed
+        page = self.client.get(self.url("sheet", brom.pk)).content.decode()
+        self.assertIn('class="hoja-fs hoja-columna" disabled', page)
+        self.assertNotIn("descanso_largo", page)
+        for action in ("vida_menos", "ap_mas", "insp_dar", "magia_gastar", "notas"):
+            response = self.client.post(self.url("sheet_action", brom.pk), {"accion": action}, **AJAX)
+            self.assertEqual(response.status_code, 403, action)
+
+    def test_players_cannot_open_npc_sheets_through_the_view_switch(self):
+        npc = Character.objects.filter(campaigns=self.corona, is_npc=True).first()
+        self.assertEqual(self.choose("ficha", npc).status_code, 404)
+
+    def test_the_fingerprint_changes_only_when_the_sheet_changes(self):
+        aria = Character.objects.get(name="Aria")
+        self.choose("ficha")
+        url = self.url("sheet", aria.pk)
+        first = self.client.get(url, **AJAX).json()["version"]
+        self.assertEqual(self.client.get(url, **AJAX).json()["version"], first)
+        # The master changes her hit points from Turns: the tablet's next refresh sees it.
+        Character.objects.filter(pk=aria.pk).update(temp_hp=aria.temp_hp - 1)
+        self.assertNotEqual(self.client.get(url, **AJAX).json()["version"], first)

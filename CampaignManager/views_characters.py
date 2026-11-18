@@ -1,4 +1,5 @@
 """Personajes: the party, NPCs and templates, the character sheet and the creator."""
+import hashlib
 import re
 
 from django.contrib import messages
@@ -11,6 +12,7 @@ from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils.safestring import mark_safe
 from django.utils.text import Truncator, get_valid_filename
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView
@@ -324,8 +326,10 @@ def sheet_context(request, campaign, character):
         by_slot = dict(damages)
         slots = [{"level": s, "cost": rules.magic_point_cost(s), "damage": by_slot.get(s, "")}
                  for s in range(spell.level, max_slot + 1)] if spell.level > 0 else []
+        first_attack = next(iter(spell.attacks.all()), None)
         spell_groups.setdefault(spell.level, []).append({
             "spell": spell, "slots": slots, "damage": damages[0][1] if damages else "", "rule": rule,
+            "area": first_attack.area if first_attack and first_attack.area else None,
             "components": ", ".join(c.type for c in spell.components.all()),
             "range": "Personal o toque" if spell.range == 0 else ("Especial" if spell.range is None else f"{spell.range} m"),
             "castable": spell.level == 0 or (character.has_magic and spell.level <= max_slot),
@@ -348,8 +352,9 @@ def sheet_context(request, campaign, character):
     history = character.events.filter(campaign=campaign)
     if not is_master:
         history = history.filter(hidden=False)
-    return {
-        "campaign": campaign, "is_master": is_master,
+    sheet_view = user.sheet_view if user.sheet_view in User.SheetView.values else User.SheetView.WEB
+    context = {
+        "campaign": campaign, "is_master": is_master, "sheet_view": sheet_view,
         "character": character, "can_edit": can_edit, "tab": tab,
         "tabs": [{"key": k, "label": label, "current": k == tab} for k, label in SHEET_TABS],
         "level": level, "xp_next": next_xp,
@@ -378,6 +383,38 @@ def sheet_context(request, campaign, character):
         "history": history.select_related("session").order_by("session__number", "id"),
         "my_turn": bool(actor and actor.character_id == character.pk), "encounter": encounter,
     }
+    if sheet_view == User.SheetView.FICHA:
+        context.update(paper_context(character, weapons, spell_groups, abilities, granted, skill))
+    return context
+
+
+def paper_context(character, weapons, spell_groups, abilities, granted, skill):
+    """What only the «Vista ficha» (the paper sheet layout) needs, from the same data."""
+    mods = {key: rules.ability_modifier(getattr(character, key)) for key in rules.ABILITY_KEYS}
+    held = {row.ability_id for row in abilities}
+    spells = [s for _, group in sorted(spell_groups.items()) for s in group]
+    # Spell save DC and spell attack: 8 + modifier and the modifier of the class's primary
+    # ability (proficiency is not modelled yet, as in the skills).
+    key = rules.ability_from_name(character.char_class.primary_ability) if character.has_magic or spells else None
+    spell_mod = mods[key] if key else None
+    hp = character.temp_hp
+    return {
+        "paper_stats": [{"label": rules.ABILITY_SHEET_LABEL[k], "score": getattr(character, k), "mod": mods[k]} for k in rules.ABILITY_KEYS],
+        "paper_skills": [{"name": name, "abbr": rules.ABILITY_ABBR[k], "bonus": mods[k]} for name, k in rules.SKILLS],
+        "paper_saves": [{"name": rules.ABILITY_NAMES[k], "bonus": mods[k]} for k in rules.ABILITY_KEYS],
+        # Attacks are often named after their weapon («Daga · slash · 1 mano»): no need to say it twice.
+        "paper_attacks": [{"weapon": w, "attack": a,
+                           "label": a["attack"].name if a["attack"].name.startswith(w["item"].name) else f'{w["item"].name} · {a["attack"].name}'}
+                          for w in weapons for a in w["attacks"]],
+        "paper_weapons_without_attacks": [w for w in weapons if not w["attacks"]],
+        "paper_abilities": [row for row in abilities if not (skill and row.ability_id == skill.ability_id)],
+        "paper_granted": [i["ability"] for g in granted for i in g["items"] if i["reached"] and i["ability"].pk not in held],
+        "paper_spells": spells,
+        "spell_mod": spell_mod, "spell_dc": None if spell_mod is None else 8 + spell_mod,
+        "magic_page": character.has_magic or bool(spells),
+        # The current hit points are tinted when low (a quarter or less) and at 0 or below.
+        "hp_state": "cero" if hp <= 0 else ("baja" if hp * 4 <= character.hp else ""),
+    }
 
 
 def _spell_catalog(character):
@@ -389,29 +426,64 @@ def _spell_catalog(character):
     return [(label, group) for label, group in groups if group]
 
 
+CSRF_FIELD = re.compile(r'name="csrfmiddlewaretoken" value="[^"]*"')
+
+
+def sheet_panel(request, campaign, character):
+    """The sheet's panel (#ficha) in the reader's view, and a fingerprint of what it shows.
+    The page asks for it every few seconds and only replaces it when the fingerprint
+    changes (e.g. the master took hit points away from the Turns screen). The CSRF
+    tokens change on every render, so they are left out of the fingerprint."""
+    context = sheet_context(request, campaign, character)
+    html = render_to_string("partials/sheet_panel.html", context, request=request)
+    version = hashlib.sha1(CSRF_FIELD.sub("", html).encode()).hexdigest()[:16]
+    return context, html, version
+
+
 class SheetView(CampaignMemberMixin, TemplateView):
     template_name = "sheet.html"
 
     def get(self, request, *args, **kwargs):
         if is_ajax(request):
             character = character_in_campaign(self.campaign, kwargs["pk"], request.user)
-            html = render_to_string("partials/sheet_panel.html", sheet_context(request, self.campaign, character), request=request)
-            return JsonResponse({"html": html, "target": "#ficha"})
+            _, html, version = sheet_panel(request, self.campaign, character)
+            return JsonResponse({"html": html, "target": "#ficha", "version": version})
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         character = character_in_campaign(self.campaign, self.kwargs["pk"], self.request.user)
-        context.update(sheet_context(self.request, self.campaign, character))
+        sheet, html, version = sheet_panel(self.request, self.campaign, character)
+        context.update(sheet, panel=mark_safe(html), sheet_version=version)
         return context
+
+
+def _sheet_tab(request):
+    tab = request.POST.get("tab") or request.GET.get("tab") or "res"
+    return tab if tab in dict(SHEET_TABS) else "res"
 
 
 def _sheet_response(request, campaign, character, msg="", error=False):
     character = Character.objects.get(pk=character.pk)
-    context = sheet_context(request, campaign, character)
-    url = reverse("sheet", args=[campaign.pk, character.pk]) + f"?tab={context['tab']}"
-    return respond(request, redirect_to=url, template="partials/sheet_panel.html", context=context,
-                   target="#ficha", msg=msg, error=error)
+    if is_ajax(request):
+        _, html, version = sheet_panel(request, campaign, character)
+        return JsonResponse({"msg": msg, "error": error, "html": html, "target": "#ficha", "version": version})
+    url = reverse("sheet", args=[campaign.pk, character.pk]) + f"?tab={_sheet_tab(request)}"
+    return respond(request, redirect_to=url, msg=msg, error=error)
+
+
+@require_POST
+@campaign_member
+def sheet_view_choice(request, campaign, pk):
+    """«Vista web» / «Vista ficha»: kept on the user, so every sheet opens in that view.
+    Anyone who can read the sheet can choose how to see it."""
+    character = character_in_campaign(campaign, pk, request.user)
+    view = request.POST.get("vista")
+    if view not in User.SheetView.values:
+        raise Http404("Vista desconocida.")
+    request.user.sheet_view = view
+    request.user.save(update_fields=["sheet_view"])
+    return _sheet_response(request, campaign, character)
 
 
 def _positive(value):

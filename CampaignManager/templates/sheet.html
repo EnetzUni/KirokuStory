@@ -3,6 +3,7 @@
 {% block title %}{{ character.name }} · {{ campaign.name }}{% endblock %}
 {% block content %}
 <nav class="migas" aria-label="{% translate 'Ruta' %}"><a href="{% url 'characters' campaign.pk %}">{% translate "Personajes" %}</a> <span aria-hidden="true">›</span> <span>{{ character.name }}</span></nav>
-{% include "partials/sheet_panel.html" %}
+{# The panel (#ficha) is replaced after every action and, when it changes elsewhere, every few seconds (mesa.js). #}
+<div id="ficha-marco" data-version="{{ sheet_version }}" data-refrescar>{{ panel }}</div>
 <p id="mensaje-ajax" class="mensaje flotante" role="status" hidden></p>
 {% endblock %}

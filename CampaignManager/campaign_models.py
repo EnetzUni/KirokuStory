@@ -295,10 +295,21 @@ class QuestObjective(models.Model):
 BOARD_WIDTH, BOARD_HEIGHT = 3300, 1920
 CARD_WIDTH, CARD_HEIGHT = 200, 120
 BOARD_CENTRE_X, BOARD_CENTRE_Y = (BOARD_WIDTH - CARD_WIDTH) // 2, (BOARD_HEIGHT - CARD_HEIGHT) // 2
+PERSON_CARD_HEIGHT = 250  # a person card has a photo on top, so it is taller
 
 
 class BoardCard(models.Model):
+    """A note pinned on the board: a clue, or a person (with a photo, crossed out with
+    a red cross once the party has dealt with them)."""
+
+    class Kind(models.TextChoices):
+        PISTA = "pista", "Pista"
+        PERSONA = "persona", "Persona"
+
     campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, related_name="board_cards")
+    kind = models.CharField(max_length=10, choices=Kind.choices, default=Kind.PISTA)
+    image = models.ImageField(upload_to="pizarra/", blank=True, help_text="Only for people: their photo or portrait")
+    crossed = models.BooleanField(default=False, help_text="Only for people: dealt with, a red cross over the card")
     title = models.CharField(max_length=120)
     text = models.TextField(blank=True)
     x = models.PositiveIntegerField(default=BOARD_CENTRE_X, validators=[MaxValueValidator(BOARD_WIDTH - CARD_WIDTH)])
@@ -315,6 +326,14 @@ class BoardCard(models.Model):
 
     def __str__(self):
         return self.title
+
+    @property
+    def is_person(self):
+        return self.kind == self.Kind.PERSONA
+
+    @property
+    def height(self):
+        return PERSON_CARD_HEIGHT if self.is_person else CARD_HEIGHT
 
     def locked_for(self, is_master):
         """Classified and not revealed: players only see that it exists."""

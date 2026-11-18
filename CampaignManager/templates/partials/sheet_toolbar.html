@@ -1,0 +1,15 @@
+{% load i18n %}{% comment %}Top of the sheet, the same in both views: how to see it, and the rests.{% endcomment %}
+<div class="ficha-barra">
+    <form method="post" action="{% url 'sheet_view' campaign.pk character.pk %}" data-ajax data-target="#ficha" class="vista-selector" role="group" aria-label="{% translate 'Cómo ver la ficha' %}">
+        {% csrf_token %}<input type="hidden" name="tab" value="{{ tab }}">
+        <button class="btn" name="vista" value="web" aria-pressed="{% if sheet_view == 'web' %}true{% else %}false{% endif %}">{% translate "Vista web" %}</button>
+        <button class="btn" name="vista" value="ficha" aria-pressed="{% if sheet_view == 'ficha' %}true{% else %}false{% endif %}">{% translate "Vista ficha" %}</button>
+    </form>
+    {% if can_edit %}
+    <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="fila-s">{% include "partials/sheet_hidden.html" %}
+        {% translate "El descanso largo recupera la vida, el AP, los puntos de magia y todos los usos. El corto, los usos que se recargan con descanso corto." as rest_help %}
+        <button class="btn" name="accion" value="descanso_corto" title="{{ rest_help }}">{% translate "Descanso corto" %}</button>
+        <button class="btn" name="accion" value="descanso_largo" title="{{ rest_help }}">{% translate "Descanso largo" %}</button>
+    </form>
+    {% endif %}
+</div>

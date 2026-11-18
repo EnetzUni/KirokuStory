@@ -236,6 +236,20 @@ form.en-linea{display:inline}
 .hilo{position:absolute;height:3px;margin-top:-1.5px;background:#C53030;transform-origin:0 50%;pointer-events:none}
 .chincheta{position:absolute;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:#C53030;border:2px solid #7A1D1D;pointer-events:none}
 .corcho.colocando{cursor:crosshair;outline:3px dashed #F2C94C;outline-offset:-3px}
+/* Person cards: a photo on top (a silhouette without one) and, once dealt with, a red cross over the card. */
+.nota.persona{padding-top:22px;gap:6px}
+.nota.persona .foto{display:block;width:100%;height:140px;border:1px solid #D8CDB5;background:#E9E2D2;overflow:hidden;flex:none}
+.nota.persona .foto img{width:100%;height:100%;object-fit:cover;display:block}
+.nota.persona .foto svg{width:100%;height:100%;fill:#B8AC94;padding:18px 40px 0}
+.nota.persona strong{font-size:16px;text-align:center}
+.nota.persona span:not(.foto):not(.sello):not(.tachon){text-align:center}
+.nota.tachada .foto img{filter:grayscale(1) contrast(.9)}
+.tachon{position:absolute;inset:0;pointer-events:none}
+.tachon::before,.tachon::after{content:"";position:absolute;left:50%;top:50%;width:118%;height:9px;border-radius:5px;background:#C53030;
+  box-shadow:0 1px 3px rgba(0,0,0,.35);transform:translate(-50%,-50%) rotate(50deg)}
+.tachon::after{transform:translate(-50%,-50%) rotate(-50deg)}
+/* «Nueva nota»: the photo field only when the note is a person. */
+form:has(input[data-tipo-nota][value="pista"]:checked) [data-solo-persona]{display:none}
 
 /* ---------- Escenas ---------- */
 .mensaje-rol{border-radius:var(--r-card);padding:14px 16px;display:flex;gap:12px;background:var(--surface);border:1px solid var(--line)}
@@ -247,6 +261,8 @@ form.en-linea{display:inline}
 .escena-item[aria-current="page"]{background:var(--accent-soft);border-color:var(--accent)}
 
 /* ---------- Misiones ---------- */
+/* Adventure form: one row per objective. */
+.objetivo-fila{display:flex;flex-direction:column;gap:4px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r-ctl);background:var(--surface)}
 .objetivo{min-height:40px;width:100%;text-align:left;padding:4px 0;border:none;background:transparent;display:flex;align-items:center;gap:10px;font-size:14px}
 .objetivo:disabled{opacity:1;cursor:default}
 .marca-casilla{width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;flex:none;border:2px solid var(--line)}
@@ -283,6 +299,18 @@ form.en-linea{display:inline}
 .js .zoom-botones{display:flex}
 .zoom-botones .btn{font-size:20px;box-shadow:0 1px 3px rgba(0,0,0,.25)}
 .zoom-botones .btn:disabled{opacity:.55;cursor:default}
+/* Full screen: the map or board window covers the whole screen (the browser's full screen
+   when it has one, an overlay otherwise). «✕ Salir», Esc and the phone's «back» close it. */
+.zoom-botones .icono-cerrar,.zoom-pantalla .zoom-botones .icono-abrir{display:none}
+.zoom-pantalla .zoom-botones .icono-cerrar{display:block}
+.js [data-zoom].zoom-pantalla{position:fixed!important;inset:0;z-index:1000;width:auto!important;height:auto!important;
+  max-height:none!important;aspect-ratio:auto!important;margin:0;border-radius:0!important}
+.mapa.zoom-pantalla{border:none!important}
+.corcho-marco.zoom-pantalla{border-width:6px!important}
+html.pantalla-abierta,html.pantalla-abierta body{overflow:hidden}
+.zoom-salir{display:none;position:absolute;top:8px;left:8px;z-index:6;box-shadow:0 1px 3px rgba(0,0,0,.25);font-weight:700}
+.js .zoom-pantalla>.zoom-salir{display:inline-flex}
+@media (hover:none){.tecla-esc{display:none}}
 .js [data-zoom]{touch-action:none;user-select:none;cursor:grab}
 .js [data-zoom].arrastrando{cursor:grabbing}
 .js .mapa[data-zoom].colocando,.js [data-zoom] .colocando{cursor:crosshair}
@@ -398,3 +426,133 @@ form.en-linea{display:inline}
 }
 /* Phones: the name goes under the portrait, so it needs no room beside the band. */
 @media (max-width:430px){.ficha-datos{padding-top:0}}
+
+/* ---------- Ficha: shared bar and «Vista ficha» (the paper sheet) ---------- */
+.ficha-barra{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.vista-selector{display:inline-flex;border:1px solid var(--line);border-radius:var(--r-ctl);overflow:hidden}
+.vista-selector .btn{border:none;border-radius:0;min-height:44px}
+.vista-selector .btn[aria-pressed="true"]{background:#283618;color:#FFFFFF;font-weight:700}
+
+.hoja-vista{--tinta:#283618;--oliva:#606C38;--cobre:#BC6C25;--tinte:#F1EDD3;--raya:#E4DCB8;display:flex;flex-direction:column;gap:24px}
+.hoja{background:#FFFFFF;color:var(--tinta);border:1px solid var(--raya);border-radius:8px;padding:28px 26px;display:flex;flex-direction:column;gap:14px;width:100%}
+.hoja-cabecera{display:flex;flex-direction:column;gap:6px}
+.hoja-titulo{margin:0;text-align:center;font-size:30px;letter-spacing:.3em;text-transform:uppercase;font-weight:700;color:var(--tinta)}
+.hoja-regla{display:flex;align-items:center;justify-content:center;gap:10px}
+.hoja-regla::before,.hoja-regla::after{content:"";width:min(190px,32%);height:1px;background:var(--cobre)}
+.hoja-regla i{width:9px;height:9px;background:var(--cobre);transform:rotate(45deg)}
+.hoja-campana{margin:0;text-align:center;color:var(--oliva);font-size:14px}
+.hoja-campos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;margin-top:8px}
+.hoja-campo{display:flex;flex-direction:column;gap:3px;min-width:0}
+.hoja-campo b{font-size:17px;border-bottom:1px solid var(--tinta);padding:0 2px 3px;min-height:30px;overflow-wrap:anywhere}
+.hoja-subir{font-size:13px;color:var(--cobre);white-space:nowrap}
+.hoja-rotulo{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--oliva);display:inline-flex;align-items:center;gap:6px}
+.hoja-caja{border:1px solid var(--tinta);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;min-width:0;background:#FFFFFF}
+.hoja-caja.sin-relleno-x{padding-left:0;padding-right:0}
+.hoja-caja.sin-relleno-x>:not(.hoja-tabla-marco){padding-left:12px;padding-right:12px}
+.hoja-titulo-caja{margin:0;font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;text-align:center;color:var(--tinta)}
+.hoja-titulo-caja::after{content:"";display:block;width:22px;height:2px;background:var(--cobre);margin:3px auto 0}
+.hoja-fs{border:0;margin:0;padding:0;min-width:0}
+.hoja-fs[disabled] .btn,.hoja-fs[disabled] .hoja-mini-btn,.hoja-fs[disabled] input,.hoja-fs[disabled] textarea,.hoja-fs[disabled] select{opacity:.45;cursor:not-allowed}
+.hoja .btn{min-height:44px;border-color:var(--tinta);font-size:14px}
+.hoja .entrada-num{min-height:44px;background:#FFFFFF;border-color:var(--tinta)}
+.hoja-mini-btn{width:44px;height:44px;flex:none;border:1px solid var(--tinta);border-radius:8px;background:#FFFFFF;color:var(--tinta);font-size:20px;font-weight:700;line-height:1;display:inline-flex;align-items:center;justify-content:center;padding:0}
+.hoja-mini-btn:disabled{opacity:.4;cursor:default}
+.hoja-num{font-size:22px;font-weight:700;line-height:1.1;color:var(--tinta)}
+.hoja-num.grande{font-size:30px}
+.hoja-num small{font-size:14px;font-weight:400}
+.hoja-nota{font-size:12px;color:var(--oliva);text-align:center}
+.hoja-vacio{color:var(--oliva);font-size:13px}
+.hoja-columna{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%}
+.hoja-mm{display:flex;align-items:center;justify-content:center;gap:8px}
+.hoja-fila-ctl{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px}
+
+/* Conditions: a thin row under the header. */
+.hoja-estados{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--raya);border-bottom:1px solid var(--raya)}
+.hoja-estado{display:inline-flex;align-items:center;border:1px solid var(--oliva);border-radius:24px;padding:2px 2px 2px 12px;font-size:13px}
+.hoja-estado .hoja-fs{display:flex;align-items:center;gap:6px}
+.hoja-estado .hoja-mini-btn{border-radius:50%;font-size:16px}
+
+/* Page 1 layout: abilities | skills and saves | central block | inventory; attacks under. */
+.hoja-arriba{display:grid;gap:12px;align-items:start;
+  grid-template-columns:96px minmax(170px,1fr) minmax(290px,1.5fr) minmax(230px,1.3fr);
+  grid-template-areas:"car tir centro inv" "car sal ataques ataques"}
+.hoja-car{grid-area:car}.hoja-tir{grid-area:tir}.hoja-sal{grid-area:sal}.hoja-centro{grid-area:centro}.hoja-inv{grid-area:inv;align-self:stretch}.hoja-ataques{grid-area:ataques}
+/* Bottom: affinities and notes (the notes fill the column) | abilities. */
+.hoja-abajo{display:grid;gap:12px;align-items:stretch;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr)}
+.hoja-izq{display:flex;flex-direction:column;gap:12px;min-width:0}
+.hoja-apun{flex:1}
+.hoja-apun .hoja-columna{flex:1}
+.hoja-apun .hoja-rayado{flex:1}
+
+.hoja-car{align-self:stretch;background:var(--tinte);border-radius:12px;padding:10px 8px 22px;display:flex;flex-direction:column;justify-content:space-between;gap:24px}
+.hoja-car-caja{position:relative;border:1px solid var(--tinta);border-radius:10px;background:#FFFFFF;text-align:center;padding:6px 4px 20px;display:flex;flex-direction:column;align-items:center}
+.hoja-car-caja .hoja-rotulo{font-size:9.5px;letter-spacing:.08em}
+.hoja-car-caja b{font-size:24px;line-height:1.2}
+.hoja-mod{position:absolute;left:50%;bottom:-17px;transform:translateX(-50%);width:34px;height:34px;border-radius:50%;border:1.5px solid var(--oliva);background:#FFFFFF;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
+
+.hoja-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.hoja-lista li{display:flex;align-items:baseline;gap:6px;font-size:13.5px;min-height:24px}
+.hoja-lista li small{color:var(--oliva);font-size:10px}
+.hoja-lista li i{flex:1;border-bottom:1px solid var(--raya);min-width:12px}
+.hoja-lista li b{min-width:26px;text-align:right}
+
+.hoja-centro{background:var(--tinte);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.hoja-fila4{display:grid;gap:8px;grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,1.8fr)}
+.hoja-fila3{display:grid;gap:8px;grid-template-columns:repeat(3,minmax(0,1fr))}
+.hoja-mini{border:1px solid var(--tinta);border-radius:10px;background:#FFFFFF;padding:6px;min-height:78px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;min-width:0}
+.hoja-mini .hoja-rotulo{font-size:8.5px;letter-spacing:0;max-width:100%;white-space:nowrap}
+.hoja-mini .hoja-fs.hoja-mm{display:flex}
+.hoja-doble{border:1px solid var(--tinta);border-radius:10px;background:#FFFFFF;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.9fr)}
+.hoja-mitad{padding:8px 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-width:0}
+.hoja-mitad+.hoja-mitad{border-left:1px dashed var(--oliva)}
+.hp.baja .hoja-hp{color:#B7791F}
+.hp.cero .hoja-hp,.hp.muerto .hoja-hp{color:#C53030}
+.hp.cero .hoja-mitad+.hoja-mitad,.hp.muerto .hoja-mitad+.hoja-mitad{background:#FBEDEA;border-radius:0 9px 9px 0}
+
+.hoja-oro{display:flex;flex-direction:column;gap:6px;align-items:flex-start;padding-bottom:8px;border-bottom:1px solid var(--raya)}
+.hoja-oro .hoja-fila-ctl{justify-content:flex-start}
+.hoja-objetos{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.hoja-objetos li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px;padding:4px 0;border-bottom:1px solid var(--raya);font-size:14px}
+.hoja-objeto-nombre{flex:1 1 120px}
+.hoja-equipado{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--cobre)}
+.hoja-objetos .hoja-fila-ctl{justify-content:flex-end}
+.hoja-objetos b{min-width:22px;text-align:center}
+
+.hoja-tabla-marco{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.hoja-tabla{width:100%;border-collapse:collapse;font-size:13.5px}
+.hoja-ataques .hoja-tabla{min-width:640px}
+.hoja-hab .hoja-tabla{min-width:380px}
+.hoja-magia .hoja-tabla{min-width:820px}
+.hoja-tabla th{text-align:left;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--oliva);padding:4px 8px;border-bottom:1px solid var(--tinta);white-space:nowrap}
+.hoja-tabla td{padding:6px 8px;border-bottom:1px solid var(--raya);vertical-align:middle}
+.hoja-tabla th:first-child,.hoja-tabla td:first-child{padding-left:12px}
+.hoja-tabla details summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
+.hoja-select{min-height:44px;width:auto;max-width:170px}
+
+.hoja-afinidades{display:grid;grid-template-columns:1fr 1fr;min-height:150px}
+.hoja-afinidades>div+div{border-left:1px dashed var(--oliva)}
+/* Apuntes: ruled paper. */
+.hoja-rayado{width:100%;min-height:280px;border:none;resize:vertical;padding:0 4px;font:inherit;font-size:15px;line-height:28px;color:var(--tinta);
+  background-color:#FFFFFF;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 27px,var(--raya) 27px,var(--raya) 28px);background-attachment:local}
+.hoja-unica{border-top:1px solid var(--tinta);padding:10px 12px 0;display:flex;flex-direction:column;gap:4px}
+
+.hoja-banda{display:grid;gap:10px;grid-template-columns:minmax(0,2fr) repeat(2,minmax(0,1fr));background:var(--tinte);border-radius:12px;padding:10px}
+
+/* Tablet portrait (about 820px): three columns, inventory and attacks underneath. */
+@media (max-width:1100px){
+  .hoja-arriba{grid-template-columns:96px minmax(0,1fr) minmax(0,1.3fr);
+    grid-template-areas:"car tir centro" "car sal centro" "inv inv inv" "ataques ataques ataques"}
+}
+/* Narrow screens: one column. */
+@media (max-width:760px){
+  .hoja{padding:18px 12px}
+  .hoja-titulo{font-size:22px;letter-spacing:.18em}
+  .hoja-campos{grid-template-columns:minmax(0,1fr);gap:12px}
+  .hoja-arriba{grid-template-columns:minmax(0,1fr);grid-template-areas:"car" "centro" "tir" "sal" "inv" "ataques"}
+  .hoja-car{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:26px 10px}
+  .hoja-abajo{grid-template-columns:minmax(0,1fr)}
+  .hoja-fila4{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .hoja-fila4>:last-child{grid-column:1/-1}
+  .hoja-banda{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .hoja-banda>:first-child{grid-column:1/-1}
+}

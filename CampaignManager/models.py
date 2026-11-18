@@ -16,7 +16,13 @@ from . import rules
 
 class User(AbstractUser):
     # username, email and a hashed password are inherited from AbstractUser.
-    pass
+
+    class SheetView(models.TextChoices):
+        WEB = "web", "Vista web"
+        FICHA = "ficha", "Vista ficha"
+
+    # How this user likes to see character sheets: the web cards or the paper sheet layout.
+    sheet_view = models.CharField(max_length=5, choices=SheetView.choices, default=SheetView.WEB)
 
 
 class Campaign(models.Model):

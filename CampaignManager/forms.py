@@ -49,14 +49,23 @@ class EventForm(CampaignFormMixin, forms.ModelForm):
 class BoardCardForm(CampaignFormMixin, forms.ModelForm):
     class Meta:
         model = BoardCard
-        fields = ["title", "text", "page", "classified"]
-        labels = {"title": "Título", "text": "Texto", "page": "Página del Mundo", "classified": "Clasificada: los jugadores la verán oculta hasta que la reveles"}
-        widgets = {"text": forms.Textarea(attrs={"rows": 3})}
+        fields = ["kind", "title", "text", "image", "page", "classified"]
+        labels = {"kind": "Tipo", "title": "Título", "text": "Texto", "image": "Foto", "page": "Página del Mundo",
+                  "classified": "Clasificada: los jugadores la verán oculta hasta que la reveles"}
+        widgets = {"text": forms.Textarea(attrs={"rows": 3}), "kind": forms.RadioSelect}
+
+    def clean(self):
+        cleaned = super().clean()
+        cleaned["kind"] = cleaned.get("kind") or BoardCard.Kind.PISTA
+        if cleaned["kind"] != BoardCard.Kind.PERSONA:
+            cleaned["image"] = None  # only people have a photo
+        return cleaned
 
     def __init__(self, *args, is_master=False, visible_pages=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["page"].queryset = visible_pages if visible_pages is not None else Page.objects.none()
         self.fields["page"].required = False
+        self.fields["kind"].required = False
         if not is_master:
             del self.fields["classified"]
 
@@ -117,9 +126,13 @@ class QuestForm(CampaignFormMixin, forms.ModelForm):
         self.fields["start_session"].empty_label = "Sin sesión"
 
 
+# The adventure's checklist. One empty form: the «new objective» box. With JavaScript,
+# «Añadir objetivo» turns it into a row of the list and empties it for the next one, so
+# there is no limit; the order is given when saving (new ones go at the end).
 ObjectiveFormSet = inlineformset_factory(
-    Quest, QuestObjective, fields=["text", "done", "hidden", "order"], extra=2, can_delete=True,
-    labels={"text": "Objetivo", "done": "Cumplido", "hidden": "Oculto (se revela al cumplirlo)", "order": "Orden"},
+    Quest, QuestObjective, fields=["text", "done", "hidden"], extra=1, can_delete=True,
+    labels={"text": "Objetivo", "done": "Cumplido", "hidden": "Oculto (se revela al cumplirlo)"},
+    widgets={"text": forms.TextInput(attrs={"class": "entrada", "maxlength": 300})},
 )
 
 

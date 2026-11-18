@@ -17,14 +17,18 @@
                 {% if item.can_target %}
                 <form method="post" action="{% url 'diary_card_action' campaign.pk detail.card.pk %}" data-ajax data-target="#pizarra" class="en-linea">
                     {% csrf_token %}<input type="hidden" name="accion" value="unir"><input type="hidden" name="otra" value="{{ item.card.pk }}">
-                    <button type="submit" class="nota{% if item.locked %} bloqueada{% elif item.card.classified and not item.card.revealed %} clasificada{% endif %}" style="left:{{ item.card.x }}px;top:{{ item.card.y }}px;transform:rotate({{ item.rot }}deg);cursor:copy">
+                    <button type="submit" class="nota{% if item.person %} persona{% endif %}{% if item.crossed %} tachada{% endif %}{% if item.locked %} bloqueada{% elif item.card.classified and not item.card.revealed %} clasificada{% endif %}" style="left:{{ item.card.x }}px;top:{{ item.card.y }}px;transform:rotate({{ item.rot }}deg);cursor:copy">
                 {% else %}
-                <a class="nota{% if item.locked %} bloqueada{% elif item.card.classified and not item.card.revealed %} clasificada{% endif %}" href="?nota={{ item.card.pk }}" data-ajax-link
+                <a class="nota{% if item.person %} persona{% endif %}{% if item.crossed %} tachada{% endif %}{% if item.locked %} bloqueada{% elif item.card.classified and not item.card.revealed %} clasificada{% endif %}" href="?nota={{ item.card.pk }}" data-ajax-link
                    style="left:{{ item.card.x }}px;top:{{ item.card.y }}px;transform:rotate({{ item.rot }}deg)" {% if item.current %}aria-current="true"{% endif %}>
                 {% endif %}
                     {% if item.stamp %}<span class="sello">{{ item.stamp }}</span>{% endif %}
                     {% if item.locked %}
                     <strong>???</strong><span>{% translate "Pista clasificada. El máster la revelará cuando toque." %}</span>
+                    {% elif item.person %}
+                    <span class="foto">{% if item.card.image %}<img src="{{ item.card.image.url }}" alt="" loading="lazy" draggable="false">{% else %}<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4.5"></circle><path d="M3 23c0-5.5 4-9 9-9s9 3.5 9 9z"></path></svg>{% endif %}</span>
+                    <strong>{{ item.card.title }}</strong>{% if item.card.text %}<span>{{ item.card.text }}</span>{% endif %}
+                    {% if item.crossed %}<span class="tachon" aria-hidden="true"></span><span class="sr-only">{% translate "(tachada con una cruz roja)" %}</span>{% endif %}
                     {% else %}
                     <strong>{{ item.card.title }}</strong><span>{{ item.card.text }}</span>
                     <small>{% if item.card.author %}{% translate "Apuntada por" %} {{ item.card.author.get_short_name|default:item.card.author.username }}{% endif %}</small>
@@ -47,7 +51,7 @@
                 <h2 style="font-size:22px">{% translate "Nota clasificada" %}</h2>
                 <p class="atenuado">{% translate "El máster todavía no ha revelado esta pista." %}</p>
                 {% else %}
-                <h2 style="font-size:22px">{{ detail.card.title }}</h2>
+                <h2 style="font-size:22px">{{ detail.card.title }}{% if detail.card.is_person and detail.card.crossed %} <span class="pastilla p-coral" style="vertical-align:middle">{% translate "Tachada" %}</span>{% endif %}</h2>
                 <p class="lectura-p">{{ detail.card.text }}</p>
                 <span class="pequeno atenuado">{% if detail.card.author %}{% translate "Apuntada por" %} {{ detail.card.author.get_short_name|default:detail.card.author.username }} · {% endif %}{{ detail.n_links }} {% if detail.n_links == 1 %}{% translate "hilo" %}{% else %}{% translate "hilos" %}{% endif %}</span>
                 {% endif %}
@@ -70,6 +74,22 @@
                         <button type="submit" name="accion" value="quitar" class="btn" style="color:var(--danger-text)">{% translate "Quitar de la pizarra" %}</button></form>
                     {% endif %}
                 </div>
+                {% if detail.can_edit and detail.card.is_person %}
+                <div class="pila-s" style="border-top:1px solid var(--line);padding-top:8px;gap:8px">
+                    <form method="post" action="{% url 'diary_card_action' campaign.pk detail.card.pk %}" data-ajax data-target="#pizarra" class="en-linea">{% csrf_token %}
+                        <button type="submit" name="accion" value="tachar" class="btn{% if not detail.card.crossed %} btn-peligro{% endif %}">{% if detail.card.crossed %}{% translate "Quitar la cruz" %}{% else %}✕ {% translate "Tachar con una cruz roja" %}{% endif %}</button></form>
+                    <form method="post" action="{% url 'diary_card_action' campaign.pk detail.card.pk %}" enctype="multipart/form-data" data-ajax data-target="#pizarra" class="fila-s">{% csrf_token %}
+                        <input type="hidden" name="accion" value="foto">
+                        <label class="campo" style="flex:1">{% if detail.card.image %}{% translate "Cambiar la foto" %}{% else %}{% translate "Poner una foto" %}{% endif %}
+                            <input type="file" name="foto" accept="image/*" required></label>
+                        <button type="submit" class="btn">{% translate "Subir" %}</button>
+                    </form>
+                    {% if detail.card.image %}
+                    <form method="post" action="{% url 'diary_card_action' campaign.pk detail.card.pk %}" data-ajax data-target="#pizarra" class="en-linea">{% csrf_token %}
+                        <button type="submit" name="accion" value="foto_quitar" class="btn btn-texto">{% translate "Quitar la foto" %}</button></form>
+                    {% endif %}
+                </div>
+                {% endif %}
                 {% if detail.can_edit %}
                 {% if mode == "mover" %}
                 <form id="form-mover" method="post" action="{% url 'diary_card_action' campaign.pk detail.card.pk %}" data-ajax data-target="#pizarra" data-enviar="1" class="fila-s">
@@ -97,13 +117,18 @@
                 {% endif %}
             </div>
 
-            <form method="post" action="{% url 'diary_card_add' campaign.pk %}" class="tarjeta compacta" data-ajax data-target="#pizarra" data-en-vista=".corcho-marco[data-zoom]">
+            <form method="post" action="{% url 'diary_card_add' campaign.pk %}" enctype="multipart/form-data" class="tarjeta compacta" data-ajax data-target="#pizarra" data-en-vista=".corcho-marco[data-zoom]">
                 {% csrf_token %}
                 {# Filled by mesa.js with the middle of what the board window shows, so the note appears in view. #}
                 <input type="hidden" name="x" value=""><input type="hidden" name="y" value="">
                 <h2 style="font-size:20px">{% translate "Nueva nota" %}</h2>
+                <div class="fila-s" role="radiogroup" aria-label="{% translate 'Tipo de nota' %}">
+                    <label class="chip"><input type="radio" name="kind" value="pista" checked data-tipo-nota> {% translate "Pista" %}</label>
+                    <label class="chip"><input type="radio" name="kind" value="persona" data-tipo-nota> {% translate "Persona" %}</label>
+                </div>
                 <div class="campo"><label for="bn-titulo">{% translate "Título" %}</label><input id="bn-titulo" class="entrada" type="text" name="title" required maxlength="120"></div>
                 <div class="campo"><label for="bn-texto">{% translate "Texto" %}</label><textarea id="bn-texto" class="entrada" name="text" rows="3"></textarea></div>
+                <div class="campo" data-solo-persona><label for="bn-foto">{% translate "Foto (solo personas, opcional)" %}</label><input id="bn-foto" type="file" name="image" accept="image/*"></div>
                 {% if is_master %}<label class="casilla"><input type="checkbox" name="classified"> {% translate "Clasificada: los jugadores la verán oculta hasta que la reveles" %}</label>{% endif %}
                 <button type="submit" class="btn btn-principal">{% translate "Clavar en la pizarra" %}</button>
             </form>

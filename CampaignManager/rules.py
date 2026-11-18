@@ -20,6 +20,31 @@ STANDARD_ARRAY = [15, 14, 13, 12, 10, 8]
 ABILITY_KEYS = ["strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"]
 ABILITY_ABBR = {"strength": "FUE", "dexterity": "DES", "constitution": "CON",
                 "intelligence": "INT", "wisdom": "SAB", "charisma": "CAR"}
+# Names on the paper sheet (short ones where the sheet abbreviates) and full names.
+ABILITY_SHEET_LABEL = {"strength": "Fuerza", "dexterity": "Destreza", "constitution": "Const.",
+                       "intelligence": "Intel.", "wisdom": "Sabiduría", "charisma": "Carisma"}
+ABILITY_NAMES = {"strength": "Fuerza", "dexterity": "Destreza", "constitution": "Constitución",
+                 "intelligence": "Inteligencia", "wisdom": "Sabiduría", "charisma": "Carisma"}
+
+# The 18 skills of the sheet and the ability each one uses. Proficiencies are not
+# modelled yet, so a skill's bonus is just that ability's modifier.
+SKILLS = [
+    ("Acrobacias", "dexterity"), ("Arcanos", "intelligence"), ("Atletismo", "strength"), ("Engañar", "charisma"),
+    ("Historia", "intelligence"), ("Interpretación", "charisma"), ("Intimidar", "charisma"),
+    ("Investigación", "intelligence"), ("Juego de manos", "dexterity"), ("Medicina", "wisdom"),
+    ("Naturaleza", "intelligence"), ("Percepción", "wisdom"), ("Perspicacia", "wisdom"), ("Persuasión", "charisma"),
+    ("Religión", "intelligence"), ("Sigilo", "dexterity"), ("Supervivencia", "wisdom"), ("Trato con animales", "wisdom"),
+]
+
+
+def ability_from_name(text):
+    """The first ability named in a text such as a class's primary ability («Sabiduría»,
+    «Fuerza o Destreza»), or None."""
+    words = (text or "").lower()
+    found = [(words.find(name.lower()), key) for key, name in ABILITY_NAMES.items() if name.lower() in words]
+    return min(found)[1] if found else None
+
+
 ABILITY_BY_CODE = {"str": "strength", "dex": "dexterity", "con": "constitution",
                    "int": "intelligence", "wis": "wisdom", "cha": "charisma"}
 

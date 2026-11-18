@@ -58,6 +58,7 @@ urlpatterns = [
     path(campaign + "personajes/habilidad-unica/<int:pk>/", views_characters.unique_skill_review, name="unique_skill_review"),
     path(campaign + "personajes/<int:pk>/", views_characters.SheetView.as_view(), name="sheet"),
     path(campaign + "personajes/<int:pk>/accion/", views_characters.sheet_action, name="sheet_action"),
+    path(campaign + "personajes/<int:pk>/vista/", views_characters.sheet_view_choice, name="sheet_view"),
     path(campaign + "personajes/<int:pk>/subir-nivel/", views_characters.level_up, name="level_up"),
     path(campaign + "personajes/<int:pk>/revision/", views_characters.character_review, name="character_review"),
     path(campaign + "personajes/<int:pk>/copiar/", views_characters.character_copy, name="character_copy"),

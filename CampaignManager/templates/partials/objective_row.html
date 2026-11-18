@@ -1,0 +1,12 @@
+{% load i18n %}{% comment %}One objective of the adventure form (a form of ObjectiveFormSet). Also used, with __prefix__, as the template mesa.js copies for each new one.{% endcomment %}
+<li class="objetivo-fila" data-objetivo>
+    {{ sub.id }}
+    <label class="sr-only" for="{{ sub.text.id_for_label }}">{% translate "Objetivo" %}</label>
+    {{ sub.text }}
+    <div class="fila-s" style="gap:12px">
+        <label class="casilla pequeno">{{ sub.done }} {% translate "Cumplido" %}</label>
+        <label class="casilla pequeno">{{ sub.hidden }} {% translate "Oculto" %}</label>
+        <label class="casilla pequeno" style="color:var(--danger-text)">{{ sub.DELETE }} {% translate "Quitar" %}</label>
+    </div>
+    {{ sub.text.errors }}{{ sub.non_field_errors }}
+</li>

@@ -1,5 +1,7 @@
 {% load i18n mesa %}{% url 'sheet_action' campaign.pk character.pk as act %}{% url 'sheet' campaign.pk character.pk as here %}
 <div id="ficha" class="pila">
+    {% include "partials/sheet_toolbar.html" %}
+    {% if sheet_view == "ficha" %}{% include "partials/sheet_paper.html" %}{% else %}
     <article class="tarjeta sin-relleno" aria-labelledby="h-ficha">
         <div class="ficha-franja" style="background:{{ character|avatar_color }}"></div>
         <div class="ficha-cabeza">
@@ -175,13 +177,6 @@
             {% endif %}
         </div>
 
-        {% if can_edit %}
-        <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="fila-s">{% include "partials/sheet_hidden.html" %}
-            <button class="btn" name="accion" value="descanso_corto">{% translate "Descanso corto" %}</button>
-            <button class="btn" name="accion" value="descanso_largo">{% translate "Descanso largo" %}</button>
-        </form>
-        <p class="ayuda">{% translate "El descanso largo recupera la vida, el AP, los puntos de magia y todos los usos. El corto, los usos que se recargan con descanso corto." %}</p>
-        {% endif %}
     </section>
 
     {% elif tab == "act" %}
@@ -423,4 +418,5 @@
         </div>
     </section>
     {% endif %}
+    {% endif %}{# web view #}
 </div>

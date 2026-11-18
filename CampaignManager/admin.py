@@ -399,7 +399,7 @@ class QuestAdmin(admin.ModelAdmin):
 
 @admin.register(BoardCard)
 class BoardCardAdmin(admin.ModelAdmin):
-    list_display = ("title", "campaign", "author", "classified", "revealed", "x", "y")
+    list_display = ("title", "kind", "campaign", "author", "classified", "revealed", "crossed", "x", "y")
     list_filter = ("campaign", "classified", "revealed")
     search_fields = ["title", "text"]
     list_select_related = ["campaign", "author"]

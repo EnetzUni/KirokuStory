@@ -1,0 +1,288 @@
+{% load i18n mesa %}{% comment %}
+«Vista ficha»: the character in the layout of the paper sheet (ficha_plantilla.pdf), over the same
+data as the web view. Every control posts to the same sheet action as the web view. Read-only
+sheets show the controls disabled (<fieldset disabled>). Only what the data model has is shown:
+Aura and the affinities are empty boxes; skills and saves show the ability modifier.
+{% endcomment %}
+<div class="hoja-vista">
+<section class="hoja" aria-labelledby="h-hoja">
+    <header class="hoja-cabecera">
+        <h1 id="h-hoja" class="hoja-titulo">{% translate "Ficha de personaje" %}</h1>
+        <div class="hoja-regla" aria-hidden="true"><i></i></div>
+        <p class="hoja-campana">{{ campaign.name }}</p>
+        <div class="hoja-campos">
+            <div class="hoja-campo"><b>{{ character.name }}</b><span class="hoja-rotulo">{% translate "Nombre" %}</span></div>
+            <div class="hoja-campo"><b>{{ character.char_class.name }}{% if character.subclass %} ({{ character.subclass.name }}){% endif %} · {{ character.race.name }}{% if character.subrace %} ({{ character.subrace.name }}){% endif %}</b><span class="hoja-rotulo">{% translate "Clase y especie" %}</span></div>
+            <div class="hoja-campo"><b><span data-valor="xp">{{ character.xp }}</span> XP · {% translate "nivel" %} {{ level }}{% if character.can_level_up and can_edit %} <a class="hoja-subir" href="{% url 'level_up' campaign.pk character.pk %}">↑ {% translate "Subir de nivel" %}</a>{% endif %}</b><span class="hoja-rotulo">{% translate "XP y nivel" %}</span></div>
+        </div>
+    </header>
+
+    {% if effects %}
+    <div class="hoja-estados" aria-label="{% translate 'Estados' %}">
+        <span class="hoja-rotulo">{% translate "Estados" %}</span>
+        {% for e in effects %}
+        <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="hoja-estado">{% include "partials/sheet_hidden.html" %}<input type="hidden" name="valor" value="{{ e.pk }}">
+            <fieldset class="hoja-fs"{% if not can_edit %} disabled{% endif %}>
+                <span title="{{ e.effect.description }}"><b>{{ e.effect.name }}</b> <span data-valor="estado-{{ e.pk }}">{{ e.remaining_turns }}</span> {% translate "rondas" %}</span>
+                <button class="hoja-mini-btn" name="accion" value="estado_menos" aria-label="{% blocktranslate with name=e.effect.name %}Una ronda menos de {{ name }}{% endblocktranslate %}">−</button>
+                <button class="hoja-mini-btn" name="accion" value="estado_quitar" aria-label="{% blocktranslate with name=e.effect.name %}Quitar {{ name }}{% endblocktranslate %}">✕</button>
+            </fieldset>
+        </form>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="hoja-arriba">
+        {# ---- Características: score, and its modifier in the circle ---- #}
+        <div class="hoja-car">
+            {% for s in paper_stats %}
+            <div class="hoja-car-caja"><span class="hoja-rotulo">{% translate s.label %}</span><b>{{ s.score }}</b><span class="hoja-mod">{{ s.mod|signed }}</span></div>
+            {% endfor %}
+        </div>
+
+        <div class="hoja-caja hoja-tir">
+            <h2 class="hoja-titulo-caja">{% translate "Tiradas" %}</h2>
+            <ul class="hoja-lista">{% for sk in paper_skills %}<li><span>{% translate sk.name %} <small>{{ sk.abbr }}</small></span><i aria-hidden="true"></i><b>{{ sk.bonus|signed }}</b></li>{% endfor %}</ul>
+        </div>
+
+        <div class="hoja-caja hoja-sal">
+            <h2 class="hoja-titulo-caja">{% translate "Tiradas de salvación" %}</h2>
+            <ul class="hoja-lista">{% for sv in paper_saves %}<li><span>{% translate sv.name %}</span><i aria-hidden="true"></i><b>{{ sv.bonus|signed }}</b></li>{% endfor %}</ul>
+        </div>
+
+        {# ---- Central block ---- #}
+        <div class="hoja-centro">
+            <div class="hoja-fila4">
+                <div class="hoja-mini"><span class="hoja-rotulo">{% translate "Pasiva" %}</span><b class="hoja-num">{{ character.passive_perception }}</b></div>
+                <div class="hoja-mini"><span class="hoja-rotulo">{% translate "Aura" %}</span><b class="hoja-num"></b></div>
+                <div class="hoja-mini"><span class="hoja-rotulo">{% translate "Iniciativa" %}</span><b class="hoja-num">{{ character.initiative|signed }}</b></div>
+                <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="hoja-mini">{% include "partials/sheet_hidden.html" %}
+                    <span class="hoja-rotulo">{% translate "Inspir." %}</span>
+                    <fieldset class="hoja-fs hoja-mm"{% if not can_edit %} disabled{% endif %}>
+                        <button class="hoja-mini-btn" name="accion" value="insp_gastar" aria-label="{% translate 'Gastar inspiración' %}"{% if not character.inspiration %} disabled{% endif %}>−</button>
+                        <b class="hoja-num" data-valor="inspiracion">{{ character.inspiration }}</b>
+                        <button class="hoja-mini-btn" name="accion" value="insp_dar" aria-label="{% translate 'Dar inspiración' %}">+</button>
+                    </fieldset>
+                </form>
+            </div>
+            <div class="hoja-fila3">
+                <div class="hoja-mini"><span class="hoja-rotulo">{% translate "Velocidad" %}</span><b class="hoja-num">{{ character.speed }}<small> m</small></b></div>
+                <div class="hoja-mini"><span class="hoja-rotulo">{% translate "CA" %}</span><b class="hoja-num">{{ character.ac }}</b></div>
+                <div class="hoja-mini" title="{% translate 'AP mágico' %}"><span class="hoja-rotulo">{% translate "MAP" %}</span><b class="hoja-num" data-valor="ap-magico">{{ max_magic_ap }}</b></div>
+            </div>
+
+            <div class="hoja-doble">
+                <div class="hoja-mitad"><span class="hoja-rotulo">{% translate "AP" %}</span><b class="hoja-num grande">{{ max_ap }}</b><small class="hoja-nota">{{ armor_source }}</small></div>
+                <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="hoja-mitad">{% include "partials/sheet_hidden.html" %}
+                    <span class="hoja-rotulo">{% translate "AP actual" %}</span>
+                    <fieldset class="hoja-fs hoja-columna"{% if not can_edit %} disabled{% endif %}>
+                        <div class="hoja-mm">
+                            <button class="hoja-mini-btn" name="accion" value="ap_menos" aria-label="{% translate 'Quitar 1 de AP' %}">−</button>
+                            <b class="hoja-num grande" data-valor="ap">{{ character.temp_ap }}</b>
+                            <button class="hoja-mini-btn" name="accion" value="ap_mas" aria-label="{% translate 'Sumar 1 de AP' %}">+</button>
+                        </div>
+                        <button class="btn" name="accion" value="ap_restaurar">{% translate "Restaurar" %}</button>
+                    </fieldset>
+                </form>
+            </div>
+
+            <div class="hoja-doble hp {{ hp_state }}{% if character.dead %} muerto{% endif %}">
+                <div class="hoja-mitad"><span class="hoja-rotulo">{% translate "HP" %}</span><b class="hoja-num grande">{{ character.hp }}</b></div>
+                <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="hoja-mitad">{% include "partials/sheet_hidden.html" %}
+                    <span class="hoja-rotulo">{% translate "HP actual" %}</span>
+                    {% if character.dead %}
+                    <b class="hoja-num grande hoja-hp" data-valor="vida">{{ character.temp_hp }}</b>
+                    <span class="pastilla p-coral">{% translate "Muerto" %}</span>
+                    {% if is_master %}<button class="btn" name="accion" value="revivir">{% translate "Revivir" %}</button>{% endif %}
+                    {% else %}
+                    <fieldset class="hoja-fs hoja-columna"{% if not can_edit %} disabled{% endif %}>
+                        <div class="hoja-mm">
+                            <button class="hoja-mini-btn" name="accion" value="vida_menos" aria-label="{% translate 'Quitar 1 de vida' %}">−</button>
+                            <b class="hoja-num grande hoja-hp" data-valor="vida">{{ character.temp_hp }}</b>
+                            <button class="hoja-mini-btn" name="accion" value="vida_mas" aria-label="{% translate 'Sumar 1 de vida' %}">+</button>
+                        </div>
+                        {% if knocked_down %}<span class="pastilla p-ambar">{% translate "Derribado" %}</span>
+                        <small class="hoja-nota">{% blocktranslate with hp=death_hp %}Muere si llega a {{ hp }} de vida{% endblocktranslate %}{% if fell_this_fight %} {% translate "o si vuelve a caer en este combate" %}{% endif %}.</small>{% endif %}
+                        <div class="hoja-fila-ctl">
+                            <label class="sr-only" for="hoja-cantidad-vida">{% translate "Cantidad" %}</label>
+                            <input id="hoja-cantidad-vida" class="entrada-num" type="number" name="cantidad" min="1" inputmode="numeric" placeholder="{% translate 'Cant.' %}">
+                            <button class="btn btn-peligro" name="accion" value="dano">{% translate "Daño" %}</button>
+                            <button class="btn btn-bien" name="accion" value="curar">{% translate "Curar" %}</button>
+                        </div>
+                        <div class="hoja-fila-ctl">
+                            <label class="pequeno" for="hoja-pen">{% translate "Pen." %}</label>
+                            <input id="hoja-pen" class="entrada-num corta" type="number" name="penetrante" min="0" inputmode="numeric" placeholder="0" title="{% translate 'Penetrante: AP que ignora este golpe' %}">
+                            <label class="pequeno" for="hoja-tri">{% translate "Trit." %}</label>
+                            <input id="hoja-tri" class="entrada-num corta" type="number" name="triturante" min="0" inputmode="numeric" placeholder="0" title="{% translate 'Triturante: AP que quita después del daño' %}">
+                        </div>
+                    </fieldset>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+
+        {# ---- Inventario ---- #}
+        <div class="hoja-caja hoja-inv">
+            <h2 class="hoja-titulo-caja">{% translate "Inventario" %}</h2>
+            <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="hoja-oro">{% include "partials/sheet_hidden.html" %}
+                <span><span class="hoja-rotulo">{% translate "Oro" %}</span> <b data-valor="oro">{{ gold }}</b> po</span>
+                <fieldset class="hoja-fs hoja-fila-ctl"{% if not can_edit %} disabled{% endif %}>
+                    <label class="sr-only" for="hoja-oro">{% translate "Cantidad de oro" %}</label>
+                    <input id="hoja-oro" class="entrada-num" type="number" name="cantidad" min="1" inputmode="numeric" placeholder="po">
+                    <button class="btn" name="accion" value="pagar">{% translate "Pagar" %}</button>
+                    <button class="btn" name="accion" value="recibir">{% translate "Recibir" %}</button>
+                </fieldset>
+            </form>
+            <ul class="hoja-objetos">
+                {% for r in inventory %}
+                <li>
+                    <span class="hoja-objeto-nombre">{{ r.item.name }}{% if r.equipped %} <span class="hoja-equipado">{% translate "Equipado" %}</span>{% endif %}</span>
+                    <form method="post" action="{{ act }}" data-ajax data-target="#ficha">{% include "partials/sheet_hidden.html" %}<input type="hidden" name="valor" value="{{ r.row.pk }}">
+                        <fieldset class="hoja-fs hoja-fila-ctl"{% if not can_edit %} disabled{% endif %}>
+                            {% if r.equipment %}
+                            <button class="btn" name="accion" value="equipar">{% if r.equipped %}{% translate "Desequipar" %}{% else %}{% translate "Equipar" %}{% endif %}</button>
+                            {% else %}
+                            <button class="hoja-mini-btn" name="accion" value="objeto_menos" aria-label="{% blocktranslate with name=r.item.name %}Uno menos de {{ name }}{% endblocktranslate %}">−</button>
+                            <b data-valor="cantidad-{{ r.row.pk }}">{{ r.row.quantity }}</b>
+                            <button class="hoja-mini-btn" name="accion" value="objeto_mas" aria-label="{% blocktranslate with name=r.item.name %}Uno más de {{ name }}{% endblocktranslate %}">+</button>
+                            {% if r.item.consumable %}<button class="btn" name="accion" value="usar_objeto">{% translate "Usar" %}</button>{% endif %}
+                            {% endif %}
+                        </fieldset>
+                    </form>
+                </li>
+                {% empty %}<li class="hoja-vacio">{% translate "El inventario está vacío." %}</li>{% endfor %}
+            </ul>
+        </div>
+
+        {# ---- Ataques ---- #}
+        <div class="hoja-caja hoja-ataques sin-relleno-x">
+            <h2 class="hoja-titulo-caja">{% translate "Ataques" %}</h2>
+            <div class="hoja-tabla-marco">
+                <table class="hoja-tabla">
+                    <thead><tr><th scope="col">{% translate "Nombre" %}</th><th scope="col">{% translate "Golpe" %}</th><th scope="col">{% translate "Daño" %}</th><th scope="col">{% translate "Extra" %}</th><th scope="col">{% translate "Armadura" %}</th><th scope="col">{% translate "Alcance" %}</th><th scope="col">{% translate "Área" %}</th><th scope="col">{% translate "Cool" %}</th></tr></thead>
+                    <tbody>
+                        {% for row in paper_attacks %}
+                        <tr><td><b>{{ row.label }}</b></td>
+                            <td>{% if row.weapon.to_hit is None %}?{% else %}{{ row.weapon.to_hit|signed }}{% endif %}</td>
+                            <td>{{ row.attack.damage }}</td>
+                            <td>{% if row.attack.attack.extra %}{{ row.attack.attack.extra|signed }}{% endif %}</td>
+                            <td>{{ row.attack.armor|join:", " }}</td>
+                            <td>{% if row.attack.attack.range is not None %}{{ row.attack.attack.range }} m{% endif %}</td>
+                            <td>{% if row.attack.attack.area %}{{ row.attack.attack.area }} m{% endif %}</td>
+                            <td>{% if row.attack.attack.cooldown %}{{ row.attack.attack.cooldown }}{% endif %}</td></tr>
+                        {% endfor %}
+                        {% for w in paper_weapons_without_attacks %}<tr><td><b>{{ w.item.name }}</b></td><td>{% if w.to_hit is None %}?{% else %}{{ w.to_hit|signed }}{% endif %}</td><td colspan="6"></td></tr>{% endfor %}
+                        {% if not paper_attacks and not paper_weapons_without_attacks %}<tr><td colspan="8" class="hoja-vacio">{% translate "Sin armas equipadas. Equípalas en el inventario." %}</td></tr>{% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="hoja-abajo">
+        <div class="hoja-izq">
+        <div class="hoja-caja hoja-afin">
+            <div class="hoja-afinidades">
+                <div><h2 class="hoja-titulo-caja">{% translate "Afinidad" %}</h2></div>
+                <div><h2 class="hoja-titulo-caja">{% translate "Afinidad NPC" %}</h2></div>
+            </div>
+        </div>
+
+        <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="hoja-caja hoja-apun">{% include "partials/sheet_hidden.html" %}
+            <h2 class="hoja-titulo-caja"><label for="hoja-apuntes">{% translate "Apuntes" %}</label></h2>
+            <fieldset class="hoja-fs hoja-columna"{% if not can_edit %} disabled{% endif %}>
+                <textarea id="hoja-apuntes" class="hoja-rayado" name="notas" rows="10" maxlength="5000">{{ character.notes }}</textarea>
+                <button class="btn" name="accion" value="notas" style="align-self:flex-end">{% translate "Guardar apuntes" %}</button>
+            </fieldset>
+        </form>
+        </div>
+
+        <div class="hoja-caja hoja-hab sin-relleno-x">
+            <h2 class="hoja-titulo-caja">{% translate "Habilidades" %}</h2>
+            <div class="hoja-tabla-marco">
+                <table class="hoja-tabla">
+                    <thead><tr><th scope="col">{% translate "Nombre" %}</th><th scope="col">{% translate "Usos" %}</th><th scope="col">{% translate "Cool" %}</th><th scope="col"><span class="sr-only">{% translate "Usar" %}</span></th></tr></thead>
+                    <tbody>
+                        {% for a in paper_abilities %}
+                        <tr>
+                            <td>{% if a.ability.description %}<details id="hoja-hab-{{ a.pk }}"><summary><b>{{ a.ability.name }}</b></summary><p class="pequeno">{{ a.ability.description }}</p></details>{% else %}<b>{{ a.ability.name }}</b>{% endif %}</td>
+                            <td>{% if a.has_uses %}<span data-valor="usos-{{ a.pk }}">{{ a.uses_left }}</span>/{{ a.max_uses }}{% endif %}</td>
+                            <td>{% if a.has_cooldown %}{% if a.cooldown_left %}{% blocktranslate count n=a.cooldown_left %}{{ n }} ronda{% plural %}{{ n }} rondas{% endblocktranslate %}{% else %}{% translate "lista" %}{% endif %}{% endif %}</td>
+                            <td>{% if a.tracked %}
+                                <form method="post" action="{{ act }}" data-ajax data-target="#ficha">{% include "partials/sheet_hidden.html" %}<input type="hidden" name="valor" value="{{ a.pk }}">
+                                    <fieldset class="hoja-fs"{% if not can_edit %} disabled{% endif %}><button class="btn" name="accion" value="usar_habilidad"{% if not a.ready %} disabled{% endif %}>{% translate "Usar" %}</button></fieldset>
+                                </form>{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                        {% for ability in paper_granted %}
+                        <tr><td>{% if ability.description %}<details id="hoja-rasgo-{{ ability.pk }}"><summary><b>{{ ability.name }}</b></summary><p class="pequeno">{{ ability.description }}</p></details>{% else %}<b>{{ ability.name }}</b>{% endif %}</td><td></td><td></td><td></td></tr>
+                        {% endfor %}
+                        {% if not paper_abilities and not paper_granted %}<tr><td colspan="4" class="hoja-vacio">{% translate "Sin habilidades." %}</td></tr>{% endif %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="hoja-unica">
+                <span class="hoja-rotulo"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="#BC6C25" d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7.1L12 17.3 5.8 21l1.6-7.1L2 9.2l7.1-.6z"></path></svg> {% translate "Habilidad única" %}</span>
+                {% if unique_skill.status == "aprobada" %}
+                <b>{{ unique_skill.ability.name }}</b>
+                <p class="pequeno" style="white-space:pre-line">{{ unique_skill.ability.description }}</p>
+                {% elif unique_skill %}
+                <p class="pequeno atenuado"><b>{{ unique_skill.name }}</b> · {% if unique_skill.status == "pendiente" %}{% translate "Pendiente del máster" %}{% else %}{% translate "Rechazada" %}{% endif %}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+{% if magic_page %}
+<section class="hoja" aria-label="{% translate 'Ficha de personaje: magia' %}">
+    <div class="hoja-banda">
+        <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="hoja-mini ancho">{% include "partials/sheet_hidden.html" %}
+            <span class="hoja-rotulo">{% translate "Puntos de magia" %}</span>
+            <fieldset class="hoja-fs hoja-mm"{% if not can_edit %} disabled{% endif %}>
+                <button class="hoja-mini-btn" name="accion" value="magia_gastar" aria-label="{% translate 'Gastar 1 punto de magia' %}"{% if not character.magic_points %} disabled{% endif %}>−</button>
+                <b class="hoja-num"><span data-valor="magia">{{ character.magic_points }}</span><small> / {{ character.magic_points_max }}</small></b>
+                <button class="hoja-mini-btn" name="accion" value="magia_recuperar" aria-label="{% translate 'Recuperar 1 punto de magia' %}">+</button>
+            </fieldset>
+        </form>
+        <div class="hoja-mini" title="{% translate 'CD de salvación de los conjuros: 8 + modificador de la característica principal' %}"><span class="hoja-rotulo">{% translate "Salvación" %}</span><b class="hoja-num">{% if spell_dc is not None %}{{ spell_dc }}{% endif %}</b></div>
+        <div class="hoja-mini" title="{% translate 'Ataque de conjuro: modificador de la característica principal' %}"><span class="hoja-rotulo">{% translate "Ataque" %}</span><b class="hoja-num">{% if spell_mod is not None %}{{ spell_mod|signed }}{% endif %}</b></div>
+    </div>
+    <div class="hoja-caja hoja-magia sin-relleno-x">
+        <h2 class="hoja-titulo-caja">{% translate "Magia" %}</h2>
+        <div class="hoja-tabla-marco">
+            <table class="hoja-tabla">
+                <thead><tr><th scope="col">{% translate "Nivel" %}</th><th scope="col">{% translate "Nombre" %}</th><th scope="col">{% translate "Tiempo" %}</th><th scope="col">{% translate "Duración" %}</th><th scope="col">{% translate "Comp." %}</th><th scope="col">{% translate "Daño" %}</th><th scope="col">{% translate "Alcance" %}</th><th scope="col">{% translate "Área" %}</th><th scope="col"><span class="sr-only">{% translate "Lanzar" %}</span></th></tr></thead>
+                <tbody>
+                    {% for s in paper_spells %}
+                    <tr>
+                        <td>{% if s.spell.level == 0 %}{% translate "Truco" %}{% else %}{{ s.spell.level }}{% endif %}</td>
+                        <td>{% if s.spell.description %}<details id="hoja-conjuro-{{ s.spell.pk }}"><summary><b>{{ s.spell.name }}</b></summary><p class="pequeno" style="white-space:pre-line">{{ s.spell.description }}</p></details>{% else %}<b>{{ s.spell.name }}</b>{% endif %}</td>
+                        <td>{{ s.spell.casting_time }}</td>
+                        <td>{{ s.spell.duration }}</td>
+                        <td>{{ s.components }}</td>
+                        <td>{{ s.damage }}</td>
+                        <td>{{ s.range }}</td>
+                        <td>{% if s.area %}{{ s.area }} m{% endif %}</td>
+                        <td>{% if s.castable %}
+                            <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="hoja-fila-ctl">{% include "partials/sheet_hidden.html" %}<input type="hidden" name="conjuro" value="{{ s.spell.pk }}">
+                                <fieldset class="hoja-fs hoja-fila-ctl"{% if not can_edit %} disabled{% endif %}>
+                                    {% if s.slots %}
+                                    <label class="sr-only" for="hoja-espacio-{{ s.spell.pk }}">{% translate "Espacio de conjuro" %}</label>
+                                    <select id="hoja-espacio-{{ s.spell.pk }}" name="espacio" class="entrada hoja-select">
+                                        {% for slot in s.slots %}<option value="{{ slot.level }}">{% translate "Espacio" %} {{ slot.level }} · {{ slot.cost }} PM</option>{% endfor %}
+                                    </select>
+                                    {% endif %}
+                                    <button class="btn btn-magia" name="accion" value="lanzar">{% translate "Lanzar" %}</button>
+                                </fieldset>
+                            </form>
+                            {% else %}<span class="pequeno atenuado">{% translate "Todavía no" %}</span>{% endif %}</td>
+                    </tr>
+                    {% empty %}<tr><td colspan="9" class="hoja-vacio">{% translate "No conoce conjuros." %}</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endif %}
+</div>
