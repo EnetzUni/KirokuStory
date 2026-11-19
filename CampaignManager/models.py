@@ -26,6 +26,10 @@ class User(AbstractUser):
 
 
 class Campaign(models.Model):
+    class Ruleset(models.TextChoices):
+        AEGIS = rules.AEGIS, "Aegis"
+        SRD = rules.SRD, "SRD 5.2.1"
+
     class Status(models.TextChoices):
         ACTIVA = "activa", "Activa"
         PAUSADA = "pausada", "Pausada"
@@ -35,6 +39,9 @@ class Campaign(models.Model):
     description = models.TextField(blank=True)
     start_date = models.DateField()
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.ACTIVA)
+    # Aegis: our variant of the SRD 5.2.1 with our additions. Or the standard SRD.
+    ruleset = models.CharField(max_length=10, choices=Ruleset.choices, default=Ruleset.AEGIS,
+                               help_text="The rules the campaign plays with (see rules.py)")
     cover = models.ImageField(upload_to="portadas/", blank=True)
     notice = models.TextField(blank=True, help_text="«Aviso del máster» on the home page")
     world_day = models.CharField(max_length=100, blank=True, help_text="Day in the world, e.g. «3 de Brumario»")
@@ -70,6 +77,11 @@ class Campaign(models.Model):
 
     def is_member(self, user):
         return self._role(user) is not None
+
+    @property
+    def is_aegis(self):
+        """Plays with our additions: unique skills, 1d4 hit points, feats every 4 levels..."""
+        return self.ruleset == self.Ruleset.AEGIS
 
     @property
     def party(self):

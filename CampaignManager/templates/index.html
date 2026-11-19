@@ -3,8 +3,8 @@
 {% block title %}{% translate "Reglas" %} · Kiroku Story{% endblock %}
 {% block content %}
 <section class="pila lectura" aria-labelledby="h-reglas">
-    <h1 id="h-reglas">{% translate "Reglas del SRD" %}</h1>
-    <p class="atenuado">{% translate "El catálogo de reglas: lo que cargan los fixtures del SRD 5.2.1 y las armas caseras." %}</p>
+    <h1 id="h-reglas">{% translate "Reglas" %}</h1>
+    <p class="atenuado">{% translate "El catálogo de reglas de Aegis, nuestra variante del SRD 5.2.1, y del SRD 5.2.1 estándar: lo que cargan los fixtures del SRD y nuestras armas caseras. Cada campaña elige con cuál juega en su página de inicio." %}</p>
     <div class="rejilla-s" style="grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr))">
         <a class="tarjeta compacta tarjeta-enlace" href="{% url 'race_list' %}"><b>{% translate "Razas" %}</b><span class="pequeno atenuado">{% translate "Velocidad y las habilidades que otorga cada raza." %}</span></a>
         <a class="tarjeta compacta tarjeta-enlace" href="{% url 'subrace_list' %}"><b>{% translate "Linajes" %}</b><span class="pequeno atenuado">{% translate "Los linajes de cada raza y lo que añaden." %}</span></a>

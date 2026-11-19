@@ -244,9 +244,8 @@ class UniqueAbilityTests(RulesData):
 # Visibility (spec, section 6): with the demo campaign
 # ---------------------------------------------------------------------------
 
-class LevelUpTests(RulesData):
-    """The master gives XP; the level waits until the player levels up from the
-    sheet, one level at a time, with that level's choices (game rule 16)."""
+class LevelUpData(RulesData):
+    """A wizard class with a subclass, a class ability at level 2 and spells, and helpers."""
 
     @classmethod
     def setUpTestData(cls):
@@ -271,6 +270,11 @@ class LevelUpTests(RulesData):
         self.client.force_login(user or self.player)
         data = {"nivel": character.level + 1, "hp_roll": "3", **data}
         return self.client.post(reverse("level_up", args=[self.campaign.pk, character.pk]), data)
+
+
+class LevelUpTests(LevelUpData):
+    """The master gives XP; the level waits until the player levels up from the
+    sheet, one level at a time, with that level's choices (game rule 16, Aegis)."""
 
     def test_master_xp_does_not_change_the_level(self):
         aria = self.mage()
@@ -517,6 +521,66 @@ class UniqueSkillTests(RulesData):
         brom = self.character(campaigns=[self.campaign])
         self.act(self.master, brom, accion="unica_proponer", name="Puño de piedra", description="Rompe muros.")
         self.assertEqual(UniqueSkill.objects.get(character=brom).status, UniqueSkill.Status.APROBADA)
+
+
+class RulesetTests(LevelUpData):
+    """Each campaign plays with Aegis (ours, the default) or the standard SRD 5.2.1."""
+
+    def setUp(self):
+        self.campaign.ruleset = Campaign.Ruleset.SRD
+        self.campaign.save()
+
+    def test_aegis_is_the_default_and_only_masters_change_it(self):
+        self.assertEqual(Campaign.objects.create(name="Nueva", start_date=datetime.date(2026, 1, 1)).ruleset, "aegis")
+        url = reverse("campaign_ruleset", args=[self.campaign.pk])
+        self.client.force_login(self.player)
+        self.assertEqual(self.client.post(url, {"reglamento": "aegis"}).status_code, 403)
+        self.client.force_login(self.master)
+        self.client.post(url, {"reglamento": "aegis"})
+        self.campaign.refresh_from_db()
+        self.assertTrue(self.campaign.is_aegis)
+
+    def test_srd_hit_points_use_the_class_hit_die(self):
+        aria = self.mage(xp=300, hp=20, temp_hp=20)
+        self.level_up(aria, hp_method="fijo", hp_roll="")  # no 1d4 in the SRD
+        aria.refresh_from_db()
+        # d6: fixed value 4, + Constitution 2.
+        self.assertEqual((aria.level, aria.hp), (2, 26))
+        lira = self.mage("Lira", xp=300, hp=20, temp_hp=20)
+        self.level_up(lira, hp_method="tirar")
+        lira.refresh_from_db()
+        self.assertIn(lira.hp - 20, range(1 + 2, 6 + 2 + 1))
+
+    def test_srd_feat_levels(self):
+        self.assertEqual([lv for lv in range(1, 21) if rules.is_feat_level(lv, rules.SRD, "Guerrero")], [4, 6, 8, 12, 14, 16, 19])
+        self.assertEqual([lv for lv in range(1, 21) if rules.is_feat_level(lv, rules.SRD, "Mago")], [4, 8, 12, 16, 19])
+
+    def test_srd_new_spells_follow_the_class_table(self):
+        # Mago 1 -> 2: one more prepared spell, no cantrip, highest slot 1.
+        self.assertEqual(rules.srd_new_spells("Mago", 2), (0, 1))
+        aria = self.mage(xp=300)
+        self.client.force_login(self.player)
+        page = self.client.get(reverse("level_up", args=[self.campaign.pk, aria.pk])).content.decode()
+        self.assertIn(f'name="spells" value="{self.missile.pk}"', page)
+        self.assertNotIn(f'name="spells" value="{self.cantrip.pk}"', page)
+        self.assertNotIn(f'name="spells" value="{self.misty_step.pk}"', page)
+        self.assertContains(self.level_up(aria, hp_method="fijo", spells=[self.missile.pk, self.shield.pk]), "como mucho 1")
+        self.level_up(aria, hp_method="fijo", spells=[self.missile.pk])
+        aria.refresh_from_db()
+        self.assertEqual((aria.level, list(aria.spells.all())), (2, [self.missile]))
+
+    def test_unique_skills_are_aegis_only(self):
+        aria = self.mage()
+        self.client.force_login(self.player)
+        sheet = self.client.get(reverse("sheet", args=[self.campaign.pk, aria.pk]) + "?tab=feats")
+        self.assertNotContains(sheet, "habilidad-unica")
+        response = self.client.post(reverse("sheet_action", args=[self.campaign.pk, aria.pk]),
+                                    {"accion": "unica_proponer", "name": "X", "description": "Y"}, **AJAX)
+        self.assertTrue(response.json()["error"])
+        self.assertFalse(UniqueSkill.objects.filter(character=aria).exists())
+        # The creator skips its step.
+        creator = reverse("creator", args=[self.campaign.pk])
+        self.assertRedirects(self.client.get(creator + "?paso=5"), creator + "?paso=6", fetch_redirect_response=False)
 
 
 class DemoData(TestCase):

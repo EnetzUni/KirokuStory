@@ -5,6 +5,14 @@ can be changed in one place.
 """
 import math
 
+
+def gettext_noop(text):
+    """Marks texts that templates translate through a variable ({% translate sk.name %}),
+    so makemessages finds them. Returns the text unchanged; defined here, not imported
+    from Django, so this module still works without Django settings."""
+    return text
+
+
 # Open decision: XP -> level uses the SRD table until the group fixes its own.
 XP_THRESHOLDS = [
     0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000,
@@ -21,19 +29,19 @@ ABILITY_KEYS = ["strength", "dexterity", "constitution", "intelligence", "wisdom
 ABILITY_ABBR = {"strength": "FUE", "dexterity": "DES", "constitution": "CON",
                 "intelligence": "INT", "wisdom": "SAB", "charisma": "CAR"}
 # Names on the paper sheet (short ones where the sheet abbreviates) and full names.
-ABILITY_SHEET_LABEL = {"strength": "Fuerza", "dexterity": "Destreza", "constitution": "Const.",
-                       "intelligence": "Intel.", "wisdom": "Sabiduría", "charisma": "Carisma"}
-ABILITY_NAMES = {"strength": "Fuerza", "dexterity": "Destreza", "constitution": "Constitución",
-                 "intelligence": "Inteligencia", "wisdom": "Sabiduría", "charisma": "Carisma"}
+ABILITY_SHEET_LABEL = {"strength": gettext_noop("Fuerza"), "dexterity": gettext_noop("Destreza"), "constitution": gettext_noop("Const."),
+                       "intelligence": gettext_noop("Intel."), "wisdom": gettext_noop("Sabiduría"), "charisma": gettext_noop("Carisma")}
+ABILITY_NAMES = {"strength": gettext_noop("Fuerza"), "dexterity": gettext_noop("Destreza"), "constitution": gettext_noop("Constitución"),
+                 "intelligence": gettext_noop("Inteligencia"), "wisdom": gettext_noop("Sabiduría"), "charisma": gettext_noop("Carisma")}
 
 # The 18 skills of the sheet and the ability each one uses. Proficiencies are not
 # modelled yet, so a skill's bonus is just that ability's modifier.
 SKILLS = [
-    ("Acrobacias", "dexterity"), ("Arcanos", "intelligence"), ("Atletismo", "strength"), ("Engañar", "charisma"),
-    ("Historia", "intelligence"), ("Interpretación", "charisma"), ("Intimidar", "charisma"),
-    ("Investigación", "intelligence"), ("Juego de manos", "dexterity"), ("Medicina", "wisdom"),
-    ("Naturaleza", "intelligence"), ("Percepción", "wisdom"), ("Perspicacia", "wisdom"), ("Persuasión", "charisma"),
-    ("Religión", "intelligence"), ("Sigilo", "dexterity"), ("Supervivencia", "wisdom"), ("Trato con animales", "wisdom"),
+    (gettext_noop("Acrobacias"), "dexterity"), (gettext_noop("Arcanos"), "intelligence"), (gettext_noop("Atletismo"), "strength"), (gettext_noop("Engañar"), "charisma"),
+    (gettext_noop("Historia"), "intelligence"), (gettext_noop("Interpretación"), "charisma"), (gettext_noop("Intimidar"), "charisma"),
+    (gettext_noop("Investigación"), "intelligence"), (gettext_noop("Juego de manos"), "dexterity"), (gettext_noop("Medicina"), "wisdom"),
+    (gettext_noop("Naturaleza"), "intelligence"), (gettext_noop("Percepción"), "wisdom"), (gettext_noop("Perspicacia"), "wisdom"), (gettext_noop("Persuasión"), "charisma"),
+    (gettext_noop("Religión"), "intelligence"), (gettext_noop("Sigilo"), "dexterity"), (gettext_noop("Supervivencia"), "wisdom"), (gettext_noop("Trato con animales"), "wisdom"),
 ]
 
 
@@ -49,17 +57,30 @@ ABILITY_BY_CODE = {"str": "strength", "dex": "dexterity", "con": "constitution",
                    "int": "intelligence", "wis": "wisdom", "cha": "charisma"}
 
 
-# Levelling up. Every class chooses its subclass at level 3 (SRD 5.2.1).
-# House rule: every 4 levels, from level 4, the player chooses the ability score
-# improvement (two +1, no score above 20) or a feat (an Ability marked as a feat).
-# Spells are not chosen when levelling up: the master gives them.
+# ---------------------------------------------------------------------------
+# Rulesets. Each campaign plays with Aegis, our variant of the SRD 5.2.1 with the
+# rules marked «Aegis» below, or with the standard SRD 5.2.1 (Campaign.ruleset).
+# ---------------------------------------------------------------------------
+AEGIS, SRD = "aegis", "srd"
+
+# Levelling up. Every class chooses its subclass at level 3 (both rulesets).
+# The player chooses the ability score improvement (two +1, no score above 20) or a
+# feat (an Ability marked as a feat) at the feat levels:
+#   Aegis: every 4 levels, from level 4, for every class.
+#   SRD: 4, 8, 12 and 16, plus 6 and 14 for the fighter and 10 for the rogue, and
+#   the epic boon at 19 (a feat: the epic boons have feat_min_level 19).
 SUBCLASS_LEVEL = 3
 FEAT_LEVELS = (4, 8, 12, 16, 20)
+SRD_FEAT_LEVELS = (4, 8, 12, 16, 19)
+SRD_EXTRA_FEAT_LEVELS = {"Guerrero": (6, 14), "Pícaro": (10,)}
 MAX_SCORE = 20
-# House rule: each new level adds 1d4 + the Constitution modifier to the maximum
-# hit points, whatever the class. The die is rolled at the table, in front of the
-# master, and the player types the result.
+# Hit points of a new level, + the Constitution modifier:
+#   Aegis: 1d4, whatever the class, rolled at the table in front of the master; the
+#   player types the result.
+#   SRD: the class hit die, its fixed value (half + 1) or rolled.
 LEVEL_UP_HIT_DIE = 4
+# Spells: in Aegis only the master gives them. In the SRD the player also picks new
+# ones when levelling up, as many as the class tables add at that level.
 
 
 def level_for_xp(xp):
@@ -72,9 +93,16 @@ def level_for_xp(xp):
     return level
 
 
-def is_feat_level(level):
+def is_feat_level(level, ruleset=AEGIS, class_name=""):
     """Levels where the player chooses the ability score improvement or a feat."""
+    if ruleset == SRD:
+        return level in SRD_FEAT_LEVELS or level in SRD_EXTRA_FEAT_LEVELS.get(class_name, ())
     return level in FEAT_LEVELS
+
+
+def fixed_hit_points(die):
+    """SRD: the fixed value instead of rolling the hit die, half the die plus 1 (d8 -> 5)."""
+    return die // 2 + 1
 
 
 def level_up_hit_points(die_result, con_modifier):
@@ -183,3 +211,42 @@ def true_damage(damage, current_ap, armor_damages=()):
 def death_hp(max_hp):
     """Hit points at which (or below which) the character dies."""
     return -((max(0, max_hp) + 1) // 2)
+
+
+def highest_slot(magic, level):
+    """Highest spell slot level a class with this kind of magic has at `level` (SRD 5.2.1)."""
+    if magic == "pacto":
+        return PACT_SLOTS[level - 1][1]
+    if magic == "completa":
+        return len(FULL_CASTER_SLOTS[level - 1])
+    if magic == "media":
+        return len(FULL_CASTER_SLOTS[math.ceil(level / 2) - 1])
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# SRD only: new spells when levelling up
+# ---------------------------------------------------------------------------
+# Prepared spells (of level 1 or higher) at character levels 1 to 20, from the SRD
+# 5.2.1 class tables, and the cantrips at level 1: every one of these classes gets
+# one more cantrip at levels 4 and 10.
+_CASTER_PREPARED = [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22]
+_HALF_CASTER_PREPARED = [2, 3, 4, 5, 6, 6, 7, 7, 9, 9, 10, 10, 11, 11, 12, 12, 14, 14, 15, 15]
+SRD_PREPARED_SPELLS = {
+    "Bardo": _CASTER_PREPARED, "Clérigo": _CASTER_PREPARED, "Druida": _CASTER_PREPARED,
+    "Hechicero": [2, 4, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22],
+    "Mago": [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 18, 19, 21, 22, 23, 24, 25],
+    "Brujo": [2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15],
+    "Paladín": _HALF_CASTER_PREPARED, "Explorador": _HALF_CASTER_PREPARED,
+}
+SRD_CANTRIPS = {"Bardo": 2, "Clérigo": 3, "Druida": 2, "Hechicero": 4, "Brujo": 2, "Mago": 3}
+SRD_MORE_CANTRIPS_AT = (4, 10)
+
+
+def srd_new_spells(class_name, level):
+    """(cantrips, spells of level 1 or higher) a class adds going up to `level` (SRD)."""
+    cantrips = 1 if class_name in SRD_CANTRIPS and level in SRD_MORE_CANTRIPS_AT else 0
+    table = SRD_PREPARED_SPELLS.get(class_name)
+    spells = table[level - 1] - table[level - 2] if table and level >= 2 else 0
+    return cantrips, spells
+

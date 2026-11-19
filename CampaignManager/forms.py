@@ -5,7 +5,7 @@ from django.forms import inlineformset_factory
 from . import rules
 from .models import (
     BoardCard, Character, CharacterClass, Item, Map, MapLocation, Page, Post, Quest, QuestObjective, Race, Scene,
-    Session, Subclass, Subrace, TimelineEvent, User,
+    Session, Spell, Subclass, Subrace, TimelineEvent, User,
 )
 
 
@@ -294,19 +294,26 @@ class UniqueSkillStepForm(UniqueSkillForm):
 # ---------------------------------------------------------------------------
 
 class LevelUpForm(forms.Form):
-    """Hit points, the subclass at level 3, and at the feat levels the ability score
-    improvement or a feat. Hit points follow the house rule: the 1d4 rolled at the
-    table + Constitution. The improvement is two +1: the same score twice is +2."""
+    """Hit points, the subclass at level 3, at the feat levels the ability score
+    improvement or a feat, and in the SRD new spells. Hit points: in Aegis the 1d4
+    rolled at the table, in the SRD the class hit die (fixed or rolled), both +
+    Constitution. The improvement is two +1: the same score twice is +2."""
     SCORES = [(key, ScoresStepForm.base_fields[key].label) for key in rules.ABILITY_KEYS]
     IMPROVEMENT = "caracteristica"
+    HP_METHODS = [("fijo", "Valor fijo"), ("tirar", "Tirar el dado")]
 
     hp_roll = forms.IntegerField(
         min_value=1, max_value=rules.LEVEL_UP_HIT_DIE, label=f"Resultado del 1d{rules.LEVEL_UP_HIT_DIE}",
         error_messages={"required": f"Escribe el resultado del 1d{rules.LEVEL_UP_HIT_DIE}.",
                         "min_value": f"El 1d{rules.LEVEL_UP_HIT_DIE} da de 1 a {rules.LEVEL_UP_HIT_DIE}.",
                         "max_value": f"El 1d{rules.LEVEL_UP_HIT_DIE} da de 1 a {rules.LEVEL_UP_HIT_DIE}."})
+    # SRD: the class hit die, fixed or rolled; typed when the class does not say which die it uses.
+    hp_method = forms.ChoiceField(choices=HP_METHODS, initial="fijo", label="Puntos de golpe", widget=forms.RadioSelect)
+    hp_gain = forms.IntegerField(min_value=1, max_value=99, label="Puntos de golpe ganados")
     subclass = forms.ModelChoiceField(Subclass.objects.none(), label="Subclase", widget=forms.RadioSelect,
                                       error_messages={"required": "Elige una subclase."})
+    spells = forms.ModelMultipleChoiceField(Spell.objects.none(), required=False, label="Conjuros nuevos",
+                                            widget=forms.CheckboxSelectMultiple)
     # At a feat level with feats to choose: "caracteristica" or the pk of a feat.
     choice = forms.ChoiceField(label="Mejora de característica o dote", widget=forms.RadioSelect,
                                error_messages={"required": "Elige la mejora de característica o una dote."})
@@ -316,6 +323,15 @@ class LevelUpForm(forms.Form):
     def __init__(self, *args, character, plan, **kwargs):
         super().__init__(*args, **kwargs)
         self.character, self.plan = character, plan
+        if plan["aegis"]:
+            del self.fields["hp_method"], self.fields["hp_gain"]
+        else:
+            del self.fields["hp_roll"]
+            del self.fields["hp_method" if plan["die"] is None else "hp_gain"]
+        if plan["spells"]:
+            self.fields["spells"].queryset = Spell.objects.filter(pk__in=[spell.pk for spell in plan["spells"]])
+        else:
+            del self.fields["spells"]
         if plan["subclasses"]:
             self.fields["subclass"].queryset = character.char_class.subclasses.all()
         else:
@@ -327,6 +343,17 @@ class LevelUpForm(forms.Form):
                 (str(feat.pk), feat.name) for feat in plan["feats"]]
         else:
             del self.fields["choice"]  # no feats to choose: the improvement it is
+
+    def clean_spells(self):
+        spells = self.cleaned_data["spells"]
+        cantrips = sum(1 for spell in spells if spell.level == 0)
+        if cantrips > self.plan["new_cantrips"]:
+            n = self.plan["new_cantrips"]
+            raise forms.ValidationError(f"Elige como mucho {n} {'truco nuevo' if n == 1 else 'trucos nuevos'}.")
+        if len(spells) - cantrips > self.plan["new_spells"]:
+            n = self.plan["new_spells"]
+            raise forms.ValidationError(f"Elige como mucho {n} {'conjuro nuevo' if n == 1 else 'conjuros nuevos'} de nivel 1 o más.")
+        return spells
 
     def feat(self):
         """The feat chosen instead of the ability score improvement, or None."""

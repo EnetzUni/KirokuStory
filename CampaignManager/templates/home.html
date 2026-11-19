@@ -99,6 +99,19 @@
                 </div>
                 {% empty %}<p class="atenuado">{% translate "No hay aventuras en curso." %}</p>{% endfor %}
             </div>
+            <div class="tarjeta compacta">
+                <h2 class="rotulo">{% translate "Reglamento" %}</h2>
+                {% if is_master %}
+                <form method="post" action="{% url 'campaign_ruleset' campaign.pk %}" class="pila-s">{% csrf_token %}
+                    <div class="fila-s">
+                        <label class="chip"><input type="radio" name="reglamento" value="aegis"{% if campaign.is_aegis %} checked{% endif %}>Aegis</label>
+                        <label class="chip"><input type="radio" name="reglamento" value="srd"{% if not campaign.is_aegis %} checked{% endif %}>SRD 5.2.1</label>
+                        <button class="btn btn-pequeno">{% translate "Guardar" %}</button>
+                    </div>
+                </form>
+                {% else %}<b>{{ campaign.get_ruleset_display }}</b>{% endif %}
+                <p class="pequeno atenuado">{% if campaign.is_aegis %}{% translate "Aegis: el SRD 5.2.1 con nuestras reglas: vida 1d4 al subir de nivel, dote o mejora cada 4 niveles, conjuros que da el máster y habilidad única." %}{% else %}{% translate "SRD 5.2.1 estándar: dado de golpe de la clase, mejoras y dotes en los niveles del SRD y conjuros nuevos al subir de nivel. Sin habilidades únicas." %}{% endif %}</p>
+            </div>
         </aside>
     </div>
 </section>

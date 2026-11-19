@@ -52,7 +52,8 @@ def campaign_nav(request):
     to_review = 0
     if is_master:
         to_review = (Character.objects.filter(campaigns=current, status=Character.Status.PENDIENTE).count()
-                     + UniqueSkill.objects.filter(character__campaigns=current, status=UniqueSkill.Status.PENDIENTE).count())
+                     + (UniqueSkill.objects.filter(character__campaigns=current, status=UniqueSkill.Status.PENDIENTE).count()
+                        if current.is_aegis else 0))
     nav = []
     for key, label, url in SECTIONS:
         badge = ""

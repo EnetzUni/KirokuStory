@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: KirokuStory E4\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-18 12:23+0100\n"
+"POT-Creation-Date: 2026-11-19 15:50+0100\n"
 "PO-Revision-Date: 2026-11-17 13:30+0100\n"
 "Last-Translator: KirokuStory\n"
 "Language-Team: English\n"
@@ -86,11 +86,115 @@ msgstr "with"
 msgid "Máster"
 msgstr "Master"
 
-#: CampaignManager/context_processors.py:64
-#: CampaignManager/templates/partials/sheet_panel.html:10
+#: CampaignManager/context_processors.py:65
+#: CampaignManager/templates/partials/sheet_panel.html:12
 #: CampaignManager/templates/partials/turns_list.html:16
 msgid "Te toca"
 msgstr "Your turn"
+
+#: CampaignManager/rules.py:32 CampaignManager/rules.py:34
+msgid "Fuerza"
+msgstr "Strength"
+
+#: CampaignManager/rules.py:32 CampaignManager/rules.py:34
+msgid "Destreza"
+msgstr "Dexterity"
+
+#: CampaignManager/rules.py:32
+msgid "Const."
+msgstr "Con."
+
+#: CampaignManager/rules.py:33
+msgid "Intel."
+msgstr "Int."
+
+#: CampaignManager/rules.py:33 CampaignManager/rules.py:35
+msgid "Sabiduría"
+msgstr "Wisdom"
+
+#: CampaignManager/rules.py:33 CampaignManager/rules.py:35
+msgid "Carisma"
+msgstr "Charisma"
+
+#: CampaignManager/rules.py:34 CampaignManager/templates/level_up.html:46
+msgid "Constitución"
+msgstr "Constitution"
+
+#: CampaignManager/rules.py:35
+msgid "Inteligencia"
+msgstr "Intelligence"
+
+#: CampaignManager/rules.py:40
+msgid "Acrobacias"
+msgstr "Acrobatics"
+
+#: CampaignManager/rules.py:40
+msgid "Arcanos"
+msgstr "Arcana"
+
+#: CampaignManager/rules.py:40
+msgid "Atletismo"
+msgstr "Athletics"
+
+#: CampaignManager/rules.py:40
+msgid "Engañar"
+msgstr "Deception"
+
+#: CampaignManager/rules.py:41
+msgid "Historia"
+msgstr "History"
+
+#: CampaignManager/rules.py:41
+msgid "Interpretación"
+msgstr "Performance"
+
+#: CampaignManager/rules.py:41
+msgid "Intimidar"
+msgstr "Intimidation"
+
+#: CampaignManager/rules.py:42
+msgid "Investigación"
+msgstr "Investigation"
+
+#: CampaignManager/rules.py:42
+msgid "Juego de manos"
+msgstr "Sleight of Hand"
+
+#: CampaignManager/rules.py:42
+msgid "Medicina"
+msgstr "Medicine"
+
+#: CampaignManager/rules.py:43
+msgid "Naturaleza"
+msgstr "Nature"
+
+#: CampaignManager/rules.py:43
+msgid "Percepción"
+msgstr "Perception"
+
+#: CampaignManager/rules.py:43
+msgid "Perspicacia"
+msgstr "Insight"
+
+#: CampaignManager/rules.py:43
+msgid "Persuasión"
+msgstr "Persuasion"
+
+#: CampaignManager/rules.py:44
+msgid "Religión"
+msgstr "Religion"
+
+#: CampaignManager/rules.py:44
+msgid "Sigilo"
+msgstr "Stealth"
+
+#: CampaignManager/rules.py:44
+msgid "Supervivencia"
+msgstr "Survival"
+
+#: CampaignManager/rules.py:44
+msgid "Trato con animales"
+msgstr "Animal Handling"
 
 #: CampaignManager/templates/attack_summary.html:3
 msgid "modificador de"
@@ -113,24 +217,25 @@ msgid "área"
 msgstr "area"
 
 #: CampaignManager/templates/attack_summary.html:3
-#: CampaignManager/templates/partials/sheet_panel.html:198
+#: CampaignManager/templates/partials/sheet_panel.html:208
 msgid "enfriamiento"
 msgstr "cooldown"
 
 #: CampaignManager/templates/attack_summary.html:3
-#: CampaignManager/templates/partials/sheet_panel.html:142
+#: CampaignManager/templates/partials/sheet_panel.html:159
+#: CampaignManager/templates/partials/sheet_paper.html:26
 msgid "rondas"
 msgstr "rounds"
 
-#: CampaignManager/templates/base.html:14
+#: CampaignManager/templates/base.html:15
 msgid "Saltar al contenido"
 msgstr "Skip to content"
 
-#: CampaignManager/templates/base.html:25
+#: CampaignManager/templates/base.html:26
 msgid "Cambiar de campaña"
 msgstr "Change campaign"
 
-#: CampaignManager/templates/base.html:25
+#: CampaignManager/templates/base.html:26
 #: CampaignManager/templates/campaign_detail.html:6
 #: CampaignManager/templates/campaign_list.html:3
 #: CampaignManager/templates/campaign_list.html:6
@@ -139,47 +244,27 @@ msgstr "Change campaign"
 msgid "Tus campañas"
 msgstr "Your campaigns"
 
-#: CampaignManager/templates/base.html:30
+#: CampaignManager/templates/base.html:31
 msgid "diriges"
 msgstr "you run it"
 
-#: CampaignManager/templates/base.html:30
+#: CampaignManager/templates/base.html:31
 msgid "juegas"
 msgstr "you play"
 
-#: CampaignManager/templates/base.html:38
+#: CampaignManager/templates/base.html:39
 msgid "Menú"
 msgstr "Menu"
 
-#: CampaignManager/templates/base.html:39
+#: CampaignManager/templates/base.html:40
 msgid "Secciones de la campaña"
 msgstr "Campaign sections"
 
-#: CampaignManager/templates/base.html:52
+#: CampaignManager/templates/base.html:53
 msgid "Administración"
 msgstr "Administration"
 
-#: CampaignManager/templates/base.html:53
-#: CampaignManager/templates/index.html:6
-msgid "Reglas del SRD"
-msgstr "SRD rules"
-
 #: CampaignManager/templates/base.html:54
-msgid "Cerrar sesión"
-msgstr "Log out"
-
-#: CampaignManager/templates/base.html:74
-msgid "Compatible con la quinta edición"
-msgstr "Compatible with fifth edition"
-
-#: CampaignManager/templates/base.html:78
-msgid "Idioma"
-msgstr "Language"
-
-#: CampaignManager/templates/base.html:83
-msgid "Cambiar"
-msgstr "Change"
-
 #: CampaignManager/templates/campaign_detail.html:3
 #: CampaignManager/templates/campaign_detail.html:6
 #: CampaignManager/templates/campaign_list.html:3
@@ -193,6 +278,7 @@ msgstr "Change"
 #: CampaignManager/templates/character_list.html:3
 #: CampaignManager/templates/character_list.html:6
 #: CampaignManager/templates/index.html:3
+#: CampaignManager/templates/index.html:6
 #: CampaignManager/templates/item_detail.html:3
 #: CampaignManager/templates/item_detail.html:6
 #: CampaignManager/templates/item_list.html:3
@@ -215,6 +301,22 @@ msgstr "Change"
 #: CampaignManager/templates/subrace_list.html:6
 msgid "Reglas"
 msgstr "Rules"
+
+#: CampaignManager/templates/base.html:55
+msgid "Cerrar sesión"
+msgstr "Log out"
+
+#: CampaignManager/templates/base.html:75
+msgid "Compatible con la quinta edición"
+msgstr "Compatible with fifth edition"
+
+#: CampaignManager/templates/base.html:79
+msgid "Idioma"
+msgstr "Language"
+
+#: CampaignManager/templates/base.html:84
+msgid "Cambiar"
+msgstr "Change"
 
 #: CampaignManager/templates/campaign_detail.html:6
 #: CampaignManager/templates/campaign_list.html:6
@@ -242,7 +344,7 @@ msgstr "Breadcrumbs"
 
 #: CampaignManager/templates/campaign_detail.html:10
 #: CampaignManager/templates/campaign_list.html:10
-#: CampaignManager/templates/partials/sheet_panel.html:154
+#: CampaignManager/templates/partials/sheet_panel.html:171
 msgid "Estado"
 msgstr "Status"
 
@@ -260,7 +362,7 @@ msgstr "Open the table"
 
 #: CampaignManager/templates/campaign_detail.html:18
 #: CampaignManager/templates/character_class_detail.html:35
-#: CampaignManager/templates/partials/sheet_panel.html:13
+#: CampaignManager/templates/partials/sheet_panel.html:15
 #: CampaignManager/templates/race_detail.html:31
 #: CampaignManager/templates/spell_detail.html:27
 #: CampaignManager/templates/subclass_detail.html:19
@@ -278,7 +380,11 @@ msgstr "This campaign has no characters yet."
 #: CampaignManager/templates/character_list.html:10
 #: CampaignManager/templates/item_list.html:11
 #: CampaignManager/templates/map.html:15
-#: CampaignManager/templates/partials/map_section.html:21
+#: CampaignManager/templates/partials/map_section.html:32
+#: CampaignManager/templates/partials/sheet_paper.html:14
+#: CampaignManager/templates/partials/sheet_paper.html:161
+#: CampaignManager/templates/partials/sheet_paper.html:203
+#: CampaignManager/templates/partials/sheet_paper.html:254
 #: CampaignManager/templates/race_list.html:10
 #: CampaignManager/templates/spell_list.html:10
 #: CampaignManager/templates/subclass_list.html:10
@@ -315,9 +421,9 @@ msgstr "Abilities granted"
 #: CampaignManager/templates/character_class_detail.html:23
 #: CampaignManager/templates/character_detail.html:27
 #: CampaignManager/templates/characters.html:107
-#: CampaignManager/templates/level_up.html:79
-#: CampaignManager/templates/partials/sheet_panel.html:319
-#: CampaignManager/templates/partials/sheet_panel.html:356
+#: CampaignManager/templates/level_up.html:100
+#: CampaignManager/templates/partials/sheet_panel.html:329
+#: CampaignManager/templates/partials/sheet_panel.html:383
 #: CampaignManager/templates/race_detail.html:13
 #: CampaignManager/templates/race_detail.html:23
 #: CampaignManager/templates/subclass_detail.html:13
@@ -390,7 +496,7 @@ msgstr "NPC, copy of"
 
 #: CampaignManager/templates/character_detail.html:12
 #: CampaignManager/templates/character_list.html:12
-#: CampaignManager/templates/partials/turns_list.html:88
+#: CampaignManager/templates/partials/turns_list.html:95
 msgid "Plantilla de PNJ"
 msgstr "NPC template"
 
@@ -412,7 +518,7 @@ msgstr "Race"
 #: CampaignManager/templates/creator.html:54
 #: CampaignManager/templates/subclass_detail.html:9
 #: CampaignManager/templates/subclass_list.html:10
-#: CampaignManager/views_characters.py:652
+#: CampaignManager/views_characters.py:835
 msgid "Clase"
 msgstr "Class"
 
@@ -421,9 +527,11 @@ msgid "Campañas"
 msgstr "Campaigns"
 
 #: CampaignManager/templates/character_detail.html:17
-#: CampaignManager/templates/partials/sheet_panel.html:131
-#: CampaignManager/templates/partials/sheet_panel.html:214
-#: CampaignManager/templates/partials/sheet_panel.html:252
+#: CampaignManager/templates/level_up.html:143
+#: CampaignManager/templates/partials/sheet_panel.html:148
+#: CampaignManager/templates/partials/sheet_panel.html:224
+#: CampaignManager/templates/partials/sheet_panel.html:262
+#: CampaignManager/templates/partials/sheet_paper.html:254
 #: CampaignManager/templates/spell_detail.html:9
 #: CampaignManager/templates/spell_list.html:10
 msgid "Nivel"
@@ -433,25 +541,25 @@ msgstr "Level"
 #: CampaignManager/templates/characters.html:47
 #: CampaignManager/templates/characters.html:90
 #: CampaignManager/templates/creator.html:146
-#: CampaignManager/templates/partials/turns_list.html:46
-#: CampaignManager/templates/partials/turns_list.html:96
-#: CampaignManager/templates/partials/turns_list.html:97
+#: CampaignManager/templates/partials/turns_list.html:47
+#: CampaignManager/templates/partials/turns_list.html:103
+#: CampaignManager/templates/partials/turns_list.html:104
 msgid "Vida"
 msgstr "Hit points"
 
 #: CampaignManager/templates/character_detail.html:17
 #: CampaignManager/templates/creator.html:147
-#: CampaignManager/templates/partials/sheet_panel.html:132
+#: CampaignManager/templates/partials/sheet_panel.html:149
 msgid "Clase de armadura"
 msgstr "Armor class"
 
 #: CampaignManager/templates/character_detail.html:17
-#: CampaignManager/templates/partials/sheet_panel.html:85
+#: CampaignManager/templates/partials/sheet_panel.html:102
 msgid "Inspiración"
 msgstr "Inspiration"
 
 #: CampaignManager/templates/character_detail.html:26
-#: CampaignManager/templates/partials/sheet_panel.html:354
+#: CampaignManager/templates/partials/sheet_panel.html:381
 msgid "Habilidades propias"
 msgstr "Own abilities"
 
@@ -461,12 +569,12 @@ msgstr "None."
 
 #: CampaignManager/templates/character_detail.html:28
 #: CampaignManager/templates/index.html:13
-#: CampaignManager/templates/partials/sheet_panel.html:211
+#: CampaignManager/templates/partials/sheet_panel.html:221
 #: CampaignManager/templates/spell_detail.html:6
 #: CampaignManager/templates/spell_list.html:3
 #: CampaignManager/templates/spell_list.html:6
 #: CampaignManager/templates/spell_list.html:7
-#: CampaignManager/views_characters.py:36
+#: CampaignManager/views_characters.py:39
 msgid "Conjuros"
 msgstr "Spells"
 
@@ -475,13 +583,15 @@ msgid "Ninguno."
 msgstr "None."
 
 #: CampaignManager/templates/character_detail.html:30
-#: CampaignManager/templates/partials/sheet_panel.html:262
-#: CampaignManager/views_characters.py:36
+#: CampaignManager/templates/partials/sheet_panel.html:272
+#: CampaignManager/templates/partials/sheet_paper.html:125
+#: CampaignManager/views_characters.py:39
 msgid "Inventario"
 msgstr "Inventory"
 
 #: CampaignManager/templates/character_detail.html:31
-#: CampaignManager/templates/partials/sheet_panel.html:294
+#: CampaignManager/templates/partials/sheet_panel.html:304
+#: CampaignManager/templates/partials/sheet_paper.html:152
 msgid "El inventario está vacío."
 msgstr "The inventory is empty."
 
@@ -502,7 +612,7 @@ msgstr "to hit"
 
 #: CampaignManager/templates/character_detail.html:35
 #: CampaignManager/templates/item_detail.html:19
-#: CampaignManager/templates/partials/sheet_panel.html:186
+#: CampaignManager/templates/partials/sheet_panel.html:196
 msgid "Esta arma no tiene ataques."
 msgstr "This weapon has no attacks."
 
@@ -511,7 +621,9 @@ msgid "No lleva armas."
 msgstr "Carries no weapons."
 
 #: CampaignManager/templates/character_detail.html:37
-#: CampaignManager/templates/partials/sheet_panel.html:139
+#: CampaignManager/templates/partials/sheet_panel.html:156
+#: CampaignManager/templates/partials/sheet_paper.html:21
+#: CampaignManager/templates/partials/sheet_paper.html:22
 msgid "Estados"
 msgstr "Conditions"
 
@@ -523,7 +635,7 @@ msgstr[0] "%(n)s round left"
 msgstr[1] "%(n)s rounds left"
 
 #: CampaignManager/templates/character_detail.html:38
-#: CampaignManager/templates/partials/sheet_panel.html:151
+#: CampaignManager/templates/partials/sheet_panel.html:168
 msgid "Sin estados activos."
 msgstr "No active conditions."
 
@@ -569,37 +681,40 @@ msgid "Personaje pendiente"
 msgstr "Character pending"
 
 #: CampaignManager/templates/characters.html:22
-#: CampaignManager/templates/partials/sheet_panel.html:330
-#: CampaignManager/templates/partials/sheet_panel.html:344
+#: CampaignManager/templates/partials/sheet_panel.html:341
+#: CampaignManager/templates/partials/sheet_panel.html:354
+#: CampaignManager/templates/partials/sheet_panel.html:368
 msgid "Nombre de la habilidad"
 msgstr "Skill name"
 
 #: CampaignManager/templates/characters.html:23
-#: CampaignManager/templates/partials/sheet_panel.html:331
-#: CampaignManager/templates/partials/sheet_panel.html:345
+#: CampaignManager/templates/partials/sheet_panel.html:342
+#: CampaignManager/templates/partials/sheet_panel.html:355
+#: CampaignManager/templates/partials/sheet_panel.html:369
 msgid "Qué hace"
 msgstr "What it does"
 
 #: CampaignManager/templates/characters.html:24
-#: CampaignManager/templates/partials/sheet_panel.html:332
+#: CampaignManager/templates/partials/sheet_panel.html:343
+#: CampaignManager/templates/partials/sheet_panel.html:356
 msgid "Nota para el jugador (opcional)"
 msgstr "Note for the player (optional)"
 
 #: CampaignManager/templates/characters.html:26
 #: CampaignManager/templates/characters.html:53
-#: CampaignManager/templates/partials/sheet_panel.html:334
+#: CampaignManager/templates/partials/sheet_panel.html:358
 msgid "Aprobar"
 msgstr "Approve"
 
 #: CampaignManager/templates/characters.html:27
 #: CampaignManager/templates/characters.html:54
-#: CampaignManager/templates/partials/sheet_panel.html:335
+#: CampaignManager/templates/partials/sheet_panel.html:359
 msgid "Rechazar"
 msgstr "Reject"
 
 #: CampaignManager/templates/characters.html:34
 #: CampaignManager/templates/home.html:82
-#: CampaignManager/templates/partials/turns_list.html:80
+#: CampaignManager/templates/partials/turns_list.html:87
 msgid "El grupo"
 msgstr "The party"
 
@@ -641,7 +756,7 @@ msgid "XP para cada uno"
 msgstr "XP for each one"
 
 #: CampaignManager/templates/characters.html:77
-#: CampaignManager/templates/partials/sheet_panel.html:25
+#: CampaignManager/templates/partials/sheet_panel.html:27
 msgid "Dar XP"
 msgstr "Give XP"
 
@@ -654,7 +769,7 @@ msgstr ""
 " player will see “Level up” on the sheet and choose what it gives."
 
 #: CampaignManager/templates/characters.html:84
-#: CampaignManager/templates/partials/turns_list.html:81
+#: CampaignManager/templates/partials/turns_list.html:88
 msgid "PNJ de la campaña"
 msgstr "Campaign NPCs"
 
@@ -717,7 +832,8 @@ msgid "Pasos"
 msgstr "Steps"
 
 #: CampaignManager/templates/creator.html:28
-#: CampaignManager/templates/partials/sheet_panel.html:133
+#: CampaignManager/templates/partials/sheet_panel.html:150
+#: CampaignManager/templates/partials/sheet_paper.html:68
 #: CampaignManager/templates/race_detail.html:9
 #: CampaignManager/templates/race_list.html:10
 msgid "Velocidad"
@@ -788,7 +904,8 @@ msgstr "Portrait uploaded. Upload another one to change it."
 
 #: CampaignManager/templates/creator.html:108
 #: CampaignManager/templates/item_detail.html:18
-#: CampaignManager/templates/partials/sheet_panel.html:178
+#: CampaignManager/templates/partials/sheet_panel.html:188
+#: CampaignManager/templates/partials/sheet_paper.html:161
 msgid "Golpe"
 msgstr "To hit"
 
@@ -799,7 +916,8 @@ msgstr "The catalog has no weapons."
 #: CampaignManager/templates/creator.html:114
 #: CampaignManager/templates/item_detail.html:24
 #: CampaignManager/templates/item_list.html:13
-#: CampaignManager/views_characters.py:263
+#: CampaignManager/templates/partials/sheet_paper.html:161
+#: CampaignManager/views_characters.py:299
 msgid "Armadura"
 msgstr "Armor"
 
@@ -809,7 +927,8 @@ msgstr "No armor"
 
 #: CampaignManager/templates/creator.html:121
 #: CampaignManager/templates/item_detail.html:25
-#: CampaignManager/templates/partials/sheet_panel.html:73
+#: CampaignManager/templates/partials/sheet_panel.html:86
+#: CampaignManager/templates/partials/sheet_paper.html:70
 msgid "AP mágico"
 msgstr "Magic AP"
 
@@ -823,8 +942,9 @@ msgstr ""
 
 #: CampaignManager/templates/creator.html:130
 #: CampaignManager/templates/creator.html:152
-#: CampaignManager/templates/partials/sheet_panel.html:318
-#: CampaignManager/views_characters.py:652
+#: CampaignManager/templates/partials/sheet_panel.html:328
+#: CampaignManager/templates/partials/sheet_paper.html:224
+#: CampaignManager/views_characters.py:835
 msgid "Habilidad única"
 msgstr "Unique skill"
 
@@ -877,7 +997,7 @@ msgid "Siguiente"
 msgstr "Next"
 
 #: CampaignManager/templates/creator.html:168
-#: CampaignManager/templates/partials/sheet_panel.html:346
+#: CampaignManager/templates/partials/sheet_panel.html:371
 msgid "Enviar al máster"
 msgstr "Send to the master"
 
@@ -888,6 +1008,46 @@ msgstr "Start over"
 #: CampaignManager/templates/creator.html:171
 msgid "Atrás"
 msgstr "Back"
+
+#: CampaignManager/templates/diary_adventures.html:6
+msgid ""
+"Cada aventura va de la sesión en que empieza a la que termina. Marca sus "
+"objetivos a medida que el grupo los cumple."
+msgstr ""
+"Each adventure runs from the session it starts in to the one it ends in. Tick"
+" its objectives as the party completes them."
+
+#: CampaignManager/templates/diary_adventures.html:6
+msgid ""
+"Las aventuras del grupo, con sus objetivos y lo que pasó en cada sesión."
+msgstr ""
+"The party's adventures, with their objectives and what happened in each "
+"session."
+
+#: CampaignManager/templates/diary_adventures.html:9
+#: CampaignManager/templates/diary_quest_form.html:6
+msgid "Nueva aventura"
+msgstr "New adventure"
+
+#: CampaignManager/templates/diary_adventures.html:10
+#: CampaignManager/templates/diary_session_form.html:6
+msgid "Nueva sesión"
+msgstr "New session"
+
+#: CampaignManager/templates/diary_adventures.html:24
+#, python-format
+msgid "%(n)s sesión de esta aventura"
+msgid_plural "%(n)s sesiones de esta aventura"
+msgstr[0] "%(n)s session of this adventure"
+msgstr[1] "%(n)s sessions of this adventure"
+
+#: CampaignManager/templates/diary_adventures.html:38
+msgid "Sesiones sin aventura"
+msgstr "Sessions outside any adventure"
+
+#: CampaignManager/templates/diary_adventures.html:43
+msgid "Todavía no hay aventuras ni sesiones."
+msgstr "No adventures or sessions yet."
 
 #: CampaignManager/templates/diary_base.html:5
 msgid "Diario de campaña"
@@ -909,91 +1069,65 @@ msgstr ""
 "master can pin classified notes: players see that they exist, but not what "
 "they say."
 
-#: CampaignManager/templates/diary_chronicles.html:5
-#: CampaignManager/templates/diary_session_form.html:6
-msgid "Nueva crónica"
-msgstr "New chronicle"
-
-#: CampaignManager/templates/diary_chronicles.html:8
-#: CampaignManager/templates/home.html:31
-#: CampaignManager/templates/home.html:55
-#: CampaignManager/templates/partials/map_section.html:44
-#: CampaignManager/templates/partials/sheet_panel.html:388
-#: CampaignManager/templates/partials/timeline.html:49
-msgid "Sesión"
-msgstr "Session"
-
-#: CampaignManager/templates/diary_chronicles.html:8
-msgid "Sin publicar"
-msgstr "Unpublished"
-
-#: CampaignManager/templates/diary_chronicles.html:12
-msgid "XP repartida"
-msgstr "XP awarded"
-
-#: CampaignManager/templates/diary_chronicles.html:13
-msgid "Botín"
-msgstr "Loot"
-
-#: CampaignManager/templates/diary_chronicles.html:16
-msgid "Notas del máster · solo las ves tú"
-msgstr "Master's notes · only you see them"
-
-#: CampaignManager/templates/diary_chronicles.html:17
-#: CampaignManager/templates/diary_session_form.html:6
-msgid "Editar crónica"
-msgstr "Edit chronicle"
-
-#: CampaignManager/templates/diary_chronicles.html:21
-msgid "Todavía no se ha jugado ninguna sesión."
-msgstr "No session has been played yet."
-
 #: CampaignManager/templates/diary_quest_form.html:6
-#: CampaignManager/templates/partials/quest_card.html:27
-msgid "Editar misión"
-msgstr "Edit quest"
+#: CampaignManager/templates/partials/quest_card.html:30
+msgid "Editar aventura"
+msgstr "Edit adventure"
 
-#: CampaignManager/templates/diary_quest_form.html:6
-#: CampaignManager/templates/diary_quests.html:6
-msgid "Nueva misión"
-msgstr "New quest"
-
-#: CampaignManager/templates/diary_quest_form.html:9
+#: CampaignManager/templates/diary_quest_form.html:10
 msgid "Objetivos"
 msgstr "Objectives"
 
-#: CampaignManager/templates/diary_quest_form.html:17
+#: CampaignManager/templates/diary_quest_form.html:11
+msgid ""
+"Los jugadores ven la lista. Un objetivo oculto les aparece como «Objetivo "
+"oculto» hasta que lo marcas como cumplido."
+msgstr ""
+"Players see the list. A hidden objective shows to them as «Hidden objective» "
+"until you mark it as done."
+
+#: CampaignManager/templates/diary_quest_form.html:15
+#: CampaignManager/templates/partials/quest_card.html:28
+msgid "Progreso"
+msgstr "Progress"
+
+#: CampaignManager/templates/diary_quest_form.html:26
+msgid "Nuevo objetivo"
+msgstr "New objective"
+
+#: CampaignManager/templates/diary_quest_form.html:30
+msgid "Oculto (se revela al cumplirlo)"
+msgstr "Hidden (revealed when done)"
+
+#: CampaignManager/templates/diary_quest_form.html:31
+msgid "Añadir objetivo"
+msgstr "Add objective"
+
+#: CampaignManager/templates/diary_quest_form.html:33
+msgid "Se añade al pulsar «Guardar»."
+msgstr "It is added when you press «Save»."
+
+#: CampaignManager/templates/diary_quest_form.html:38
 #: CampaignManager/templates/diary_scene_form.html:9
 #: CampaignManager/templates/diary_session_form.html:10
-#: CampaignManager/templates/partials/board.html:91
-#: CampaignManager/templates/partials/map_section.html:32
-#: CampaignManager/templates/partials/sheet_panel.html:114
-#: CampaignManager/templates/partials/sheet_panel.html:376
+#: CampaignManager/templates/home.html:109
+#: CampaignManager/templates/partials/board.html:114
+#: CampaignManager/templates/partials/map_section.html:43
+#: CampaignManager/templates/partials/sheet_panel.html:131
+#: CampaignManager/templates/partials/sheet_panel.html:403
 #: CampaignManager/templates/partials/turns_list.html:33
 #: CampaignManager/templates/world_edit.html:10
 msgid "Guardar"
 msgstr "Save"
 
-#: CampaignManager/templates/diary_quest_form.html:18
+#: CampaignManager/templates/diary_quest_form.html:39
 #: CampaignManager/templates/diary_scene_form.html:10
 #: CampaignManager/templates/diary_session_form.html:11
 #: CampaignManager/templates/partials/board.html:6
-#: CampaignManager/templates/partials/map_section.html:33
+#: CampaignManager/templates/partials/map_section.html:44
 #: CampaignManager/templates/world_edit.html:11
 msgid "Cancelar"
 msgstr "Cancel"
-
-#: CampaignManager/templates/diary_quests.html:5
-msgid "Marca los objetivos a medida que el grupo los cumple."
-msgstr "Tick the objectives as the party completes them."
-
-#: CampaignManager/templates/diary_quests.html:5
-msgid "El máster marca los objetivos a medida que los cumplís."
-msgstr "The master ticks the objectives as you complete them."
-
-#: CampaignManager/templates/diary_quests.html:15
-msgid "No hay misiones en esta campaña."
-msgstr "There are no quests in this campaign."
 
 #: CampaignManager/templates/diary_scene_form.html:6
 #: CampaignManager/templates/diary_scenes.html:6
@@ -1006,11 +1140,12 @@ msgid "Esta campaña todavía no tiene escenas."
 msgstr "This campaign has no scenes yet."
 
 #: CampaignManager/templates/diary_scenes.html:10
-#: CampaignManager/templates/partials/timeline.html:3
+#: CampaignManager/templates/partials/timeline.html:10
 msgid "Filtrar por personaje"
 msgstr "Filter by character"
 
 #: CampaignManager/templates/diary_scenes.html:11
+#: CampaignManager/templates/partials/timeline.html:6
 msgid "Todas"
 msgstr "All"
 
@@ -1040,6 +1175,11 @@ msgstr "messages"
 msgid "Ninguna escena con ese personaje."
 msgstr "No scenes with that character."
 
+#: CampaignManager/templates/diary_session_form.html:6
+#: CampaignManager/templates/partials/session_article.html:11
+msgid "Editar sesión"
+msgstr "Edit session"
+
 #: CampaignManager/templates/home.html:21
 msgid "el grupo está en"
 msgstr "the party is at"
@@ -1051,6 +1191,17 @@ msgstr "Change cover"
 #: CampaignManager/templates/home.html:31
 msgid "Lo último"
 msgstr "Latest"
+
+#: CampaignManager/templates/home.html:31
+#: CampaignManager/templates/home.html:55
+#: CampaignManager/templates/partials/map_section.html:52
+#: CampaignManager/templates/partials/map_section.html:68
+#: CampaignManager/templates/partials/quest_card.html:7
+#: CampaignManager/templates/partials/session_article.html:2
+#: CampaignManager/templates/partials/sheet_panel.html:415
+#: CampaignManager/templates/partials/timeline.html:69
+msgid "Sesión"
+msgstr "Session"
 
 #: CampaignManager/templates/home.html:34
 msgid "Leer el diario"
@@ -1081,7 +1232,7 @@ msgid "Últimos sucesos"
 msgstr "Latest events"
 
 #: CampaignManager/templates/home.html:56
-#: CampaignManager/templates/partials/timeline.html:24
+#: CampaignManager/templates/partials/timeline.html:31
 msgid "Todavía no hay sucesos."
 msgstr "There are no events yet."
 
@@ -1120,23 +1271,47 @@ msgid "Aviso del máster"
 msgstr "Master's notice"
 
 #: CampaignManager/templates/home.html:94
-msgid "Misiones activas"
-msgstr "Active quests"
+msgid "Aventuras en curso"
+msgstr "Adventures in progress"
 
 #: CampaignManager/templates/home.html:97
 msgid "de"
 msgstr "of"
 
 #: CampaignManager/templates/home.html:100
-msgid "No hay misiones activas."
-msgstr "There are no active quests."
+msgid "No hay aventuras en curso."
+msgstr "No adventures in progress."
+
+#: CampaignManager/templates/home.html:103
+msgid "Reglamento"
+msgstr "Ruleset"
+
+#: CampaignManager/templates/home.html:113
+msgid ""
+"Aegis: el SRD 5.2.1 con nuestras reglas: vida 1d4 al subir de nivel, dote o "
+"mejora cada 4 niveles, conjuros que da el máster y habilidad única."
+msgstr ""
+"Aegis: the SRD 5.2.1 with our rules: 1d4 hit points when levelling up, a feat"
+" or improvement every 4 levels, spells given by the master and a unique "
+"skill."
+
+#: CampaignManager/templates/home.html:113
+msgid ""
+"SRD 5.2.1 estándar: dado de golpe de la clase, mejoras y dotes en los niveles"
+" del SRD y conjuros nuevos al subir de nivel. Sin habilidades únicas."
+msgstr ""
+"Standard SRD 5.2.1: the class hit die, improvements and feats at the SRD "
+"levels, and new spells when levelling up. No unique skills."
 
 #: CampaignManager/templates/index.html:7
 msgid ""
-"El catálogo de reglas: lo que cargan los fixtures del SRD 5.2.1 y las armas "
-"caseras."
+"El catálogo de reglas de Aegis, nuestra variante del SRD 5.2.1, y del SRD "
+"5.2.1 estándar: lo que cargan los fixtures del SRD y nuestras armas caseras. "
+"Cada campaña elige con cuál juega en su página de inicio."
 msgstr ""
-"The rules catalog: what the SRD 5.2.1 and homemade weapons fixtures load."
+"The rules catalog of Aegis, our variant of the SRD 5.2.1, and of the standard"
+" SRD 5.2.1: what the SRD fixtures and our homemade weapons load. Each "
+"campaign chooses which one it plays with on its home page."
 
 #: CampaignManager/templates/index.html:9
 #: CampaignManager/templates/race_detail.html:6
@@ -1202,7 +1377,7 @@ msgstr "Price"
 
 #: CampaignManager/templates/item_detail.html:12
 #: CampaignManager/templates/item_list.html:11
-#: CampaignManager/views_characters.py:267
+#: CampaignManager/views_characters.py:303
 msgid "Consumible"
 msgstr "Consumable"
 
@@ -1221,14 +1396,14 @@ msgid "No"
 msgstr "No"
 
 #: CampaignManager/templates/item_detail.html:13
-#: CampaignManager/templates/partials/sheet_panel.html:313
-#: CampaignManager/views_characters.py:37
+#: CampaignManager/templates/partials/sheet_panel.html:323
+#: CampaignManager/views_characters.py:40
 msgid "Rasgos"
 msgstr "Traits"
 
 #: CampaignManager/templates/item_detail.html:17
 #: CampaignManager/templates/item_list.html:13
-#: CampaignManager/views_characters.py:261
+#: CampaignManager/views_characters.py:297
 msgid "Arma"
 msgstr "Weapon"
 
@@ -1261,8 +1436,8 @@ msgstr ""
 "armor."
 
 #: CampaignManager/templates/item_list.html:13
-#: CampaignManager/templates/partials/sheet_panel.html:301
-#: CampaignManager/views_characters.py:267
+#: CampaignManager/templates/partials/sheet_panel.html:311
+#: CampaignManager/views_characters.py:303
 msgid "Objeto"
 msgstr "Item"
 
@@ -1272,6 +1447,7 @@ msgstr "There are no items yet."
 
 #: CampaignManager/templates/level_up.html:3
 #: CampaignManager/templates/level_up.html:6
+#: CampaignManager/templates/partials/sheet_paper.html:16
 msgid "Subir de nivel"
 msgstr "Level up"
 
@@ -1281,8 +1457,9 @@ msgid "%(name)s sube al nivel %(n)s"
 msgstr "%(name)s goes up to level %(n)s"
 
 #: CampaignManager/templates/level_up.html:11
-#: CampaignManager/templates/partials/sheet_panel.html:13
-#: CampaignManager/templates/partials/sheet_panel.html:364
+#: CampaignManager/templates/partials/sheet_panel.html:15
+#: CampaignManager/templates/partials/sheet_panel.html:391
+#: CampaignManager/templates/partials/sheet_paper.html:16
 msgid "nivel"
 msgstr "level"
 
@@ -1299,22 +1476,50 @@ msgstr "No new race or class features at this level."
 msgid "Puntos de golpe"
 msgstr "Hit points"
 
-#: CampaignManager/templates/level_up.html:31
+#: CampaignManager/templates/level_up.html:32
 #, python-format
 msgid "Tira 1d%(d)s en la mesa, delante del máster, y escribe el resultado."
 msgstr ""
 "Roll 1d%(d)s at the table, in front of the master, and type the result."
 
-#: CampaignManager/templates/level_up.html:33
+#: CampaignManager/templates/level_up.html:34
 #, python-format
 msgid "Resultado del 1d%(d)s"
 msgstr "1d%(d)s result"
 
-#: CampaignManager/templates/level_up.html:36
+#: CampaignManager/templates/level_up.html:37
 msgid "de Constitución"
 msgstr "from Constitution"
 
-#: CampaignManager/templates/level_up.html:40
+#: CampaignManager/templates/level_up.html:45
+msgid "Valor fijo"
+msgstr "Fixed value"
+
+#: CampaignManager/templates/level_up.html:46
+msgid "del dado"
+msgstr "from the die"
+
+#: CampaignManager/templates/level_up.html:49
+msgid "Tirar"
+msgstr "Roll"
+
+#: CampaignManager/templates/level_up.html:50
+msgid "Se tira al confirmar, una sola vez."
+msgstr "Rolled once, when you confirm."
+
+#: CampaignManager/templates/level_up.html:55
+msgid "Puntos de golpe ganados"
+msgstr "Hit points gained"
+
+#: CampaignManager/templates/level_up.html:57
+msgid ""
+"Su clase no dice qué dado de golpe usa: escribe cuánta vida gana, con la "
+"Constitución incluida."
+msgstr ""
+"Their class does not say which hit die it uses: write how many hit points "
+"they gain, Constitution included."
+
+#: CampaignManager/templates/level_up.html:61
 #, python-format
 msgid ""
 "Gana de +%(low)s a +%(high)s. Vida máxima ahora: %(hp)s; la vida actual sube "
@@ -1323,47 +1528,47 @@ msgstr ""
 "Gains +%(low)s to +%(high)s. Maximum hit points now: %(hp)s; current hit "
 "points go up by the same amount."
 
-#: CampaignManager/templates/level_up.html:40
+#: CampaignManager/templates/level_up.html:61
 msgid ""
 "Si sube la Constitución, la vida de los niveles anteriores sube también."
 msgstr ""
 "If Constitution goes up, the hit points of the earlier levels go up too."
 
-#: CampaignManager/templates/level_up.html:48
+#: CampaignManager/templates/level_up.html:69
 msgid "Subclase"
 msgstr "Subclass"
 
-#: CampaignManager/templates/level_up.html:49
+#: CampaignManager/templates/level_up.html:70
 #, python-format
 msgid "Desde ahora, la subclase de %(c)s le da rasgos en ciertos niveles."
 msgstr "From now on, the %(c)s subclass gives features at certain levels."
 
-#: CampaignManager/templates/level_up.html:56
+#: CampaignManager/templates/level_up.html:77
 msgid "Rasgos hasta este nivel"
 msgstr "Features up to this level"
 
-#: CampaignManager/templates/level_up.html:68
+#: CampaignManager/templates/level_up.html:89
 msgid "Mejora de característica o dote"
 msgstr "Ability score improvement or feat"
 
-#: CampaignManager/templates/level_up.html:68
-#: CampaignManager/templates/level_up.html:74
+#: CampaignManager/templates/level_up.html:89
+#: CampaignManager/templates/level_up.html:95
 msgid "Mejora de característica"
 msgstr "Ability score improvement"
 
-#: CampaignManager/templates/level_up.html:70
+#: CampaignManager/templates/level_up.html:91
 msgid "Elige una: la mejora de característica o una de las dotes."
 msgstr "Choose one: the ability score improvement or one of the feats."
 
-#: CampaignManager/templates/level_up.html:75
+#: CampaignManager/templates/level_up.html:96
 msgid "+1 a dos características, o +2 a una. Se eligen debajo."
 msgstr "+1 to two abilities, or +2 to one. Chosen below."
 
-#: CampaignManager/templates/level_up.html:84
+#: CampaignManager/templates/level_up.html:105
 msgid "Si eliges la mejora de característica"
 msgstr "If you choose the ability score improvement"
 
-#: CampaignManager/templates/level_up.html:86
+#: CampaignManager/templates/level_up.html:107
 msgid ""
 "Dos puntos: +1 a dos características, o +2 a una si eliges la misma dos "
 "veces. Ninguna pasa de 20."
@@ -1371,32 +1576,65 @@ msgstr ""
 "Two points: +1 to two abilities, or +2 to one if you choose the same one "
 "twice. None goes above 20."
 
-#: CampaignManager/templates/level_up.html:92
+#: CampaignManager/templates/level_up.html:113
 msgid "Primer punto"
 msgstr "First point"
 
-#: CampaignManager/templates/level_up.html:100
+#: CampaignManager/templates/level_up.html:121
 msgid "Segundo punto"
 msgstr "Second point"
 
-#: CampaignManager/templates/level_up.html:115
-#: CampaignManager/templates/partials/sheet_panel.html:98
+#: CampaignManager/templates/level_up.html:137
+msgid "Conjuros nuevos"
+msgstr "New spells"
+
+#: CampaignManager/templates/level_up.html:138
+#, python-format
+msgid "Lo que añade la tabla de %(c)s:"
+msgstr "What the %(c)s table adds:"
+
+#: CampaignManager/templates/level_up.html:139
+#, python-format
+msgid "%(n)s conjuro de nivel %(s)s como mucho"
+msgid_plural "%(n)s conjuros de nivel %(s)s como mucho"
+msgstr[0] "%(n)s spell of level %(s)s at most"
+msgstr[1] "%(n)s spells of level %(s)s at most"
+
+#: CampaignManager/templates/level_up.html:139
+msgid "y"
+msgstr "and"
+
+#: CampaignManager/templates/level_up.html:139
+#, python-format
+msgid "%(t)s truco"
+msgid_plural "%(t)s trucos"
+msgstr[0] "%(t)s cantrip"
+msgstr[1] "%(t)s cantrips"
+
+#: CampaignManager/templates/level_up.html:143
+#: CampaignManager/templates/partials/sheet_panel.html:224
+msgid "Trucos"
+msgstr "Cantrips"
+
+#: CampaignManager/templates/level_up.html:159
+#: CampaignManager/templates/partials/sheet_panel.html:115
+#: CampaignManager/templates/partials/sheet_paper.html:240
 msgid "Puntos de magia"
 msgstr "Magic points"
 
-#: CampaignManager/templates/level_up.html:116
+#: CampaignManager/templates/level_up.html:160
 #, python-format
 msgid "Máximo %(a)s → %(b)s, por %(c)s. Los actuales suben lo mismo."
 msgstr ""
 "Maximum %(a)s → %(b)s, for %(c)s. Current points go up by the same amount."
 
-#: CampaignManager/templates/level_up.html:122
-#: CampaignManager/templates/partials/sheet_panel.html:17
+#: CampaignManager/templates/level_up.html:166
+#: CampaignManager/templates/partials/sheet_panel.html:19
 #, python-format
 msgid "Subir al nivel %(n)s"
 msgstr "Go up to level %(n)s"
 
-#: CampaignManager/templates/level_up.html:123
+#: CampaignManager/templates/level_up.html:167
 msgid "Ahora no"
 msgstr "Not now"
 
@@ -1452,16 +1690,28 @@ msgstr "Tap another note to join them with red thread."
 msgid "Pulsa en la pizarra donde quieras dejar la nota."
 msgstr "Tap the board where you want to leave the note."
 
-#: CampaignManager/templates/partials/board.html:25
+#: CampaignManager/templates/partials/board.html:11
+msgid "Pizarra: rueda o pellizco para acercar, arrastra para moverte"
+msgstr "Board: scroll or pinch to zoom, drag to move around"
+
+#: CampaignManager/templates/partials/board.html:27
 msgid "Pista clasificada. El máster la revelará cuando toque."
 msgstr "Classified clue. The master will reveal it in due time."
 
-#: CampaignManager/templates/partials/board.html:28
-#: CampaignManager/templates/partials/board.html:49
+#: CampaignManager/templates/partials/board.html:31
+msgid "(tachada con una cruz roja)"
+msgstr "(crossed out with a red cross)"
+
+#: CampaignManager/templates/partials/board.html:34
+#: CampaignManager/templates/partials/board.html:56
 msgid "Apuntada por"
 msgstr "Noted by"
 
 #: CampaignManager/templates/partials/board.html:41
+msgid "Ver toda la pizarra"
+msgstr "Show the whole board"
+
+#: CampaignManager/templates/partials/board.html:48
 #, python-format
 msgid ""
 "Pulsa una nota de la pizarra. Hay %(hidden_count)s pistas clasificadas sin "
@@ -1470,161 +1720,285 @@ msgstr ""
 "Tap a note on the board. There are %(hidden_count)s classified clues not yet "
 "revealed."
 
-#: CampaignManager/templates/partials/board.html:44
+#: CampaignManager/templates/partials/board.html:51
 msgid "Nota clasificada"
 msgstr "Classified note"
 
-#: CampaignManager/templates/partials/board.html:45
+#: CampaignManager/templates/partials/board.html:52
 msgid "El máster todavía no ha revelado esta pista."
 msgstr "The master has not revealed this clue yet."
 
-#: CampaignManager/templates/partials/board.html:49
+#: CampaignManager/templates/partials/board.html:54
+msgid "Tachada"
+msgstr "Crossed out"
+
+#: CampaignManager/templates/partials/board.html:56
 msgid "hilo"
 msgstr "thread"
 
-#: CampaignManager/templates/partials/board.html:49
+#: CampaignManager/templates/partials/board.html:56
 msgid "hilos"
 msgstr "threads"
 
-#: CampaignManager/templates/partials/board.html:52
-#: CampaignManager/templates/partials/map_section.html:40
+#: CampaignManager/templates/partials/board.html:59
+#: CampaignManager/templates/partials/map_section.html:64
 msgid "Abrir su página"
 msgstr "Open its page"
 
-#: CampaignManager/templates/partials/board.html:54
+#: CampaignManager/templates/partials/board.html:61
 msgid "Unir con otra nota"
 msgstr "Join to another note"
 
-#: CampaignManager/templates/partials/board.html:55
+#: CampaignManager/templates/partials/board.html:62
 msgid "Mover"
 msgstr "Move"
 
-#: CampaignManager/templates/partials/board.html:59
+#: CampaignManager/templates/partials/board.html:66
 msgid "Volver a clasificar"
 msgstr "Classify again"
 
-#: CampaignManager/templates/partials/board.html:59
-#: CampaignManager/templates/partials/timeline.html:59
+#: CampaignManager/templates/partials/board.html:66
+#: CampaignManager/templates/partials/timeline.html:79
 msgid "Revelar a los jugadores"
 msgstr "Reveal to the players"
 
-#: CampaignManager/templates/partials/board.html:63
+#: CampaignManager/templates/partials/board.html:70
 msgid "Quitar la clasificación"
 msgstr "Declassify"
 
-#: CampaignManager/templates/partials/board.html:63
+#: CampaignManager/templates/partials/board.html:70
 msgid "Clasificar"
 msgstr "Classify"
 
-#: CampaignManager/templates/partials/board.html:67
+#: CampaignManager/templates/partials/board.html:74
 msgid "Quitar de la pizarra"
 msgstr "Remove from the board"
 
-#: CampaignManager/templates/partials/board.html:76
+#: CampaignManager/templates/partials/board.html:80
+msgid "Quitar la cruz"
+msgstr "Remove the cross"
+
+#: CampaignManager/templates/partials/board.html:80
+msgid "Tachar con una cruz roja"
+msgstr "Cross out with a red cross"
+
+#: CampaignManager/templates/partials/board.html:83
+msgid "Cambiar la foto"
+msgstr "Change the photo"
+
+#: CampaignManager/templates/partials/board.html:83
+msgid "Poner una foto"
+msgstr "Add a photo"
+
+#: CampaignManager/templates/partials/board.html:85
+msgid "Subir"
+msgstr "Upload"
+
+#: CampaignManager/templates/partials/board.html:89
+msgid "Quitar la foto"
+msgstr "Remove the photo"
+
+#: CampaignManager/templates/partials/board.html:99
 msgid "Mover aquí"
 msgstr "Move here"
 
-#: CampaignManager/templates/partials/board.html:82
+#: CampaignManager/templates/partials/board.html:105
 msgid "Unir con"
 msgstr "Join to"
 
-#: CampaignManager/templates/partials/board.html:84
+#: CampaignManager/templates/partials/board.html:107
 msgid "Unir"
 msgstr "Join"
 
-#: CampaignManager/templates/partials/board.html:89
+#: CampaignManager/templates/partials/board.html:112
 msgid "Enlazar a una página"
 msgstr "Link to a page"
 
-#: CampaignManager/templates/partials/board.html:90
+#: CampaignManager/templates/partials/board.html:113
 msgid "Ninguna"
 msgstr "None"
 
-#: CampaignManager/templates/partials/board.html:99
+#: CampaignManager/templates/partials/board.html:124
 msgid "Nueva nota"
 msgstr "New note"
 
-#: CampaignManager/templates/partials/board.html:100
+#: CampaignManager/templates/partials/board.html:125
+msgid "Tipo de nota"
+msgstr "Note type"
+
+#: CampaignManager/templates/partials/board.html:126
+msgid "Pista"
+msgstr "Clue"
+
+#: CampaignManager/templates/partials/board.html:127
+msgid "Persona"
+msgstr "Person"
+
+#: CampaignManager/templates/partials/board.html:129
 msgid "Título"
 msgstr "Title"
 
-#: CampaignManager/templates/partials/board.html:101
+#: CampaignManager/templates/partials/board.html:130
 msgid "Texto"
 msgstr "Text"
 
-#: CampaignManager/templates/partials/board.html:102
+#: CampaignManager/templates/partials/board.html:131
+msgid "Foto (solo personas, opcional)"
+msgstr "Photo (people only, optional)"
+
+#: CampaignManager/templates/partials/board.html:132
 msgid "Clasificada: los jugadores la verán oculta hasta que la reveles"
 msgstr "Classified: players will see it hidden until you reveal it"
 
-#: CampaignManager/templates/partials/board.html:103
+#: CampaignManager/templates/partials/board.html:133
 msgid "Clavar en la pizarra"
 msgstr "Pin to the board"
+
+#: CampaignManager/templates/partials/map_canvas.html:6
+msgid "Mapa: rueda o pellizco para acercar, arrastra para moverte"
+msgstr "Map: scroll or pinch to zoom, drag to move around"
+
+#: CampaignManager/templates/partials/map_canvas.html:25
+msgid "Ver el mapa entero"
+msgstr "Show the whole map"
 
 #: CampaignManager/templates/partials/map_section.html:5
 msgid "Pulsa en el mapa donde quieras poner el lugar."
 msgstr "Tap the map where you want to put the place."
 
 #: CampaignManager/templates/partials/map_section.html:9
+msgid ""
+"Arrastra los puntos para trazar el camino que siguió el grupo. Pulsa o "
+"arrastra un «+» para añadir un punto; doble clic o Supr sobre un punto lo "
+"quita. Se guarda solo."
+msgstr ""
+"Drag the points to trace the way the party went. Click or drag a «+» to add a"
+" point; double-click or Delete on a point removes it. Changes save "
+"automatically."
+
+#: CampaignManager/templates/partials/map_section.html:10
+msgid "Terminar"
+msgstr "Done"
+
+#: CampaignManager/templates/partials/map_section.html:12
+msgid "Editar el camino"
+msgstr "Edit the route"
+
+#: CampaignManager/templates/partials/map_section.html:20
 msgid "Recorrido hasta la sesión"
 msgstr "Route up to session"
 
-#: CampaignManager/templates/partials/map_section.html:11
+#: CampaignManager/templates/partials/map_section.html:22
 msgid "Ver"
 msgstr "View"
 
-#: CampaignManager/templates/partials/map_section.html:20
+#: CampaignManager/templates/partials/map_section.html:31
 msgid "Nuevo lugar"
 msgstr "New place"
 
-#: CampaignManager/templates/partials/map_section.html:28
+#: CampaignManager/templates/partials/map_section.html:39
 msgid "Estado del lugar"
 msgstr "Place status"
 
-#: CampaignManager/templates/partials/map_section.html:31
+#: CampaignManager/templates/partials/map_section.html:42
 msgid "Se crea también su página en el Mundo."
 msgstr "Its World page is created too."
 
-#: CampaignManager/templates/partials/map_section.html:36
+#: CampaignManager/templates/partials/map_section.html:47
+msgid "Tramos del camino"
+msgstr "Route stretches"
+
+#: CampaignManager/templates/partials/map_section.html:48
+msgid ""
+"Quita un tramo añadido por error: el camino irá directo de la parada anterior"
+" a la siguiente."
+msgstr ""
+"Remove a stretch added by mistake: the route will go straight from the stop "
+"before to the next one."
+
+#: CampaignManager/templates/partials/map_section.html:54
+#, python-format
+msgid "¿Quitar el tramo %(a)s → %(b)s?"
+msgstr "Remove the stretch %(a)s → %(b)s?"
+
+#: CampaignManager/templates/partials/map_section.html:54
+#: CampaignManager/templates/partials/objective_row.html:10
+#: CampaignManager/templates/partials/sheet_panel.html:93
+#: CampaignManager/templates/partials/sheet_panel.html:164
+#: CampaignManager/templates/partials/turns_list.html:70
+msgid "Quitar"
+msgstr "Remove"
+
+#: CampaignManager/templates/partials/map_section.html:60
 msgid "solo máster"
 msgstr "master only"
 
-#: CampaignManager/templates/partials/map_section.html:39
+#: CampaignManager/templates/partials/map_section.html:63
 msgid "El grupo pasó por aquí en la sesión"
 msgstr "The party came through here in session"
 
-#: CampaignManager/templates/partials/map_section.html:43
+#: CampaignManager/templates/partials/map_section.html:67
 msgid "Pasó aquí"
 msgstr "Happened here"
 
-#: CampaignManager/templates/partials/map_section.html:49
+#: CampaignManager/templates/partials/map_section.html:73
 msgid "Solo máster"
 msgstr "Master only"
 
-#: CampaignManager/templates/partials/map_section.html:58
+#: CampaignManager/templates/partials/map_section.html:82
+#, python-format
+msgid ""
+"¿Borrar %(name)s del mapa? También se quitan los tramos del camino que llegan"
+" allí. Su página del Mundo se conserva."
+msgstr ""
+"Delete %(name)s from the map? The route stretches leading there are removed "
+"too. Its World page is kept."
+
+#: CampaignManager/templates/partials/map_section.html:82
+msgid "Borrar este lugar"
+msgstr "Delete this place"
+
+#: CampaignManager/templates/partials/map_section.html:86
 msgid "Pulsa un lugar del mapa."
 msgstr "Tap a place on the map."
 
-#: CampaignManager/templates/partials/map_section.html:62
+#: CampaignManager/templates/partials/map_section.html:90
 msgid "Lugares de"
 msgstr "Places of"
 
-#: CampaignManager/templates/partials/map_section.html:67
+#: CampaignManager/templates/partials/map_section.html:95
 msgid "Todavía no hay lugares."
 msgstr "There are no places yet."
 
+#: CampaignManager/templates/partials/objective_row.html:5
+msgid "Objetivo"
+msgstr "Objective"
+
+#: CampaignManager/templates/partials/objective_row.html:8
+msgid "Cumplido"
+msgstr "Done"
+
+#: CampaignManager/templates/partials/objective_row.html:9
+msgid "Oculto"
+msgstr "Hidden"
+
 #: CampaignManager/templates/partials/quest_card.html:7
+msgid "en curso"
+msgstr "in progress"
+
+#: CampaignManager/templates/partials/quest_card.html:8
 msgid "Encargo de"
 msgstr "Given by"
 
-#: CampaignManager/templates/partials/quest_card.html:7
+#: CampaignManager/templates/partials/quest_card.html:8
 msgid "alguien"
 msgstr "someone"
 
-#: CampaignManager/templates/partials/quest_card.html:19
+#: CampaignManager/templates/partials/quest_card.html:20
 msgid "Objetivo oculto"
 msgstr "Hidden objective"
 
-#: CampaignManager/templates/partials/quest_card.html:20
+#: CampaignManager/templates/partials/quest_card.html:21
 msgid "OCULTO · se revela al marcarlo"
 msgstr "HIDDEN · revealed when ticked"
 
@@ -1685,213 +2059,289 @@ msgstr "Scene closed. It is on the timeline."
 msgid "Tu personaje no está en esta escena, así que solo puedes leerla."
 msgstr "Your character is not in this scene, so you can only read it."
 
-#: CampaignManager/templates/partials/sheet_panel.html:11
+#: CampaignManager/templates/partials/session_article.html:2
+msgid "Sin publicar"
+msgstr "Unpublished"
+
+#: CampaignManager/templates/partials/session_article.html:6
+msgid "XP repartida"
+msgstr "XP awarded"
+
+#: CampaignManager/templates/partials/session_article.html:7
+msgid "Botín"
+msgstr "Loot"
+
+#: CampaignManager/templates/partials/session_article.html:10
+msgid "Notas del máster · solo las ves tú"
+msgstr "Master's notes · only you see them"
+
+#: CampaignManager/templates/partials/sheet_panel.html:13
 msgid "Pendiente de aprobar"
 msgstr "Pending approval"
 
-#: CampaignManager/templates/partials/sheet_panel.html:18
+#: CampaignManager/templates/partials/sheet_panel.html:20
 #, python-format
 msgid "%(player)s lo verá en su ficha."
 msgstr "%(player)s will see it on their sheet."
 
-#: CampaignManager/templates/partials/sheet_panel.html:18
+#: CampaignManager/templates/partials/sheet_panel.html:20
 msgid "Ya tiene la experiencia: elige lo que le da el nuevo nivel."
 msgstr "They have the experience: choose what the new level gives."
 
-#: CampaignManager/templates/partials/sheet_panel.html:23
+#: CampaignManager/templates/partials/sheet_panel.html:25
 msgid "Experiencia"
 msgstr "Experience"
 
-#: CampaignManager/templates/partials/sheet_panel.html:26
+#: CampaignManager/templates/partials/sheet_panel.html:28
 msgid "Quitar XP"
 msgstr "Remove XP"
 
-#: CampaignManager/templates/partials/sheet_panel.html:36
+#: CampaignManager/templates/partials/sheet_panel.html:39
 msgid "Puntos de vida"
 msgstr "Hit points"
 
-#: CampaignManager/templates/partials/sheet_panel.html:42
-#: CampaignManager/templates/partials/turns_list.html:53
+#: CampaignManager/templates/partials/sheet_panel.html:40
+#: CampaignManager/templates/partials/sheet_paper.html:94
+#: CampaignManager/templates/partials/turns_list.html:43
+msgid "Muerto"
+msgstr "Dead"
+
+#: CampaignManager/templates/partials/sheet_panel.html:41
+#: CampaignManager/templates/partials/sheet_panel.html:55
+#: CampaignManager/templates/partials/sheet_paper.html:103
+#: CampaignManager/templates/partials/turns_list.html:43
+msgid "Derribado"
+msgstr "Knocked down"
+
+#: CampaignManager/templates/partials/sheet_panel.html:46
+#, python-format
+msgid "%(name)s ha muerto."
+msgstr "%(name)s is dead."
+
+#: CampaignManager/templates/partials/sheet_panel.html:49
+#: CampaignManager/templates/partials/sheet_paper.html:95
+msgid "Revivir"
+msgstr "Revive"
+
+#: CampaignManager/templates/partials/sheet_panel.html:50
+msgid "Solo el máster puede revivirlo."
+msgstr "Only the master can bring them back."
+
+#: CampaignManager/templates/partials/sheet_panel.html:56
+#: CampaignManager/templates/partials/sheet_paper.html:104
+#, python-format
+msgid "Muere si llega a %(hp)s de vida"
+msgstr "Dies at %(hp)s hit points"
+
+#: CampaignManager/templates/partials/sheet_panel.html:56
+#: CampaignManager/templates/partials/sheet_paper.html:104
+msgid "o si vuelve a caer en este combate"
+msgstr "or if knocked down again in this fight"
+
+#: CampaignManager/templates/partials/sheet_panel.html:62
+#: CampaignManager/templates/partials/sheet_paper.html:99
+#: CampaignManager/templates/partials/turns_list.html:54
 msgid "Quitar 1 de vida"
 msgstr "Remove 1 hit point"
 
-#: CampaignManager/templates/partials/sheet_panel.html:43
-#: CampaignManager/templates/partials/turns_list.html:54
+#: CampaignManager/templates/partials/sheet_panel.html:63
+#: CampaignManager/templates/partials/sheet_paper.html:101
+#: CampaignManager/templates/partials/turns_list.html:55
 msgid "Sumar 1 de vida"
 msgstr "Add 1 hit point"
 
-#: CampaignManager/templates/partials/sheet_panel.html:44
-#: CampaignManager/templates/partials/sheet_panel.html:303
-#: CampaignManager/templates/partials/turns_list.html:55
+#: CampaignManager/templates/partials/sheet_panel.html:64
+#: CampaignManager/templates/partials/sheet_panel.html:313
+#: CampaignManager/templates/partials/sheet_paper.html:106
+#: CampaignManager/templates/partials/turns_list.html:56
 msgid "Cantidad"
 msgstr "Amount"
 
-#: CampaignManager/templates/partials/sheet_panel.html:45
-#: CampaignManager/templates/partials/turns_list.html:56
+#: CampaignManager/templates/partials/sheet_panel.html:65
+#: CampaignManager/templates/partials/sheet_panel.html:92
+#: CampaignManager/templates/partials/sheet_paper.html:107
+#: CampaignManager/templates/partials/turns_list.html:57
 msgid "Cant."
 msgstr "Amt."
 
-#: CampaignManager/templates/partials/sheet_panel.html:46
-#: CampaignManager/templates/partials/turns_list.html:57
+#: CampaignManager/templates/partials/sheet_panel.html:66
+#: CampaignManager/templates/partials/sheet_paper.html:108
+#: CampaignManager/templates/partials/sheet_paper.html:161
+#: CampaignManager/templates/partials/sheet_paper.html:254
+#: CampaignManager/templates/partials/turns_list.html:64
 msgid "Daño"
 msgstr "Damage"
 
-#: CampaignManager/templates/partials/sheet_panel.html:47
-#: CampaignManager/templates/partials/turns_list.html:58
+#: CampaignManager/templates/partials/sheet_panel.html:67
+#: CampaignManager/templates/partials/sheet_paper.html:109
+#: CampaignManager/templates/partials/turns_list.html:65
 msgid "Curar"
 msgstr "Heal"
 
-#: CampaignManager/templates/partials/sheet_panel.html:53
-msgid "Salvaciones de muerte"
-msgstr "Death saves"
-
 #: CampaignManager/templates/partials/sheet_panel.html:70
+#: CampaignManager/templates/partials/turns_list.html:59
+msgid "Penetrante"
+msgstr "Penetrating"
+
+#: CampaignManager/templates/partials/sheet_panel.html:72
+#: CampaignManager/templates/partials/turns_list.html:61
+msgid "Triturante"
+msgstr "Shredding"
+
+#: CampaignManager/templates/partials/sheet_panel.html:75
+#, python-format
+msgid ""
+"El daño pasa por la armadura: daño − AP (%(ap)s) = daño real. Penetrante "
+"ignora esos AP en este golpe; triturante los quita después."
+msgstr ""
+"Damage goes through the armor: damage − AP (%(ap)s) = true damage. "
+"Penetrating ignores that many AP for this hit; shredding takes them away "
+"afterwards."
+
+#: CampaignManager/templates/partials/sheet_panel.html:83
 msgid "Armadura (AP)"
 msgstr "Armor (AP)"
 
-#: CampaignManager/templates/partials/sheet_panel.html:76
-#: CampaignManager/templates/partials/turns_list.html:60
+#: CampaignManager/templates/partials/sheet_panel.html:89
+#: CampaignManager/templates/partials/sheet_paper.html:79
+#: CampaignManager/templates/partials/turns_list.html:67
 msgid "Quitar 1 de AP"
 msgstr "Remove 1 AP"
 
-#: CampaignManager/templates/partials/sheet_panel.html:77
-#: CampaignManager/templates/partials/turns_list.html:61
+#: CampaignManager/templates/partials/sheet_panel.html:90
+#: CampaignManager/templates/partials/sheet_paper.html:81
+#: CampaignManager/templates/partials/turns_list.html:68
 msgid "Sumar 1 de AP"
 msgstr "Add 1 AP"
 
-#: CampaignManager/templates/partials/sheet_panel.html:78
+#: CampaignManager/templates/partials/sheet_panel.html:91
+msgid "Cantidad de AP"
+msgstr "AP amount"
+
+#: CampaignManager/templates/partials/sheet_panel.html:94
+msgid "Sumar"
+msgstr "Add"
+
+#: CampaignManager/templates/partials/sheet_panel.html:95
+#: CampaignManager/templates/partials/sheet_paper.html:83
 msgid "Restaurar"
 msgstr "Restore"
 
-#: CampaignManager/templates/partials/sheet_panel.html:89
+#: CampaignManager/templates/partials/sheet_panel.html:106
 msgid "Gastar"
 msgstr "Spend"
 
-#: CampaignManager/templates/partials/sheet_panel.html:90
+#: CampaignManager/templates/partials/sheet_panel.html:107
 msgid "Dar"
 msgstr "Give"
 
-#: CampaignManager/templates/partials/sheet_panel.html:104
+#: CampaignManager/templates/partials/sheet_panel.html:121
 msgid "Gastar 1"
 msgstr "Spend 1"
 
-#: CampaignManager/templates/partials/sheet_panel.html:105
+#: CampaignManager/templates/partials/sheet_panel.html:122
 msgid "Recuperar 1"
 msgstr "Recover 1"
 
-#: CampaignManager/templates/partials/sheet_panel.html:108
+#: CampaignManager/templates/partials/sheet_panel.html:125
 msgid "Sin puntos de magia."
 msgstr "No magic points."
 
-#: CampaignManager/templates/partials/sheet_panel.html:109
+#: CampaignManager/templates/partials/sheet_panel.html:126
 #, python-format
 msgid "%(n)s por %(c)s nivel %(l)s"
 msgstr "%(n)s for %(c)s level %(l)s"
 
-#: CampaignManager/templates/partials/sheet_panel.html:109
+#: CampaignManager/templates/partials/sheet_panel.html:126
 #, python-format
 msgid "ajuste del máster %(b)s"
 msgstr "master's adjustment %(b)s"
 
-#: CampaignManager/templates/partials/sheet_panel.html:112
+#: CampaignManager/templates/partials/sheet_panel.html:129
 msgid "Ajuste del máster"
 msgstr "Master's adjustment"
 
-#: CampaignManager/templates/partials/sheet_panel.html:121
+#: CampaignManager/templates/partials/sheet_panel.html:138
 msgid "Secciones de la ficha"
 msgstr "Sheet sections"
 
-#: CampaignManager/templates/partials/sheet_panel.html:126
-#: CampaignManager/views_characters.py:36
-#: CampaignManager/views_characters.py:652
+#: CampaignManager/templates/partials/sheet_panel.html:143
+#: CampaignManager/views_characters.py:39
+#: CampaignManager/views_characters.py:835
 msgid "Resumen"
 msgstr "Summary"
 
-#: CampaignManager/templates/partials/sheet_panel.html:134
+#: CampaignManager/templates/partials/sheet_panel.html:151
+#: CampaignManager/templates/partials/sheet_paper.html:57
 msgid "Iniciativa"
 msgstr "Initiative"
 
-#: CampaignManager/templates/partials/sheet_panel.html:135
+#: CampaignManager/templates/partials/sheet_panel.html:152
 msgid "Percepción pasiva"
 msgstr "Passive perception"
 
-#: CampaignManager/templates/partials/sheet_panel.html:145
+#: CampaignManager/templates/partials/sheet_panel.html:162
 msgid "Una ronda menos"
 msgstr "One round less"
 
-#: CampaignManager/templates/partials/sheet_panel.html:146
+#: CampaignManager/templates/partials/sheet_panel.html:163
 msgid "Una ronda más"
 msgstr "One more round"
 
-#: CampaignManager/templates/partials/sheet_panel.html:147
-#: CampaignManager/templates/partials/turns_list.html:63
-msgid "Quitar"
-msgstr "Remove"
-
-#: CampaignManager/templates/partials/sheet_panel.html:156
+#: CampaignManager/templates/partials/sheet_panel.html:173
 msgid "Rondas"
 msgstr "Rounds"
 
-#: CampaignManager/templates/partials/sheet_panel.html:158
-#: CampaignManager/templates/partials/sheet_panel.html:305
-#: CampaignManager/templates/partials/turns_list.html:83
+#: CampaignManager/templates/partials/sheet_panel.html:175
+#: CampaignManager/templates/partials/sheet_panel.html:315
+#: CampaignManager/templates/partials/turns_list.html:90
 msgid "Añadir"
 msgstr "Add"
 
-#: CampaignManager/templates/partials/sheet_panel.html:165
-msgid "Descanso corto"
-msgstr "Short rest"
-
-#: CampaignManager/templates/partials/sheet_panel.html:166
-msgid "Descanso largo"
-msgstr "Long rest"
-
-#: CampaignManager/templates/partials/sheet_panel.html:168
-msgid ""
-"El descanso largo recupera la vida, el AP, los puntos de magia y todos los "
-"usos. El corto, los usos que se recargan con descanso corto."
-msgstr ""
-"A long rest restores hit points, AP, magic points and every use. A short "
-"rest, the uses that recharge on a short rest."
-
-#: CampaignManager/templates/partials/sheet_panel.html:173
-#: CampaignManager/views_characters.py:36
+#: CampaignManager/templates/partials/sheet_panel.html:183
+#: CampaignManager/views_characters.py:39
 msgid "Acciones"
 msgstr "Actions"
 
-#: CampaignManager/templates/partials/sheet_panel.html:189
+#: CampaignManager/templates/partials/sheet_panel.html:199
+#: CampaignManager/templates/partials/sheet_paper.html:174
 msgid "Sin armas equipadas. Equípalas en el inventario."
 msgstr "No weapons equipped. Equip them in the inventory."
 
-#: CampaignManager/templates/partials/sheet_panel.html:193
+#: CampaignManager/templates/partials/sheet_panel.html:203
 msgid "Habilidades con usos"
 msgstr "Abilities with uses"
 
-#: CampaignManager/templates/partials/sheet_panel.html:197
+#: CampaignManager/templates/partials/sheet_panel.html:207
+#: CampaignManager/templates/partials/sheet_paper.html:203
 msgid "Usos"
 msgstr "Uses"
 
-#: CampaignManager/templates/partials/sheet_panel.html:198
+#: CampaignManager/templates/partials/sheet_panel.html:208
 #, python-format
 msgid "lista en %(n)s ronda"
 msgid_plural "lista en %(n)s rondas"
 msgstr[0] "ready in %(n)s round"
 msgstr[1] "ready in %(n)s rounds"
 
-#: CampaignManager/templates/partials/sheet_panel.html:198
+#: CampaignManager/templates/partials/sheet_panel.html:208
+#: CampaignManager/templates/partials/sheet_paper.html:209
 msgid "lista"
 msgstr "ready"
 
-#: CampaignManager/templates/partials/sheet_panel.html:202
-#: CampaignManager/templates/partials/sheet_panel.html:289
+#: CampaignManager/templates/partials/sheet_panel.html:212
+#: CampaignManager/templates/partials/sheet_panel.html:299
+#: CampaignManager/templates/partials/sheet_paper.html:147
+#: CampaignManager/templates/partials/sheet_paper.html:203
+#: CampaignManager/templates/partials/sheet_paper.html:212
 msgid "Usar"
 msgstr "Use"
 
-#: CampaignManager/templates/partials/sheet_panel.html:206
+#: CampaignManager/templates/partials/sheet_panel.html:216
 msgid "Ninguna habilidad tiene usos o enfriamiento."
 msgstr "No ability has uses or a cooldown."
 
-#: CampaignManager/templates/partials/sheet_panel.html:212
+#: CampaignManager/templates/partials/sheet_panel.html:222
 #, python-format
 msgid ""
 "Le quedan %(n)s de %(m)s puntos de magia. Un espacio de nivel N cuesta N "
@@ -1900,57 +2350,59 @@ msgstr ""
 "%(n)s of %(m)s magic points left. A level N slot costs N points; the highest "
 "at this level is %(s)s."
 
-#: CampaignManager/templates/partials/sheet_panel.html:214
-msgid "Trucos"
-msgstr "Cantrips"
-
-#: CampaignManager/templates/partials/sheet_panel.html:221
+#: CampaignManager/templates/partials/sheet_panel.html:231
 msgid "Descripción"
 msgstr "Description"
 
-#: CampaignManager/templates/partials/sheet_panel.html:226
+#: CampaignManager/templates/partials/sheet_panel.html:236
+#: CampaignManager/templates/partials/sheet_paper.html:270
 msgid "Espacio de conjuro"
 msgstr "Spell slot"
 
-#: CampaignManager/templates/partials/sheet_panel.html:228
+#: CampaignManager/templates/partials/sheet_panel.html:238
+#: CampaignManager/templates/partials/sheet_paper.html:272
 msgid "Espacio"
 msgstr "Slot"
 
-#: CampaignManager/templates/partials/sheet_panel.html:231
+#: CampaignManager/templates/partials/sheet_panel.html:241
+#: CampaignManager/templates/partials/sheet_paper.html:254
+#: CampaignManager/templates/partials/sheet_paper.html:275
 msgid "Lanzar"
 msgstr "Cast"
 
-#: CampaignManager/templates/partials/sheet_panel.html:233
+#: CampaignManager/templates/partials/sheet_panel.html:243
 msgid "Todavía no puede lanzarlo."
 msgstr "Cannot cast it yet."
 
-#: CampaignManager/templates/partials/sheet_panel.html:237
+#: CampaignManager/templates/partials/sheet_panel.html:247
 msgid "Olvidar"
 msgstr "Forget"
 
-#: CampaignManager/templates/partials/sheet_panel.html:244
+#: CampaignManager/templates/partials/sheet_panel.html:254
+#: CampaignManager/templates/partials/sheet_paper.html:280
 msgid "No conoce conjuros."
 msgstr "Knows no spells."
 
-#: CampaignManager/templates/partials/sheet_panel.html:248
+#: CampaignManager/templates/partials/sheet_panel.html:258
 msgid "Enseñar un conjuro"
 msgstr "Teach a spell"
 
-#: CampaignManager/templates/partials/sheet_panel.html:250
+#: CampaignManager/templates/partials/sheet_panel.html:260
 msgid "Conjuro"
 msgstr "Spell"
 
-#: CampaignManager/templates/partials/sheet_panel.html:252
+#: CampaignManager/templates/partials/sheet_panel.html:262
+#: CampaignManager/templates/partials/sheet_paper.html:258
 #: CampaignManager/templates/spell_detail.html:9
 #: CampaignManager/templates/spell_list.html:12
 msgid "Truco"
 msgstr "Cantrip"
 
-#: CampaignManager/templates/partials/sheet_panel.html:254
+#: CampaignManager/templates/partials/sheet_panel.html:264
 msgid "Enseñar"
 msgstr "Teach"
 
-#: CampaignManager/templates/partials/sheet_panel.html:256
+#: CampaignManager/templates/partials/sheet_panel.html:266
 msgid ""
 "Los conjuros los da el máster: comprados o aprendidos en la historia. No se "
 "eligen al subir de nivel."
@@ -1958,75 +2410,104 @@ msgstr ""
 "Spells are given by the master: bought or learnt in the story. They are not "
 "chosen when levelling up."
 
-#: CampaignManager/templates/partials/sheet_panel.html:264
+#: CampaignManager/templates/partials/sheet_panel.html:274
+#: CampaignManager/templates/partials/sheet_paper.html:127
 msgid "Oro"
 msgstr "Gold"
 
-#: CampaignManager/templates/partials/sheet_panel.html:267
+#: CampaignManager/templates/partials/sheet_panel.html:277
+#: CampaignManager/templates/partials/sheet_paper.html:129
 msgid "Cantidad de oro"
 msgstr "Amount of gold"
 
-#: CampaignManager/templates/partials/sheet_panel.html:269
+#: CampaignManager/templates/partials/sheet_panel.html:279
+#: CampaignManager/templates/partials/sheet_paper.html:131
 msgid "Pagar"
 msgstr "Pay"
 
-#: CampaignManager/templates/partials/sheet_panel.html:270
+#: CampaignManager/templates/partials/sheet_panel.html:280
+#: CampaignManager/templates/partials/sheet_paper.html:132
 msgid "Recibir"
 msgstr "Receive"
 
-#: CampaignManager/templates/partials/sheet_panel.html:276
+#: CampaignManager/templates/partials/sheet_panel.html:286
 msgid "Equipo y objetos"
 msgstr "Equipment and items"
 
-#: CampaignManager/templates/partials/sheet_panel.html:279
+#: CampaignManager/templates/partials/sheet_panel.html:289
+#: CampaignManager/templates/partials/sheet_paper.html:138
 msgid "Equipado"
 msgstr "Equipped"
 
-#: CampaignManager/templates/partials/sheet_panel.html:283
+#: CampaignManager/templates/partials/sheet_panel.html:293
+#: CampaignManager/templates/partials/sheet_paper.html:142
 msgid "Desequipar"
 msgstr "Unequip"
 
-#: CampaignManager/templates/partials/sheet_panel.html:283
+#: CampaignManager/templates/partials/sheet_panel.html:293
+#: CampaignManager/templates/partials/sheet_paper.html:142
 msgid "Equipar"
 msgstr "Equip"
 
-#: CampaignManager/templates/partials/sheet_panel.html:284
+#: CampaignManager/templates/partials/sheet_panel.html:294
 msgid "Soltar"
 msgstr "Drop"
 
-#: CampaignManager/templates/partials/sheet_panel.html:286
+#: CampaignManager/templates/partials/sheet_panel.html:296
 msgid "Uno menos"
 msgstr "One less"
 
-#: CampaignManager/templates/partials/sheet_panel.html:288
+#: CampaignManager/templates/partials/sheet_panel.html:298
 msgid "Uno más"
 msgstr "One more"
 
-#: CampaignManager/templates/partials/sheet_panel.html:299
+#: CampaignManager/templates/partials/sheet_panel.html:309
 msgid "Añadir desde el catálogo"
 msgstr "Add from the catalog"
 
-#: CampaignManager/templates/partials/sheet_panel.html:307
+#: CampaignManager/templates/partials/sheet_panel.html:317
 msgid ""
 "Las armas y armaduras se añaden de una en una: cada una es una copia propia."
 msgstr ""
 "Weapons and armor are added one at a time: each one is the character's own "
 "copy."
 
-#: CampaignManager/templates/partials/sheet_panel.html:320
+#: CampaignManager/templates/partials/sheet_panel.html:330
+#: CampaignManager/templates/partials/sheet_paper.html:229
 msgid "Pendiente del máster"
 msgstr "Waiting for the master"
 
-#: CampaignManager/templates/partials/sheet_panel.html:321
+#: CampaignManager/templates/partials/sheet_panel.html:331
+#: CampaignManager/templates/partials/sheet_paper.html:229
 msgid "Rechazada"
 msgstr "Rejected"
 
-#: CampaignManager/templates/partials/sheet_panel.html:326
-#: CampaignManager/templates/partials/sheet_panel.html:340
+#: CampaignManager/templates/partials/sheet_panel.html:336
+#: CampaignManager/templates/partials/sheet_panel.html:364
 msgid "Nota del máster"
 msgstr "Master's note"
 
-#: CampaignManager/templates/partials/sheet_panel.html:328
+#: CampaignManager/templates/partials/sheet_panel.html:339
+msgid "Cambiar o quitar"
+msgstr "Change or remove"
+
+#: CampaignManager/templates/partials/sheet_panel.html:345
+#: CampaignManager/templates/partials/sheet_panel.html:371
+msgid "Guardar cambios"
+msgstr "Save changes"
+
+#: CampaignManager/templates/partials/sheet_panel.html:346
+#, python-format
+msgid "¿Quitar la habilidad única «%(name)s»? El jugador podrá proponer otra."
+msgstr ""
+"Remove the unique skill «%(name)s»? The player will be able to propose "
+"another."
+
+#: CampaignManager/templates/partials/sheet_panel.html:346
+msgid "Quitar habilidad única"
+msgstr "Remove unique skill"
+
+#: CampaignManager/templates/partials/sheet_panel.html:352
 #, python-format
 msgid ""
 "Propuesta de %(player)s. Apruébala tal cual, cámbiala antes de aprobarla o "
@@ -2035,7 +2516,7 @@ msgstr ""
 "Proposed by %(player)s. Approve it as it is, change it before approving it, "
 "or reject it."
 
-#: CampaignManager/templates/partials/sheet_panel.html:339
+#: CampaignManager/templates/partials/sheet_panel.html:363
 msgid ""
 "El máster la revisará: puede aprobarla, cambiarla o rechazarla. Mientras "
 "tanto puedes corregirla."
@@ -2043,15 +2524,15 @@ msgstr ""
 "The master will review it: they can approve it, change it or reject it. "
 "Meanwhile you can still edit it."
 
-#: CampaignManager/templates/partials/sheet_panel.html:340
+#: CampaignManager/templates/partials/sheet_panel.html:364
 msgid "Puedes proponer otra o corregir esta."
 msgstr "You can propose another one or rewrite this one."
 
-#: CampaignManager/templates/partials/sheet_panel.html:341
+#: CampaignManager/templates/partials/sheet_panel.html:365
 msgid "La que escribas como máster queda aprobada al guardarla."
 msgstr "As the master, what you write is approved when you save it."
 
-#: CampaignManager/templates/partials/sheet_panel.html:342
+#: CampaignManager/templates/partials/sheet_panel.html:366
 msgid ""
 "Describe la habilidad que hace único a tu personaje. El máster la aprobará, "
 "la cambiará o la rechazará."
@@ -2059,103 +2540,349 @@ msgstr ""
 "Describe the skill that makes your character unique. The master will approve "
 "it, change it or reject it."
 
-#: CampaignManager/templates/partials/sheet_panel.html:346
+#: CampaignManager/templates/partials/sheet_panel.html:371
 msgid "Dar habilidad única"
 msgstr "Give unique skill"
 
-#: CampaignManager/templates/partials/sheet_panel.html:346
-msgid "Guardar cambios"
-msgstr "Save changes"
+#: CampaignManager/templates/partials/sheet_panel.html:372
+msgid "Retirar la propuesta"
+msgstr "Withdraw the proposal"
 
-#: CampaignManager/templates/partials/sheet_panel.html:356
+#: CampaignManager/templates/partials/sheet_panel.html:383
 msgid "Dote"
 msgstr "Feat"
 
-#: CampaignManager/templates/partials/sheet_panel.html:364
+#: CampaignManager/templates/partials/sheet_panel.html:391
 msgid "todavía no"
 msgstr "not yet"
 
-#: CampaignManager/templates/partials/sheet_panel.html:365
+#: CampaignManager/templates/partials/sheet_panel.html:392
 msgid "Sin rasgos."
 msgstr "No traits."
 
-#: CampaignManager/templates/partials/sheet_panel.html:371
-#: CampaignManager/views_characters.py:37
+#: CampaignManager/templates/partials/sheet_panel.html:398
+#: CampaignManager/views_characters.py:40
 msgid "Biografía"
 msgstr "Biography"
 
-#: CampaignManager/templates/partials/sheet_panel.html:374
-#: CampaignManager/templates/partials/sheet_panel.html:383
+#: CampaignManager/templates/partials/sheet_panel.html:401
+#: CampaignManager/templates/partials/sheet_panel.html:410
 msgid "Trasfondo"
 msgstr "Background"
 
-#: CampaignManager/templates/partials/sheet_panel.html:375
+#: CampaignManager/templates/partials/sheet_panel.html:402
 msgid "Notas"
 msgstr "Notes"
 
-#: CampaignManager/templates/partials/sheet_panel.html:379
+#: CampaignManager/templates/partials/sheet_panel.html:406
 msgid "Retrato"
 msgstr "Portrait"
 
-#: CampaignManager/templates/partials/sheet_panel.html:380
+#: CampaignManager/templates/partials/sheet_panel.html:407
 msgid "Cambiar retrato"
 msgstr "Change portrait"
 
-#: CampaignManager/templates/partials/sheet_panel.html:383
+#: CampaignManager/templates/partials/sheet_panel.html:410
 msgid "Sin trasfondo."
 msgstr "No background."
 
-#: CampaignManager/templates/partials/sheet_panel.html:386
+#: CampaignManager/templates/partials/sheet_panel.html:413
 msgid "En el diario"
 msgstr "In the diary"
 
-#: CampaignManager/templates/partials/sheet_panel.html:389
+#: CampaignManager/templates/partials/sheet_panel.html:416
 msgid "Todavía no aparece en la línea del tiempo."
 msgstr "Not on the timeline yet."
 
+#: CampaignManager/templates/partials/sheet_paper.html:10
+msgid "Ficha de personaje"
+msgstr "Character sheet"
+
+#: CampaignManager/templates/partials/sheet_paper.html:15
+msgid "Clase y especie"
+msgstr "Class and species"
+
+#: CampaignManager/templates/partials/sheet_paper.html:16
+msgid "XP y nivel"
+msgstr "XP and level"
+
+#: CampaignManager/templates/partials/sheet_paper.html:27
+#, python-format
+msgid "Una ronda menos de %(name)s"
+msgstr "One round less of %(name)s"
+
+#: CampaignManager/templates/partials/sheet_paper.html:28
+#, python-format
+msgid "Quitar %(name)s"
+msgstr "Remove %(name)s"
+
+#: CampaignManager/templates/partials/sheet_paper.html:44
+msgid "Tiradas"
+msgstr "Skills"
+
+#: CampaignManager/templates/partials/sheet_paper.html:49
+msgid "Tiradas de salvación"
+msgstr "Saving throws"
+
+#: CampaignManager/templates/partials/sheet_paper.html:56
+msgid "Pasiva"
+msgstr "Passive"
+
+#: CampaignManager/templates/partials/sheet_paper.html:59
+msgid "Inspir."
+msgstr "Inspir."
+
+#: CampaignManager/templates/partials/sheet_paper.html:61
+msgid "Gastar inspiración"
+msgstr "Spend inspiration"
+
+#: CampaignManager/templates/partials/sheet_paper.html:63
+msgid "Dar inspiración"
+msgstr "Give inspiration"
+
+#: CampaignManager/templates/partials/sheet_paper.html:69
+msgid "CA"
+msgstr "AC"
+
+#: CampaignManager/templates/partials/sheet_paper.html:70
+msgid "MAP"
+msgstr "MAP"
+
+#: CampaignManager/templates/partials/sheet_paper.html:74
+msgid "AP"
+msgstr "AP"
+
+#: CampaignManager/templates/partials/sheet_paper.html:76
+msgid "AP actual"
+msgstr "Current AP"
+
+#: CampaignManager/templates/partials/sheet_paper.html:89
+msgid "HP"
+msgstr "HP"
+
+#: CampaignManager/templates/partials/sheet_paper.html:91
+msgid "HP actual"
+msgstr "Current HP"
+
+#: CampaignManager/templates/partials/sheet_paper.html:112
+#: CampaignManager/templates/partials/turns_list.html:60
+msgid "Pen."
+msgstr "Pen."
+
+#: CampaignManager/templates/partials/sheet_paper.html:113
+#: CampaignManager/templates/partials/turns_list.html:60
+msgid "Penetrante: AP que ignora este golpe"
+msgstr "Penetrating: AP this hit ignores"
+
+#: CampaignManager/templates/partials/sheet_paper.html:114
+#: CampaignManager/templates/partials/turns_list.html:62
+msgid "Trit."
+msgstr "Shr."
+
+#: CampaignManager/templates/partials/sheet_paper.html:115
+#: CampaignManager/templates/partials/turns_list.html:62
+msgid "Triturante: AP que quita después del daño"
+msgstr "Shredding: AP taken away after the damage"
+
+#: CampaignManager/templates/partials/sheet_paper.html:144
+#, python-format
+msgid "Uno menos de %(name)s"
+msgstr "One less %(name)s"
+
+#: CampaignManager/templates/partials/sheet_paper.html:146
+#, python-format
+msgid "Uno más de %(name)s"
+msgstr "One more %(name)s"
+
+#: CampaignManager/templates/partials/sheet_paper.html:158
+#: CampaignManager/templates/spell_detail.html:17
+msgid "Ataques"
+msgstr "Attacks"
+
+#: CampaignManager/templates/partials/sheet_paper.html:161
+msgid "Extra"
+msgstr "Extra"
+
+#: CampaignManager/templates/partials/sheet_paper.html:161
+#: CampaignManager/templates/partials/sheet_paper.html:254
+#: CampaignManager/templates/spell_detail.html:11
+#: CampaignManager/templates/spell_list.html:10
+msgid "Alcance"
+msgstr "Range"
+
+#: CampaignManager/templates/partials/sheet_paper.html:161
+#: CampaignManager/templates/partials/sheet_paper.html:254
+msgid "Área"
+msgstr "Area"
+
+#: CampaignManager/templates/partials/sheet_paper.html:161
+#: CampaignManager/templates/partials/sheet_paper.html:203
+msgid "Cool"
+msgstr "Cool"
+
+#: CampaignManager/templates/partials/sheet_paper.html:185
+msgid "Afinidad"
+msgstr "Affinity"
+
+#: CampaignManager/templates/partials/sheet_paper.html:186
+msgid "Afinidad NPC"
+msgstr "NPC affinity"
+
+#: CampaignManager/templates/partials/sheet_paper.html:191
+msgid "Apuntes"
+msgstr "Notes"
+
+#: CampaignManager/templates/partials/sheet_paper.html:194
+msgid "Guardar apuntes"
+msgstr "Save notes"
+
+#: CampaignManager/templates/partials/sheet_paper.html:200
+msgid "Habilidades"
+msgstr "Abilities"
+
+#: CampaignManager/templates/partials/sheet_paper.html:209
+#, python-format
+msgid "%(n)s ronda"
+msgid_plural "%(n)s rondas"
+msgstr[0] "%(n)s round"
+msgstr[1] "%(n)s rounds"
+
+#: CampaignManager/templates/partials/sheet_paper.html:219
+msgid "Sin habilidades."
+msgstr "No abilities."
+
+#: CampaignManager/templates/partials/sheet_paper.html:237
+msgid "Ficha de personaje: magia"
+msgstr "Character sheet: magic"
+
+#: CampaignManager/templates/partials/sheet_paper.html:242
+msgid "Gastar 1 punto de magia"
+msgstr "Spend 1 magic point"
+
+#: CampaignManager/templates/partials/sheet_paper.html:244
+msgid "Recuperar 1 punto de magia"
+msgstr "Recover 1 magic point"
+
+#: CampaignManager/templates/partials/sheet_paper.html:247
+msgid ""
+"CD de salvación de los conjuros: 8 + modificador de la característica "
+"principal"
+msgstr "Spell save DC: 8 + modifier of the primary ability"
+
+#: CampaignManager/templates/partials/sheet_paper.html:247
+msgid "Salvación"
+msgstr "Save DC"
+
+#: CampaignManager/templates/partials/sheet_paper.html:248
+msgid "Ataque de conjuro: modificador de la característica principal"
+msgstr "Spell attack: modifier of the primary ability"
+
+#: CampaignManager/templates/partials/sheet_paper.html:248
+msgid "Ataque"
+msgstr "Attack"
+
+#: CampaignManager/templates/partials/sheet_paper.html:251
+msgid "Magia"
+msgstr "Magic"
+
+#: CampaignManager/templates/partials/sheet_paper.html:254
+msgid "Tiempo"
+msgstr "Time"
+
+#: CampaignManager/templates/partials/sheet_paper.html:254
+#: CampaignManager/templates/spell_detail.html:12
+msgid "Duración"
+msgstr "Duration"
+
+#: CampaignManager/templates/partials/sheet_paper.html:254
+msgid "Comp."
+msgstr "Comp."
+
+#: CampaignManager/templates/partials/sheet_paper.html:278
+msgid "Todavía no"
+msgstr "Not yet"
+
+#: CampaignManager/templates/partials/sheet_toolbar.html:4
+msgid "Cómo ver la ficha"
+msgstr "How to see the sheet"
+
+#: CampaignManager/templates/partials/sheet_toolbar.html:6
+msgid "Vista web"
+msgstr "Web view"
+
+#: CampaignManager/templates/partials/sheet_toolbar.html:7
+msgid "Vista ficha"
+msgstr "Sheet view"
+
+#: CampaignManager/templates/partials/sheet_toolbar.html:11
+msgid ""
+"El descanso largo recupera la vida, el AP, los puntos de magia y todos los "
+"usos. El corto, los usos que se recargan con descanso corto."
+msgstr ""
+"A long rest restores hit points, AP, magic points and every use. A short "
+"rest, the uses that recharge on a short rest."
+
+#: CampaignManager/templates/partials/sheet_toolbar.html:12
+msgid "Descanso corto"
+msgstr "Short rest"
+
+#: CampaignManager/templates/partials/sheet_toolbar.html:13
+msgid "Descanso largo"
+msgstr "Long rest"
+
 #: CampaignManager/templates/partials/timeline.html:4
+msgid "Filtrar por aventura"
+msgstr "Filter by adventure"
+
+#: CampaignManager/templates/partials/timeline.html:5
+#: CampaignManager/templates/partials/timeline.html:52
+#: CampaignManager/views_diary.py:29
+msgid "Aventuras"
+msgstr "Adventures"
+
+#: CampaignManager/templates/partials/timeline.html:11
 msgid "Todos"
 msgstr "All"
 
-#: CampaignManager/templates/partials/timeline.html:6
+#: CampaignManager/templates/partials/timeline.html:13
 msgid "Mostrar sucesos ocultos"
 msgstr "Show hidden events"
 
-#: CampaignManager/templates/partials/timeline.html:12
+#: CampaignManager/templates/partials/timeline.html:19
 msgid "Añadir un suceso"
 msgstr "Add an event"
 
-#: CampaignManager/templates/partials/timeline.html:13
+#: CampaignManager/templates/partials/timeline.html:20
 msgid "Qué ha pasado"
 msgstr "What happened"
 
-#: CampaignManager/templates/partials/timeline.html:14
+#: CampaignManager/templates/partials/timeline.html:21
 msgid "Tipo de suceso"
 msgstr "Event type"
 
-#: CampaignManager/templates/partials/timeline.html:18
+#: CampaignManager/templates/partials/timeline.html:25
 msgid "Añadir a la sesión"
 msgstr "Add to session"
 
-#: CampaignManager/templates/partials/timeline.html:18
-msgid "Escribe antes una crónica"
-msgstr "Write a chronicle first"
+#: CampaignManager/templates/partials/timeline.html:25
+msgid "Escribe antes una sesión"
+msgstr "Create a session first"
 
-#: CampaignManager/templates/partials/timeline.html:19
+#: CampaignManager/templates/partials/timeline.html:26
 msgid "Solo para el máster"
 msgstr "Master only"
 
-#: CampaignManager/templates/partials/timeline.html:50
+#: CampaignManager/templates/partials/timeline.html:70
 #: CampaignManager/templates/world_base.html:19
 #: CampaignManager/templates/world_index.html:18
 msgid "OCULTO"
 msgstr "HIDDEN"
 
-#: CampaignManager/templates/partials/timeline.html:56
+#: CampaignManager/templates/partials/timeline.html:76
 msgid "mapa"
 msgstr "map"
 
-#: CampaignManager/templates/partials/timeline.html:59
+#: CampaignManager/templates/partials/timeline.html:79
 msgid "Ocultar"
 msgstr "Hide"
 
@@ -2196,37 +2923,62 @@ msgstr "Dexterity modifier"
 msgid "Su turno"
 msgstr "Their turn"
 
-#: CampaignManager/templates/partials/turns_list.html:68
+#: CampaignManager/templates/partials/turns_list.html:75
 msgid "Todavía no hay combatientes."
 msgstr "There are no combatants yet."
 
-#: CampaignManager/templates/partials/turns_list.html:74
+#: CampaignManager/templates/partials/turns_list.html:81
 msgid "Añadir combatientes"
 msgstr "Add combatants"
 
-#: CampaignManager/templates/partials/turns_list.html:78
+#: CampaignManager/templates/partials/turns_list.html:85
 msgid "Personaje"
 msgstr "Character"
 
-#: CampaignManager/templates/partials/turns_list.html:90
+#: CampaignManager/templates/partials/turns_list.html:97
 msgid "Copiar y añadir"
 msgstr "Copy and add"
 
-#: CampaignManager/templates/partials/turns_list.html:94
+#: CampaignManager/templates/partials/turns_list.html:101
 msgid "Nombre del enemigo"
 msgstr "Enemy name"
 
-#: CampaignManager/templates/partials/turns_list.html:95
+#: CampaignManager/templates/partials/turns_list.html:102
 msgid "Nombre libre"
 msgstr "Free name"
 
-#: CampaignManager/templates/partials/turns_list.html:98
+#: CampaignManager/templates/partials/turns_list.html:105
 msgid "Añadir enemigo"
 msgstr "Add enemy"
 
-#: CampaignManager/templates/partials/turns_list.html:103
+#: CampaignManager/templates/partials/turns_list.html:110
 msgid "Terminar combate"
 msgstr "End combat"
+
+#: CampaignManager/templates/partials/zoom_buttons.html:1
+msgid "Zoom"
+msgstr "Zoom"
+
+#: CampaignManager/templates/partials/zoom_buttons.html:2
+msgid "Acercar"
+msgstr "Zoom in"
+
+#: CampaignManager/templates/partials/zoom_buttons.html:3
+msgid "Alejar"
+msgstr "Zoom out"
+
+#: CampaignManager/templates/partials/zoom_buttons.html:6
+#: CampaignManager/templates/partials/zoom_buttons.html:7
+msgid "Pantalla completa"
+msgstr "Full screen"
+
+#: CampaignManager/templates/partials/zoom_buttons.html:7
+msgid "Salir de la pantalla completa"
+msgstr "Exit full screen"
+
+#: CampaignManager/templates/partials/zoom_buttons.html:13
+msgid "Salir"
+msgstr "Exit"
 
 #: CampaignManager/templates/race_detail.html:14
 msgid "Esta raza no otorga habilidades."
@@ -2272,22 +3024,9 @@ msgstr "Password"
 msgid "Tiempo de lanzamiento"
 msgstr "Casting time"
 
-#: CampaignManager/templates/spell_detail.html:11
-#: CampaignManager/templates/spell_list.html:10
-msgid "Alcance"
-msgstr "Range"
-
-#: CampaignManager/templates/spell_detail.html:12
-msgid "Duración"
-msgstr "Duration"
-
 #: CampaignManager/templates/spell_detail.html:13
 msgid "Componentes"
 msgstr "Components"
-
-#: CampaignManager/templates/spell_detail.html:17
-msgid "Ataques"
-msgstr "Attacks"
 
 #: CampaignManager/templates/spell_detail.html:18
 msgid "Este conjuro no ataca."
@@ -2407,51 +3146,43 @@ msgstr "Hide from the party"
 msgid "Revelar al grupo"
 msgstr "Reveal to the party"
 
-#: CampaignManager/views_characters.py:652
+#: CampaignManager/views_characters.py:835
 msgid "Raza y linaje"
 msgstr "Race and lineage"
 
-#: CampaignManager/views_characters.py:652
+#: CampaignManager/views_characters.py:835
 msgid "Características"
 msgstr "Abilities"
 
-#: CampaignManager/views_characters.py:652
+#: CampaignManager/views_characters.py:835
 msgid "Nombre, retrato y trasfondo"
 msgstr "Name, portrait and background"
 
-#: CampaignManager/views_characters.py:652
+#: CampaignManager/views_characters.py:835
 msgid "Equipo inicial"
 msgstr "Starting equipment"
 
-#: CampaignManager/views_diary.py:26
-msgid "Crónicas"
-msgstr "Chronicles"
-
-#: CampaignManager/views_diary.py:26
+#: CampaignManager/views_diary.py:29
 msgid "Línea del tiempo"
 msgstr "Timeline"
 
-#: CampaignManager/views_diary.py:26
+#: CampaignManager/views_diary.py:29
 msgid "Pizarra"
 msgstr "Board"
 
-#: CampaignManager/views_diary.py:27
+#: CampaignManager/views_diary.py:30
 msgid "Escenas de rol"
 msgstr "Role-play scenes"
 
-#: CampaignManager/views_diary.py:27
-msgid "Misiones"
-msgstr "Quests"
+#: CampaignManager/views_diary.py:604
+msgid "En curso"
+msgstr "In progress"
 
-#: CampaignManager/views_diary.py:489
-msgid "Activas"
-msgstr "Active"
-
-#: CampaignManager/views_diary.py:489
+#: CampaignManager/views_diary.py:604
 msgid "Completadas"
 msgstr "Completed"
 
-#: CampaignManager/views_diary.py:489
+#: CampaignManager/views_diary.py:604
 msgid "Fallidas"
 msgstr "Failed"
 
@@ -2516,464 +3247,3 @@ msgstr "Spanish"
 #: KirokuStory/settings.py:95
 msgid "English"
 msgstr "English"
-
-#: CampaignManager/templates/partials/map_canvas.html:4
-msgid "Mapa: rueda o pellizco para acercar, arrastra para moverte"
-msgstr "Map: scroll or pinch to zoom, drag to move around"
-
-#: CampaignManager/templates/partials/zoom_buttons.html:1
-msgid "Zoom"
-msgstr "Zoom"
-
-#: CampaignManager/templates/partials/zoom_buttons.html:2
-msgid "Acercar"
-msgstr "Zoom in"
-
-#: CampaignManager/templates/partials/zoom_buttons.html:3
-msgid "Alejar"
-msgstr "Zoom out"
-
-#: CampaignManager/templates/partials/map_canvas.html:21
-msgid "Ver el mapa entero"
-msgstr "Show the whole map"
-
-#: CampaignManager/templates/partials/board.html:12
-msgid "Pizarra: rueda o pellizco para acercar, arrastra para moverte"
-msgstr "Board: scroll or pinch to zoom, drag to move around"
-
-#: CampaignManager/templates/partials/board.html:37
-msgid "Ver toda la pizarra"
-msgstr "Show the whole board"
-
-#: CampaignManager/templates/partials/map_section.html:9
-msgid "Arrastra los puntos para trazar el camino que siguió el grupo. Pulsa o arrastra un «+» para añadir un punto; doble clic o Supr sobre un punto lo quita. Se guarda solo."
-msgstr "Drag the points to trace the way the party went. Click or drag a «+» to add a point; double-click or Delete on a point removes it. Changes save automatically."
-
-#: CampaignManager/templates/partials/map_section.html:10
-msgid "Terminar"
-msgstr "Done"
-
-#: CampaignManager/templates/partials/map_section.html:12
-msgid "Editar el camino"
-msgstr "Edit the route"
-
-msgid "Muerto"
-msgstr "Dead"
-
-msgid "Derribado"
-msgstr "Knocked down"
-
-msgid "Revivir"
-msgstr "Revive"
-
-msgid "Solo el máster puede revivirlo."
-msgstr "Only the master can bring them back."
-
-msgid "o si vuelve a caer en este combate"
-msgstr "or if knocked down again in this fight"
-
-msgid "Penetrante"
-msgstr "Penetrating"
-
-msgid "Triturante"
-msgstr "Shredding"
-
-msgid "Cantidad de AP"
-msgstr "AP amount"
-
-msgid "Sumar"
-msgstr "Add"
-
-msgid "Cambiar o quitar"
-msgstr "Change or remove"
-
-msgid "Quitar habilidad única"
-msgstr "Remove unique skill"
-
-msgid "Retirar la propuesta"
-msgstr "Withdraw the proposal"
-
-#, python-format
-msgid "%(name)s ha muerto."
-msgstr "%(name)s is dead."
-
-#, python-format
-msgid "Muere si llega a %(hp)s de vida"
-msgstr "Dies at %(hp)s hit points"
-
-#, python-format
-msgid "El daño pasa por la armadura: daño − AP (%(ap)s) = daño real. Penetrante ignora esos AP en este golpe; triturante los quita después."
-msgstr "Damage goes through the armor: damage − AP (%(ap)s) = true damage. Penetrating ignores that many AP for this hit; shredding takes them away afterwards."
-
-#, python-format
-msgid "¿Quitar la habilidad única «%(name)s»? El jugador podrá proponer otra."
-msgstr "Remove the unique skill «%(name)s»? The player will be able to propose another."
-
-msgid "Pen."
-msgstr "Pen."
-
-msgid "Penetrante: AP que ignora este golpe"
-msgstr "Penetrating: AP this hit ignores"
-
-msgid "Trit."
-msgstr "Shr."
-
-msgid "Triturante: AP que quita después del daño"
-msgstr "Shredding: AP taken away after the damage"
-
-msgid "Tramos del camino"
-msgstr "Route stretches"
-
-msgid "Quita un tramo añadido por error: el camino irá directo de la parada anterior a la siguiente."
-msgstr "Remove a stretch added by mistake: the route will go straight from the stop before to the next one."
-
-msgid "Borrar este lugar"
-msgstr "Delete this place"
-
-#, python-format
-msgid "¿Quitar el tramo %(a)s → %(b)s?"
-msgstr "Remove the stretch %(a)s → %(b)s?"
-
-#, python-format
-msgid "¿Borrar %(name)s del mapa? También se quitan los tramos del camino que llegan allí. Su página del Mundo se conserva."
-msgstr "Delete %(name)s from the map? The route stretches leading there are removed too. Its World page is kept."
-
-msgid "Aventuras"
-msgstr "Adventures"
-
-msgid "En curso"
-msgstr "In progress"
-
-msgid "Cada aventura va de la sesión en que empieza a la que termina. Marca sus objetivos a medida que el grupo los cumple."
-msgstr "Each adventure runs from the session it starts in to the one it ends in. Tick its objectives as the party completes them."
-
-msgid "Las aventuras del grupo, con sus objetivos y lo que pasó en cada sesión."
-msgstr "The party's adventures, with their objectives and what happened in each session."
-
-msgid "Nueva aventura"
-msgstr "New adventure"
-
-msgid "Nueva sesión"
-msgstr "New session"
-
-msgid "Sesiones sin aventura"
-msgstr "Sessions outside any adventure"
-
-msgid "Todavía no hay aventuras ni sesiones."
-msgstr "No adventures or sessions yet."
-
-msgid "Editar sesión"
-msgstr "Edit session"
-
-msgid "en curso"
-msgstr "in progress"
-
-msgid "Editar aventura"
-msgstr "Edit adventure"
-
-msgid "Los jugadores ven la lista. Un objetivo oculto les aparece como «Objetivo oculto» hasta que lo marcas como cumplido."
-msgstr "Players see the list. A hidden objective shows to them as «Hidden objective» until you mark it as done."
-
-msgid "Aventuras en curso"
-msgstr "Adventures in progress"
-
-msgid "No hay aventuras en curso."
-msgstr "No adventures in progress."
-
-msgid "Filtrar por aventura"
-msgstr "Filter by adventure"
-
-msgid "Escribe antes una sesión"
-msgstr "Create a session first"
-
-#, python-format
-msgid "%(n)s sesión de esta aventura"
-msgid_plural "%(n)s sesiones de esta aventura"
-msgstr[0] "%(n)s session of this adventure"
-msgstr[1] "%(n)s sessions of this adventure"
-
-msgid "Progreso"
-msgstr "Progress"
-
-msgid "Nuevo objetivo"
-msgstr "New objective"
-
-msgid "Oculto (se revela al cumplirlo)"
-msgstr "Hidden (revealed when done)"
-
-msgid "Añadir objetivo"
-msgstr "Add objective"
-
-msgid "Se añade al pulsar «Guardar»."
-msgstr "It is added when you press «Save»."
-
-msgid "Objetivo"
-msgstr "Objective"
-
-msgid "Cumplido"
-msgstr "Done"
-
-msgid "Oculto"
-msgstr "Hidden"
-
-msgid "(tachada con una cruz roja)"
-msgstr "(crossed out with a red cross)"
-
-msgid "Tachada"
-msgstr "Crossed out"
-
-msgid "Quitar la cruz"
-msgstr "Remove the cross"
-
-msgid "Tachar con una cruz roja"
-msgstr "Cross out with a red cross"
-
-msgid "Cambiar la foto"
-msgstr "Change the photo"
-
-msgid "Poner una foto"
-msgstr "Add a photo"
-
-msgid "Subir"
-msgstr "Upload"
-
-msgid "Quitar la foto"
-msgstr "Remove the photo"
-
-msgid "Tipo de nota"
-msgstr "Note type"
-
-msgid "Pista"
-msgstr "Clue"
-
-msgid "Persona"
-msgstr "Person"
-
-msgid "Foto (solo personas, opcional)"
-msgstr "Photo (people only, optional)"
-
-msgid "Pantalla completa"
-msgstr "Full screen"
-
-msgid "Salir de la pantalla completa"
-msgstr "Exit full screen"
-
-msgid "Salir"
-msgstr "Exit"
-
-msgid "Ficha de personaje"
-msgstr "Character sheet"
-
-msgid "Clase y especie"
-msgstr "Class and species"
-
-msgid "XP y nivel"
-msgstr "XP and level"
-
-msgid "Tiradas"
-msgstr "Skills"
-
-msgid "Tiradas de salvación"
-msgstr "Saving throws"
-
-msgid "Pasiva"
-msgstr "Passive"
-
-msgid "Aura"
-msgstr "Aura"
-
-msgid "Inspir."
-msgstr "Inspir."
-
-msgid "Gastar inspiración"
-msgstr "Spend inspiration"
-
-msgid "Dar inspiración"
-msgstr "Give inspiration"
-
-msgid "CA"
-msgstr "AC"
-
-msgid "MAP"
-msgstr "MAP"
-
-msgid "AP"
-msgstr "AP"
-
-msgid "AP actual"
-msgstr "Current AP"
-
-msgid "HP"
-msgstr "HP"
-
-msgid "HP actual"
-msgstr "Current HP"
-
-msgid "Extra"
-msgstr "Extra"
-
-msgid "Área"
-msgstr "Area"
-
-msgid "Cool"
-msgstr "Cool"
-
-msgid "Afinidad"
-msgstr "Affinity"
-
-msgid "Afinidad NPC"
-msgstr "NPC affinity"
-
-msgid "Apuntes"
-msgstr "Notes"
-
-msgid "Guardar apuntes"
-msgstr "Save notes"
-
-msgid "Habilidades"
-msgstr "Abilities"
-
-msgid "Sin habilidades."
-msgstr "No abilities."
-
-msgid "Ficha de personaje: magia"
-msgstr "Character sheet: magic"
-
-msgid "Gastar 1 punto de magia"
-msgstr "Spend 1 magic point"
-
-msgid "Recuperar 1 punto de magia"
-msgstr "Recover 1 magic point"
-
-msgid "CD de salvación de los conjuros: 8 + modificador de la característica principal"
-msgstr "Spell save DC: 8 + modifier of the primary ability"
-
-msgid "Salvación"
-msgstr "Save DC"
-
-msgid "Ataque de conjuro: modificador de la característica principal"
-msgstr "Spell attack: modifier of the primary ability"
-
-msgid "Ataque"
-msgstr "Attack"
-
-msgid "Magia"
-msgstr "Magic"
-
-msgid "Tiempo"
-msgstr "Time"
-
-msgid "Comp."
-msgstr "Comp."
-
-msgid "Todavía no"
-msgstr "Not yet"
-
-#, python-format
-msgid "Una ronda menos de %(name)s"
-msgstr "One round less of %(name)s"
-
-#, python-format
-msgid "Quitar %(name)s"
-msgstr "Remove %(name)s"
-
-#, python-format
-msgid "Uno menos de %(name)s"
-msgstr "One less %(name)s"
-
-#, python-format
-msgid "Uno más de %(name)s"
-msgstr "One more %(name)s"
-
-msgid "Cómo ver la ficha"
-msgstr "How to see the sheet"
-
-msgid "Vista web"
-msgstr "Web view"
-
-msgid "Vista ficha"
-msgstr "Sheet view"
-
-msgid "Acrobacias"
-msgstr "Acrobatics"
-
-msgid "Arcanos"
-msgstr "Arcana"
-
-msgid "Atletismo"
-msgstr "Athletics"
-
-msgid "Engañar"
-msgstr "Deception"
-
-msgid "Historia"
-msgstr "History"
-
-msgid "Interpretación"
-msgstr "Performance"
-
-msgid "Intimidar"
-msgstr "Intimidation"
-
-msgid "Investigación"
-msgstr "Investigation"
-
-msgid "Juego de manos"
-msgstr "Sleight of Hand"
-
-msgid "Medicina"
-msgstr "Medicine"
-
-msgid "Naturaleza"
-msgstr "Nature"
-
-msgid "Percepción"
-msgstr "Perception"
-
-msgid "Perspicacia"
-msgstr "Insight"
-
-msgid "Persuasión"
-msgstr "Persuasion"
-
-msgid "Religión"
-msgstr "Religion"
-
-msgid "Sigilo"
-msgstr "Stealth"
-
-msgid "Supervivencia"
-msgstr "Survival"
-
-msgid "Trato con animales"
-msgstr "Animal Handling"
-
-msgid "Fuerza"
-msgstr "Strength"
-
-msgid "Destreza"
-msgstr "Dexterity"
-
-msgid "Const."
-msgstr "Con."
-
-msgid "Intel."
-msgstr "Int."
-
-msgid "Sabiduría"
-msgstr "Wisdom"
-
-msgid "Carisma"
-msgstr "Charisma"
-
-msgid "Constitución"
-msgstr "Constitution"
-
-msgid "Inteligencia"
-msgstr "Intelligence"
-
-#, python-format
-msgid "%(n)s ronda"
-msgid_plural "%(n)s rondas"
-msgstr[0] "%(n)s round"
-msgstr[1] "%(n)s rounds"

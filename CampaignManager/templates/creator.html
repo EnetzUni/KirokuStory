@@ -8,7 +8,7 @@
 
     <ol class="pasos" aria-label="{% translate 'Pasos' %}">
         {% for s in steps %}
-        <li>{% if s.current %}<span aria-current="step"><b>{{ s.n|add:1 }}</b>{% translate s.label %}</span>{% else %}<a href="?paso={{ s.n }}"><b>{{ s.n|add:1 }}</b>{% translate s.label %}</a>{% endif %}</li>
+        <li>{% if s.current %}<span aria-current="step"><b>{{ s.num }}</b>{% translate s.label %}</span>{% else %}<a href="?paso={{ s.n }}"><b>{{ s.num }}</b>{% translate s.label %}</a>{% endif %}</li>
         {% endfor %}
     </ol>
 

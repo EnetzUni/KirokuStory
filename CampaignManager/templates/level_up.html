@@ -28,6 +28,7 @@
         <div class="tarjeta compacta">
             <fieldset class="pila-s" style="border:0;padding:0;margin:0">
                 <legend class="rotulo" style="padding:0">{% translate "Puntos de golpe" %}</legend>
+                {% if plan.aegis %}
                 <p class="ayuda">{% blocktranslate with d=plan.die %}Tira 1d{{ d }} en la mesa, delante del máster, y escribe el resultado.{% endblocktranslate %}</p>
                 <div class="campo">
                     <label for="id_hp_roll">{% blocktranslate with d=plan.die %}Resultado del 1d{{ d }}{% endblocktranslate %}</label>
@@ -37,7 +38,27 @@
                     </div>
                     {{ form.hp_roll.errors }}
                 </div>
-                <span class="ayuda">{% blocktranslate with low=hp_range.0 high=hp_range.1 hp=character.hp %}Gana de +{{ low }} a +{{ high }}. Vida máxima ahora: {{ hp }}; la vida actual sube lo mismo.{% endblocktranslate %}{% if plan.feat_level %} {% translate "Si sube la Constitución, la vida de los niveles anteriores sube también." %}{% endif %}</span>
+                {% elif plan.die %}
+                {{ form.hp_method.errors }}
+                <div class="rejilla-s" style="grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr))">
+                    <label class="eleccion"><input type="radio" name="hp_method" value="fijo"{% if hp_method != "tirar" %} checked{% endif %}>
+                        <strong>{% translate "Valor fijo" %}: +{{ hp_fixed_total }}</strong>
+                        <span class="pequeno atenuado">{{ hp_fixed }} {% translate "del dado" %} d{{ plan.die }}, {% translate "Constitución" %} {{ plan.con|signed }}</span>
+                    </label>
+                    <label class="eleccion"><input type="radio" name="hp_method" value="tirar"{% if hp_method == "tirar" %} checked{% endif %}>
+                        <strong>{% translate "Tirar" %} 1d{{ plan.die }} {{ plan.con|signed }}</strong>
+                        <span class="pequeno atenuado">{% translate "Se tira al confirmar, una sola vez." %}</span>
+                    </label>
+                </div>
+                {% else %}
+                <div class="campo">
+                    <label for="id_hp_gain">{% translate "Puntos de golpe ganados" %}</label>
+                    <input id="id_hp_gain" class="entrada-num" style="width:88px" type="number" name="hp_gain" min="1" max="99" inputmode="numeric" value="{{ form.hp_gain.value|default_if_none:'' }}">
+                    <span class="ayuda">{% translate "Su clase no dice qué dado de golpe usa: escribe cuánta vida gana, con la Constitución incluida." %}</span>
+                    {{ form.hp_gain.errors }}
+                </div>
+                {% endif %}
+                <span class="ayuda">{% if hp_range %}{% blocktranslate with low=hp_range.0 high=hp_range.1 hp=character.hp %}Gana de +{{ low }} a +{{ high }}. Vida máxima ahora: {{ hp }}; la vida actual sube lo mismo.{% endblocktranslate %}{% endif %}{% if plan.feat_level %} {% translate "Si sube la Constitución, la vida de los niveles anteriores sube también." %}{% endif %}</span>
             </fieldset>
         </div>
 
@@ -105,6 +126,29 @@
                         {{ form.asi_second.errors }}
                     </div>
                 </div>
+            </fieldset>
+        </div>
+        {% endif %}
+
+        {# ---- SRD: new spells from the class list ---- #}
+        {% if spell_groups %}
+        <div class="tarjeta compacta">
+            <fieldset class="pila-s" style="border:0;padding:0;margin:0">
+                <legend class="rotulo" style="padding:0">{% translate "Conjuros nuevos" %}</legend>
+                <p class="ayuda">{% blocktranslate with c=character.char_class.name %}Lo que añade la tabla de {{ c }}:{% endblocktranslate %}
+                    {% if plan.new_spells %}{% blocktranslate count n=plan.new_spells with s=plan.max_slot %}{{ n }} conjuro de nivel {{ s }} como mucho{% plural %}{{ n }} conjuros de nivel {{ s }} como mucho{% endblocktranslate %}{% endif %}{% if plan.new_spells and plan.new_cantrips %} {% translate "y" %} {% endif %}{% if plan.new_cantrips %}{% blocktranslate count t=plan.new_cantrips %}{{ t }} truco{% plural %}{{ t }} trucos{% endblocktranslate %}{% endif %}.</p>
+                {{ form.spells.errors }}
+                {% for g in spell_groups %}
+                <details{% if g.open %} open{% endif %}>
+                    <summary><b>{% if g.level == 0 %}{% translate "Trucos" %}{% else %}{% translate "Nivel" %} {{ g.level }}{% endif %}</b> <span class="pequeno atenuado">· {{ g.spells|length }}</span></summary>
+                    <div class="pila-s" style="gap:0;padding:4px 0">
+                        {% for s in g.spells %}
+                        <label class="casilla"><input type="checkbox" name="spells" value="{{ s.spell.pk }}"{% if s.checked %} checked{% endif %}>
+                            <span><b>{{ s.spell.name }}</b> <span class="pequeno atenuado">· {{ s.spell.casting_time|truncatechars:40 }} · {{ s.spell.duration }}</span></span></label>
+                        {% endfor %}
+                    </div>
+                </details>
+                {% endfor %}
             </fieldset>
         </div>
         {% endif %}

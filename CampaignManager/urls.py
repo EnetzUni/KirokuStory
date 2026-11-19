@@ -12,6 +12,7 @@ urlpatterns = [
 
     # Inicio
     path(campaign, views_home.HomeView.as_view(), name="home"),
+    path(campaign + "reglamento/", views_home.campaign_ruleset, name="campaign_ruleset"),
 
     # Diario
     path(campaign + "diario/", views_diary.AdventureListView.as_view(), name="diary"),

@@ -239,8 +239,8 @@ class ArmorTypeAdmin(admin.ModelAdmin):
 
 @admin.register(Campaign)
 class CampaignAdmin(admin.ModelAdmin):
-    list_display = ("name", "status", "start_date", "world_day")
-    list_filter = ("status",)
+    list_display = ("name", "ruleset", "status", "start_date", "world_day")
+    list_filter = ("ruleset", "status")
     search_fields = ["name", "description"]
     filter_horizontal = ["masters", "players"]
 

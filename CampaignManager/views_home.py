@@ -2,11 +2,14 @@
 from django.contrib.auth.decorators import login_required
 from django.db.models import Case, IntegerField, When
 from django.shortcuts import redirect, render
+from django.urls import reverse
+from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView
 
 from .mapping import map_data, party_location
-from .models import Character, Quest, Session, TimelineEvent
-from .permissions import CampaignMemberMixin, user_campaigns
+from .ajax import respond
+from .models import Campaign, Character, Quest, Session, TimelineEvent
+from .permissions import CampaignMemberMixin, campaign_member, master_only, user_campaigns
 from .services import active_encounter, current_combatant, scenes_awaiting
 from .wiki import WikiResolver
 
@@ -53,3 +56,19 @@ class HomeView(CampaignMemberMixin, TemplateView):
             md=map_data(first_map, is_master) if first_map else None,
         )
         return context
+
+
+@require_POST
+@campaign_member
+def campaign_ruleset(request, campaign):
+    """The master chooses the campaign's rules: Aegis (ours) or the standard SRD 5.2.1.
+    It applies from the next level up, character or unique skill on."""
+    master_only(request)
+    ruleset = request.POST.get("reglamento")
+    back = reverse("home", args=[campaign.pk])
+    if ruleset not in Campaign.Ruleset.values:
+        return respond(request, redirect_to=back, error=True, msg="Elige Aegis o SRD 5.2.1.")
+    campaign.ruleset = ruleset
+    campaign.save(update_fields=["ruleset"])
+    return respond(request, redirect_to=back, msg=f"{campaign.name} juega ahora con {campaign.get_ruleset_display()}.")
+

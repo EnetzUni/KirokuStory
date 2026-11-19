@@ -51,7 +51,7 @@
             <summary>{{ user.get_short_name|default:user.username }}</summary>
             <div class="desplegable-panel derecha">
                 {% if user.is_staff %}<a href="{% url 'admin:index' %}">{% translate "Administración" %}</a>{% endif %}
-                <a href="{% url 'index' %}">{% translate "Reglas del SRD" %}</a>
+                <a href="{% url 'index' %}">{% translate "Reglas" %}</a>
                 <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">{% translate "Cerrar sesión" %}</button></form>
             </div>
         </details>

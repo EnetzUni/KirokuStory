@@ -1,6 +1,7 @@
 """Personajes: the party, NPCs and templates, the character sheet and the creator."""
 import hashlib
 import re
+import secrets
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -58,7 +59,7 @@ class CharacterListView(CampaignMemberMixin, TemplateView):
         for character in pcs:
             character.can_edit = can_edit_character(user, character, campaign)
         context["party"] = pcs
-        if self.is_master:
+        if self.is_master and campaign.is_aegis:  # unique skills are an Aegis rule
             context["skill_requests"] = list(UniqueSkill.objects.filter(
                 status=UniqueSkill.Status.PENDIENTE, character__campaigns=campaign).select_related("character__player")
                 .distinct().order_by("updated_at"))
@@ -230,6 +231,8 @@ def change_unique_skill(request, character, action, data):
 def unique_skill_review(request, campaign, pk):
     """Approve, change or reject a unique skill from the list of things to review."""
     master_only(request)
+    if not campaign.is_aegis:
+        raise Http404("Las habilidades únicas son una regla de Aegis.")
     skill = get_object_or_404(UniqueSkill.objects.select_related("character"), pk=pk,
                               character__campaigns=campaign, status=UniqueSkill.Status.PENDIENTE)
     back = reverse("characters", args=[campaign.pk])
@@ -344,7 +347,8 @@ def sheet_context(request, campaign, character):
 
     abilities = list(character.characterability_set.select_related("ability").order_by("ability__name"))
     # The unique skill: everyone sees it once approved; the proposal, only its player and the masters.
-    skill = unique_skill_of(character)
+    # Unique skills are an Aegis rule: in an SRD campaign an approved one is just a unique ability.
+    skill = unique_skill_of(character) if campaign.is_aegis else None
     if skill and skill.status != UniqueSkill.Status.APROBADA and not can_edit:
         skill = None
     encounter = active_encounter(campaign)
@@ -375,7 +379,8 @@ def sheet_context(request, campaign, character):
         "abilities": abilities, "tracked": [a for a in abilities if a.tracked],
         # «Habilidades propias» without the unique skill, which has its own card.
         "own_abilities": [a for a in abilities if not (skill and a.ability_id == skill.ability_id)],
-        "unique_skill": skill, "can_propose_skill": can_edit and (skill is None or skill.status != UniqueSkill.Status.APROBADA),
+        "unique_skill": skill,
+        "can_propose_skill": campaign.is_aegis and can_edit and (skill is None or skill.status != UniqueSkill.Status.APROBADA),
         "weapons": weapons, "spell_groups": sorted(spell_groups.items()), "max_slot": max_slot,
         "inventory": rows, "gold": gold.quantity if gold else 0,
         "catalog": Item.objects.filter(template__isnull=True).order_by("name") if can_edit else [],
@@ -659,6 +664,8 @@ def _apply(request, character, action, arg):
         character.magic_points = rules.clamp(character.magic_points + after - before, 0, after)
         return (f"{name}: {character.class_magic_points} puntos de magia por {character.char_class.name} "
                 f"nivel {character.level}, ajuste {bonus:+d}. Máximo {before} → {after}.")
+    if action.startswith("unica_") and not request.campaign.is_aegis:
+        raise SheetError("Esta campaña juega con el SRD: las habilidades únicas son una regla de Aegis.")
     if action == "unica_proponer":
         return propose_unique_skill(request, character, post)
     if action in ("unica_editar", "unica_quitar", "unica_retirar"):
@@ -828,6 +835,7 @@ def _portrait(request, campaign, character):
 STEPS = [gettext_noop("Raza y linaje"), gettext_noop("Clase"), gettext_noop("Características"), gettext_noop("Nombre, retrato y trasfondo"), gettext_noop("Equipo inicial"), gettext_noop("Habilidad única"), gettext_noop("Resumen")]
 STEP_FORMS = [RaceStepForm, ClassStepForm, ScoresStepForm, IdentityStepForm, EquipmentStepForm, UniqueSkillStepForm]
 LAST_STEP = len(STEPS) - 1
+UNIQUE_SKILL_STEP = 5  # Aegis only
 
 
 def hit_die(char_class):
@@ -910,6 +918,9 @@ def creator(request, campaign):
     is_master = campaign.is_master(request.user)
     going = request.POST.get("ir")
     form = None
+    skipped = set() if campaign.is_aegis else {UNIQUE_SKILL_STEP}  # an Aegis rule
+    if step in skipped:
+        return redirect(_step_url(campaign, step + 1))
     if request.method == "POST" and going == "empezar":
         request.session[key] = _new_draft()
         return redirect(_step_url(campaign, 0))
@@ -922,12 +933,15 @@ def creator(request, campaign):
                 _store(draft, step, form)
             if form.is_valid() or going == "atras":
                 request.session[key] = draft
-                return redirect(_step_url(campaign, step - 1 if going == "atras" else step + 1))
+                target = step - 1 if going == "atras" else step + 1
+                if target in skipped:
+                    target += -1 if going == "atras" else 1
+                return redirect(_step_url(campaign, target))
         else:
             form = form_class(initial=_initial(draft, step), **kwargs)
     elif request.method == "POST":
         if going == "atras":
-            return redirect(_step_url(campaign, step - 1))
+            return redirect(_step_url(campaign, step - 2 if step - 1 in skipped else step - 1))
         if not draft_problems(draft):
             character = _create_character(request, campaign, draft)
             request.session.pop(key, None)
@@ -968,7 +982,8 @@ def _creator_context(request, campaign, draft, step, form, is_master):
         weapon_choices.append({"item": item, "damage": damage, "checked": str(item.pk) in chosen_weapons})
     return {
         "campaign": campaign, "is_master": is_master, "step": step, "form": form, "draft": draft,
-        "steps": [{"n": i, "label": label, "current": i == step} for i, label in enumerate(STEPS)],
+        "steps": [{"n": i, "num": num, "label": label, "current": i == step} for num, (i, label) in enumerate(
+            ((i, label) for i, label in enumerate(STEPS) if campaign.is_aegis or i != UNIQUE_SKILL_STEP), start=1)],
         "last_step": LAST_STEP,
         "races": [{"race": r, "checked": str(r.pk) == chosen_race, "subraces": [
             {"subrace": s, "checked": str(s.pk) == chosen_subrace} for s in r.subraces.all()]}
@@ -1014,7 +1029,7 @@ def _create_character(request, campaign, draft):
         background=draft.get("background", ""), portrait=draft.get("portrait", ""), **scores,
     )
     character.campaigns.add(campaign)
-    if draft.get("skill_name"):
+    if draft.get("skill_name") and campaign.is_aegis:
         # The unique skill waits for a master, unless a master is creating the character.
         skill = UniqueSkill(character=character)
         if is_master:
@@ -1039,19 +1054,20 @@ def _create_character(request, campaign, draft):
 # ---------------------------------------------------------------------------
 # Subir de nivel: the master gives XP, and once it reaches the next level the
 # player (or a master) goes up from the sheet, one level at a time, choosing what
-# that level gives: the subclass (SRD 5.2.1) and, every 4 levels, the ability
-# score improvement or a feat. House rules: hit points are 1d4 rolled at the table
-# + Constitution; magic points come from the class and level; spells are given by
-# the master, not chosen here.
+# that level gives with the campaign's ruleset (rules.py): hit points, the subclass,
+# the ability score improvement or a feat at the feat levels, and in the SRD new
+# spells. Magic points follow the class and level in both.
 # ---------------------------------------------------------------------------
 
 class LevelUpError(Exception):
     """The level cannot be saved: nothing is changed and the message is shown."""
 
 
-def level_up_plan(character):
-    """What going up to the next level gives `character` and what there is to choose."""
-    level = character.level + 1
+def level_up_plan(character, campaign):
+    """What going up to the next level gives `character` with the campaign's ruleset,
+    and what there is to choose."""
+    level, ruleset, char_class = character.level + 1, campaign.ruleset, character.char_class
+    aegis = ruleset == rules.AEGIS
     features = []
     for label, link_model, field, source in granted_sources(character):
         for link in link_model.objects.filter(**{field: source}, level_required=level).select_related("ability"):
@@ -1061,18 +1077,32 @@ def level_up_plan(character):
         for subclass in character.char_class.subclasses.order_by("name"):
             links = SubclassAbility.objects.filter(subclass=subclass, level_required__lte=level).select_related("ability")
             subclasses.append({"subclass": subclass, "features": [link.ability for link in links.order_by("level_required", "ability__name")]})
-    feat_level = rules.is_feat_level(level)
+    feat_level = rules.is_feat_level(level, ruleset, char_class.name)
     feats = []
     if feat_level:
         # Feats it does not have yet, and no unique feat another character of its campaigns has (game rule 6).
         held, campaigns = character.all_ability_ids(), list(character.campaigns.all())
         feats = [feat for feat in Ability.objects.filter(feat=True, feat_min_level__lte=level).exclude(pk__in=held).order_by("name")
                  if not (feat.unique and unique_ability_conflicts(character, campaigns, [feat.pk]))]
-    magic = max(0, rules.class_magic_points(character.char_class.magic, level) + character.magic_points_bonus)
+    magic = max(0, rules.class_magic_points(char_class.magic, level) + character.magic_points_bonus)
+    # SRD: new spells from the class list, as many as its table adds, up to the highest slot.
+    new_cantrips, new_spells, spells, max_slot = 0, 0, [], 0
+    if not aegis:
+        new_cantrips, new_spells = rules.srd_new_spells(char_class.name, level)
+        max_slot = rules.highest_slot(char_class.magic, level)
+        candidates = char_class.spells.filter(level__lte=max_slot).exclude(pk__in=character.spells.values("pk"))
+        if not new_cantrips:
+            candidates = candidates.exclude(level=0)
+        if not new_spells:
+            candidates = candidates.filter(level=0)
+        spells = list(candidates.order_by("level", "name"))
     return {
-        "level": level, "die": rules.LEVEL_UP_HIT_DIE, "con": character.modifier("con"),
+        "level": level, "ruleset": ruleset, "aegis": aegis, "con": character.modifier("con"),
+        # Aegis: the 1d4 typed by the player. SRD: the class hit die (None if its description does not say).
+        "die": rules.LEVEL_UP_HIT_DIE if aegis else hit_die(char_class),
         "features": features, "subclasses": subclasses, "feat_level": feat_level, "feats": feats,
         "magic_before": character.magic_points_max, "magic_after": magic,
+        "spells": spells, "new_cantrips": new_cantrips, "new_spells": new_spells, "max_slot": max_slot,
     }
 
 
@@ -1102,8 +1132,16 @@ def apply_level_up(character_pk, level, form):
     character.magic_points = rules.clamp(character.magic_points + magic_after - magic_before, 0, magic_after)
 
     con = character.modifier("con")
-    gain = rules.level_up_hit_points(data["hp_roll"], con)
-    how = f"1d{rules.LEVEL_UP_HIT_DIE}: {data['hp_roll']}, Constitución {con:+d}"
+    if "hp_roll" in form.fields:  # Aegis: the 1d4 rolled at the table
+        gain = rules.level_up_hit_points(data["hp_roll"], con)
+        how = f"1d{rules.LEVEL_UP_HIT_DIE}: {data['hp_roll']}, Constitución {con:+d}"
+    elif "hp_gain" in form.fields:  # SRD, a class whose hit die is unknown
+        gain, how = data["hp_gain"], "a mano"
+    else:  # SRD: the class hit die, fixed or rolled here
+        die, fixed = form.plan["die"], data["hp_method"] == "fijo"
+        result = rules.fixed_hit_points(die) if fixed else secrets.randbelow(die) + 1
+        gain = rules.level_up_hit_points(result, con)
+        how = f"{'valor fijo' if fixed else f'tirada 1d{die}:'} {result}, Constitución {con:+d}"
     # A new Constitution modifier counts for the levels already had too (SRD).
     if con != old_con:
         gain += (con - old_con) * old_level
@@ -1121,6 +1159,10 @@ def apply_level_up(character_pk, level, form):
             row.save()
     except ValidationError as error:
         raise LevelUpError(" ".join(error.messages))
+    spells = list(data.get("spells") or [])
+    if spells:
+        character.spells.add(*spells)
+        done.append("conjuros: " + names_text(spell.name for spell in spells))
 
     msg = f"{character.name} sube al nivel {level}. Vida máxima {before} → {character.hp} ({how})."
     if magic_after != magic_before:
@@ -1145,7 +1187,7 @@ def level_up(request, campaign, pk):
         messages.error(request, f"{character.name} está en el nivel {character.level}"
                        + (f" y necesita {next_xp} XP para el siguiente: tiene {character.xp}." if next_xp else ", el máximo."))
         return redirect(sheet_url)
-    plan = level_up_plan(character)
+    plan = level_up_plan(character, campaign)
     form = LevelUpForm(request.POST if request.method == "POST" else None, character=character, plan=plan)
     if request.method == "POST":
         # The choices were made for one level: if it is done already (sent twice), do not repeat them.
@@ -1167,11 +1209,20 @@ def _level_up_context(request, campaign, character, plan, form):
     bound = form.is_bound
     chosen_subclass = str(form.data.get("subclass", "")) if bound else ""
     choice = str(form.data.get("choice", "")) if bound else LevelUpForm.IMPROVEMENT
-    con = plan["con"]
+    chosen_spells = {str(pk) for pk in form.data.getlist("spells")} if bound else set()
+    spell_groups = {}
+    for spell in plan["spells"]:
+        spell_groups.setdefault(spell.level, []).append({"spell": spell, "checked": str(spell.pk) in chosen_spells})
+    con, die = plan["con"], plan["die"]
     return {
         "campaign": campaign, "is_master": request.is_master,
         "character": character, "plan": plan, "form": form,
-        "hp_range": (rules.level_up_hit_points(1, con), rules.level_up_hit_points(plan["die"], con)),
+        "hp_range": (rules.level_up_hit_points(1, con), rules.level_up_hit_points(die, con)) if die else None,
+        "hp_fixed_total": rules.level_up_hit_points(rules.fixed_hit_points(die), con) if die and not plan["aegis"] else None,
+        "hp_fixed": rules.fixed_hit_points(die) if die else None,
+        "hp_method": form.data.get("hp_method", "fijo") if bound else "fijo",
+        "spell_groups": [{"level": level, "spells": spells, "open": any(s["checked"] for s in spells)}
+                         for level, spells in sorted(spell_groups.items())],
         "stats": [{"key": key, "abbr": rules.ABILITY_ABBR[key], "label": label, "score": getattr(character, key),
                    "mod": rules.ability_modifier(getattr(character, key))} for key, label in LevelUpForm.SCORES],
         "asi_first": form.data.get("asi_first", "") if bound else "",
