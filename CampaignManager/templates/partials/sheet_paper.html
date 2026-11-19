@@ -2,7 +2,7 @@
 «Vista ficha»: the character in the layout of the paper sheet (ficha_plantilla.pdf), over the same
 data as the web view. Every control posts to the same sheet action as the web view. Read-only
 sheets show the controls disabled (<fieldset disabled>). Only what the data model has is shown:
-Aura and the affinities are empty boxes; skills and saves show the ability modifier.
+The affinities are empty boxes; skills and saves show the ability modifier.
 {% endcomment %}
 <div class="hoja-vista">
 <section class="hoja" aria-labelledby="h-hoja">
@@ -54,7 +54,6 @@ Aura and the affinities are empty boxes; skills and saves show the ability modif
         <div class="hoja-centro">
             <div class="hoja-fila4">
                 <div class="hoja-mini"><span class="hoja-rotulo">{% translate "Pasiva" %}</span><b class="hoja-num">{{ character.passive_perception }}</b></div>
-                <div class="hoja-mini"><span class="hoja-rotulo">{% translate "Aura" %}</span><b class="hoja-num"></b></div>
                 <div class="hoja-mini"><span class="hoja-rotulo">{% translate "Iniciativa" %}</span><b class="hoja-num">{{ character.initiative|signed }}</b></div>
                 <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="hoja-mini">{% include "partials/sheet_hidden.html" %}
                     <span class="hoja-rotulo">{% translate "Inspir." %}</span>

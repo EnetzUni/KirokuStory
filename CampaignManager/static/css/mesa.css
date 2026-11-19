@@ -498,7 +498,7 @@ html.pantalla-abierta,html.pantalla-abierta body{overflow:hidden}
 .hoja-lista li b{min-width:26px;text-align:right}
 
 .hoja-centro{background:var(--tinte);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:10px;min-width:0}
-.hoja-fila4{display:grid;gap:8px;grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,1.8fr)}
+.hoja-fila4{display:grid;gap:8px;grid-template-columns:repeat(2,minmax(0,1fr)) minmax(0,1.8fr)}
 .hoja-fila3{display:grid;gap:8px;grid-template-columns:repeat(3,minmax(0,1fr))}
 .hoja-mini{border:1px solid var(--tinta);border-radius:10px;background:#FFFFFF;padding:6px;min-height:78px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;min-width:0}
 .hoja-mini .hoja-rotulo{font-size:8.5px;letter-spacing:0;max-width:100%;white-space:nowrap}
@@ -552,7 +552,7 @@ html.pantalla-abierta,html.pantalla-abierta body{overflow:hidden}
   .hoja-arriba{grid-template-columns:minmax(0,1fr);grid-template-areas:"car" "centro" "tir" "sal" "inv" "ataques"}
   .hoja-car{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:26px 10px}
   .hoja-abajo{grid-template-columns:minmax(0,1fr)}
-  .hoja-fila4{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .hoja-fila4{grid-template-columns:repeat(2,minmax(0,1fr))}
   .hoja-fila4>:last-child{grid-column:1/-1}
   .hoja-banda{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   .hoja-banda>:first-child{grid-column:1/-1}
