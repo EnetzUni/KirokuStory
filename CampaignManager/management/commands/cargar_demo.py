@@ -38,5 +38,5 @@ class Command(BaseCommand):
         if source.exists():
             shutil.copytree(source, Path(settings.MEDIA_ROOT), dirs_exist_ok=True)
         self.stdout.write(self.style.SUCCESS(
-            "Demo loaded. Users carlos (master), lucia, iker, ane and unai; password: mesa-demo-2026."
+            "Demo loaded. Users carlos (master), lucia, iker, ane and unai; admin roles: nerea (rules) and mikel (campaigns); password: mesa-demo-2026."
         ))

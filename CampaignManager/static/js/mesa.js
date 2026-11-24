@@ -13,6 +13,10 @@
     return match ? decodeURIComponent(match[1]) : $("input[name=csrfmiddlewaretoken]").first().val();
   }
 
+  // jQuery effects (fadeIn, fadeOut...) are switched off for whoever asks the system for less motion.
+  var lessMotion = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+  if (lessMotion) { $.fx.off = lessMotion.matches; }
+
   $.ajaxSetup({
     headers: { "X-Requested-With": "XMLHttpRequest" },
     beforeSend: function (xhr, settings) {
@@ -130,10 +134,21 @@
     }
     var $msg = $(data.msgTarget || $form.data("msg") || "#mensaje-ajax");
     if ($msg.length) {
-      $msg.text(data.msg || "").toggleClass("error", !!data.error).prop("hidden", !data.msg);
+      $msg.text(data.msg || "").toggleClass("error", !!data.error);
       if ($msg.hasClass("flotante")) {
+        // Effect: the floating message fades in and, 5 s later, fades out (jQuery fadeIn / fadeOut).
         clearTimeout($msg.data("timer"));
-        $msg.data("timer", setTimeout(function () { $msg.prop("hidden", true); }, 5000));
+        $msg.stop(true, true);
+        if (data.msg) {
+          $msg.prop("hidden", false).hide().fadeIn(200);
+          $msg.data("timer", setTimeout(function () {
+            $msg.fadeOut(400, function () { $msg.prop("hidden", true).css("display", ""); });
+          }, 5000));
+        } else {
+          $msg.prop("hidden", true).css("display", "");
+        }
+      } else {
+        $msg.prop("hidden", !data.msg);
       }
     }
   }

@@ -36,7 +36,10 @@ FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
 DEMO_PASSWORD = "mesa-demo-2026"
 GOLD = "Pieza de oro (po)"
 
-USERS = {"carlos": "Carlos", "lucia": "Lucía", "iker": "Iker", "ane": "Ane", "unai": "Unai"}
+USERS = {"carlos": "Carlos", "lucia": "Lucía", "iker": "Iker", "ane": "Ane", "unai": "Unai", "nerea": "Nerea", "mikel": "Mikel"}
+# Staff users and their admin groups (migration 0018): carlos has both roles; nerea only
+# edits the rules catalog and mikel only the campaigns, to show the two roles apart.
+STAFF_GROUPS = {"carlos": ["Reglas", "Campañas"], "nerea": ["Reglas"], "mikel": ["Campañas"]}
 
 ARMOR_TYPES = {"Ligera": (1, 1), "Media": (2, 1), "Pesada": (3, 0)}
 # name, type, own AP, own magic AP
@@ -309,14 +312,12 @@ class Command(BaseCommand):
     def build(self):
         self.users = {}
         for username, first_name in USERS.items():
-            user = User(username=username, first_name=first_name, email=f"{username}@example.com", is_staff=username == "carlos")
+            user = User(username=username, first_name=first_name, email=f"{username}@example.com", is_staff=username in STAFF_GROUPS)
             user.set_password(DEMO_PASSWORD)
             user.save()
             self.users[username] = user
-        for group_name in ("Reglas", "Campañas"):
-            group = Group.objects.filter(name=group_name).first()
-            if group:
-                self.users["carlos"].groups.add(group)
+        for username, group_names in STAFF_GROUPS.items():
+            self.users[username].groups.add(*Group.objects.filter(name__in=group_names))
 
         types = {name: ArmorType.objects.create(type=name, ap=ap, magic_ap=map_) for name, (ap, map_) in ARMOR_TYPES.items()}
         for name, kind, ap, map_ in ARMORS:

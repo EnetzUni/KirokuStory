@@ -21,7 +21,7 @@ python manage.py runserver
 Open http://127.0.0.1:8000/ and log in with a demo user.
 
 - `cargar_demo` loads, in order, `datos_iniciales_srd`, `armas_caseras` and `demo_campana`, and copies the demo images (`CampaignManager/fixtures/demo_media/`) into `media/`. The fixtures have fixed ids, so it refuses to run on a database that already has data: delete `db.sqlite3` and run `migrate` again.
-- Tests: `python manage.py test CampaignManager` (122 tests).
+- Tests: `python manage.py test CampaignManager` (148 tests).
 - The interface is in Spanish; English is at `/en/…` or with the selector in the footer.
 
 ### Demo users
@@ -35,6 +35,8 @@ All of them use the password **`mesa-demo-2026`**.
 | `iker` | Player: Brom in «La Corona de Ceniza» and «Prólogo en Puerto Gris»; co-master of «Ecos de Kioto» |
 | `ane` | Player: Kaida, and Hana in «Ecos de Kioto» |
 | `unai` | Player of «La Corona de Ceniza» without a character yet: try the character creator with him |
+| `nerea` | Admin role «Reglas» only: in `/admin/` she edits the rules catalog (races, classes, abilities and feats, spells, items…) and cannot touch the campaigns |
+| `mikel` | Admin role «Campañas» only: in `/admin/` he edits the campaigns, characters and their contents, and only views the rules catalog |
 
 «La Corona de Ceniza» is the full campaign (active, with a fight in progress); «Ecos de Kioto» is paused and «Prólogo en Puerto Gris» is finished. To manage users, create a superuser with `python manage.py createsuperuser`.
 
@@ -53,24 +55,25 @@ Settings come from environment variables (see `.env.example`); the defaults are 
 
 | E4a option | Where |
 |---|---|
-| **1. JavaScript: events, effects, AJAX** | `CampaignManager/static/js/mesa.js` (jQuery 3.7.1 next to it). Forms marked `data-ajax` are sent with `$.post` and the `X-CSRFToken` header; the view answers JSON with the HTML of the part that changed, rendered with the same partial template as the page (`ajax.respond()`). Without JavaScript the same forms post and redirect. Used by every counter of the sheet (`partials/sheet_panel.html`), the quest objectives, the board (move, join, reveal; `partials/board.html`), the turns (`partials/turns_list.html`, refreshed every 5 s with `data-refrescar`), scene messages and placing locations on the map (`data-colocar`). The floating preview of `[[links]]` asks `world_preview` for the summary. Effects: only a short highlight of the value that changed (`.cambio`), turned off with «reduce motion». |
+| **1. JavaScript: events, effects, AJAX** | `CampaignManager/static/js/mesa.js` (jQuery 3.7.1 next to it). Forms marked `data-ajax` are sent with `$.post` and the `X-CSRFToken` header; the view answers JSON with the HTML of the part that changed, rendered with the same partial template as the page (`ajax.respond()`). Without JavaScript the same forms post and redirect. Used by every counter of the sheet (`partials/sheet_panel.html`), the quest objectives, the board (move, join, reveal; `partials/board.html`), the turns (`partials/turns_list.html`, refreshed every 5 s with `data-refrescar`), scene messages and placing locations on the map (`data-colocar`). The floating preview of `[[links]]` asks `world_preview` for the summary. Effects: the floating message of each action fades in and out (`fadeIn`/`fadeOut`), and the value that changed is highlighted (`.cambio`); with «reduce motion» both are off (`$.fx.off`). |
 | **2. Class-based views** | `ListView`/`DetailView` in `views.py` (rules catalog); `TemplateView`, `DetailView`, `CreateView` and `UpdateView` in `views_home.py`, `views_diary.py`, `views_world.py`, `views_map.py`, `views_characters.py` and `views_turns.py`. Permissions in mixins: `CampaignMemberMixin` and `MasterRequiredMixin` (`permissions.py`). Small AJAX endpoints are function views with the `campaign_member` decorator. |
 | **3. Public forms** | `forms.py`: `ModelForm`s for chronicles, timeline events, board notes, scenes, quests (with an inline formset of objectives), world pages (no `parent` cycles, parents only places or factions, map location only for places), maps and locations; a form per step of the character creator (`RaceStepForm`… `EquipmentStepForm`) with the standard array and point buy checks. The model `clean()` methods keep the house rules (one armor, unique abilities). |
-| **4. Admin with several roles** | `admin.py`: `list_display`, searches, filters, `list_select_related` and inlines everywhere: objectives inside a quest, dice rolls and armor damage inside an attack, subraces and granted abilities inside a race, abilities, inventory and effects inside a character, posts inside a scene, locations inside a map, combatants inside an encounter. Groups in the data migration `migrations/0018_admin_groups.py`: **Reglas** edits the rules catalog (20 models); **Campañas** edits the 20 campaign models and only views the catalog. |
-| **5. Initial data for every entity** | `fixtures/datos_iniciales_srd.json`, `fixtures/armas_caseras.json` and `fixtures/demo_campana.json` (271 objects: users, armor types and armors, characters, templates and copies, and every campaign model), loaded by `management/commands/cargar_demo.py`. The demo fixture is generated by `management/commands/generar_demo.py` from the prototype's data. |
-| **6. Multilingual** | `LocaleMiddleware`, `i18n_patterns` with Spanish unprefixed (`KirokuStory/urls.py`), `{% translate %}` in every template, `gettext_noop` for the labels defined in Python, and the English catalog `locale/en/LC_MESSAGES/django.po` (658 strings). Language selector in the footer (`base.html`, Django's `set_language`). Campaign contents are not translated. |
+| **4. Admin with several roles** | `admin.py`: `list_display`, searches, filters, `list_select_related` and inlines everywhere: objectives inside a quest, dice rolls and armor damage inside an attack, subraces and granted abilities inside a race, abilities, inventory and effects inside a character, posts inside a scene, locations inside a map, combatants inside an encounter. Groups in the data migration `migrations/0018_admin_groups.py`: **Reglas** edits the rules catalog (20 models); **Campañas** edits the 20 campaign models and only views the catalog. Demo staff users: `nerea` has only «Reglas», `mikel` only «Campañas» and `carlos` both, so the two roles can be compared side by side (`AccessTests.test_admin_roles_have_different_permissions`). |
+| **5. Initial data for every entity** | `fixtures/datos_iniciales_srd.json`, `fixtures/armas_caseras.json` and `fixtures/demo_campana.json` (277 objects: users, armor types and armors, characters, templates and copies, and every campaign model), loaded by `management/commands/cargar_demo.py`. The demo fixture is generated by `management/commands/generar_demo.py` from the prototype's data. |
+| **6. Multilingual** | `LocaleMiddleware`, `i18n_patterns` with Spanish unprefixed (`KirokuStory/urls.py`), `{% translate %}` in every template, `gettext_noop` for the labels defined in Python, and the English catalog `locale/en/LC_MESSAGES/django.po` (750 strings). Language selector in the footer (`base.html`, Django's `set_language`). Campaign contents are not translated. |
 | **7. Performance and security** | See «Audit» below. |
 
 ## Audit
 
-Run on 17 November 2026.
+Run on 17 November 2026 and again on 24 November 2026, after the last features.
 
 - **`python manage.py check --deploy`** with `DJANGO_DEBUG=False`, a random `DJANGO_SECRET_KEY` and real hosts: *System check identified no issues (0 silenced).*
 - **`pip-audit -r requirements.txt`**: *No known vulnerabilities found.* Auditing the virtual environment found 4 advisories in `pip` 26.0.1 itself; it was upgraded to 26.3 and the audit is clean. `asgiref` and `sqlparse` are now pinned too.
-- **`bandit -r CampaignManager KirokuStory -x CampaignManager/migrations`**: it found 10 issues; 7 were fixed and 3 low ones remain on purpose.
-  - Fixed: the `[[link]]` renderer (`wiki.py`) and the `wiki_inline` tag used `mark_safe` (6 medium). Everything was already escaped, but they now build the HTML with `format_html` and add safe strings together, so there is no `mark_safe` left.
-  - Fixed: the avatar colors use MD5 only to pick a color: now `md5(..., usedforsecurity=False)` (1 high).
-  - Kept (B105, low): the development `SECRET_KEY`, used only when `DEBUG` is on (production refuses to start without its own key); the demo password `mesa-demo-2026`, which is documented; and the form label «Secreto del máster», which is not a password.
+- **`bandit -r CampaignManager KirokuStory -x CampaignManager/migrations,CampaignManager/tests.py`**: no high or medium issue left; 5 low ones remain on purpose.
+  - Fixed: the `[[link]]` renderer (`wiki.py`) and the `wiki_inline` tag used `mark_safe` (6 medium). Everything was already escaped, but they now build the HTML with `format_html` and add safe strings together.
+  - Fixed: the avatar colors use MD5 only to pick a color, and the sheet uses SHA-1 only to tell whether its panel changed: both now with `usedforsecurity=False` (2 high).
+  - Kept and marked `# nosec`: the sheet page (`SheetView`) receives its panel already rendered by `render_to_string`, so the template engine has escaped it; it is rendered once to also fingerprint it, and marked safe to be inserted in the page (2 medium, the same line).
+  - Kept (B105, low): the development `SECRET_KEY`, used only when `DEBUG` is on (production refuses to start without its own key); the demo password `mesa-demo-2026`, which is documented; and three form labels «Secreto del máster», which are not passwords.
 - **N+1 queries**: query counts were measured on every page with `CaptureQueriesContext`. Three repeated queries were fixed:
   - The campaign role is remembered on the campaign for the whole request: it was asked 7 times.
   - The «te toca escribir» badge now takes two queries with a subquery, instead of one per scene.
@@ -111,4 +114,14 @@ Run on 17 November 2026.
 
 ## Delivery
 
-Zip the project folder as `IW-BI-xxx-E4.zip` **without** `db.sqlite3`, `.venv/` or `media/`. The demo images are inside `CampaignManager/fixtures/demo_media/`, and `cargar_demo` copies them to `media/`.
+One compressed file named after the group and the delivery, `IW-BI-01-E4.zip` (`.zip`, `.gz`, `.tgz` or `.rar`), with the documentation and one folder per project, each with everything it needs to run:
+
+```
+IW-BI-01-E4.zip
+├── Memoria.pdf          the documentation (E5)
+├── E4a/                 this Django project (the folder that holds manage.py)
+└── E4b/                 the Vue SPA (contact list)
+```
+
+- Leave out of `E4a/`: `db.sqlite3`, `.venv/`, `media/`, `staticfiles/` and every `__pycache__/`. The demo images are inside `CampaignManager/fixtures/demo_media/`, and `cargar_demo` rebuilds the database and copies them to `media/` (see «Installation»).
+- Dates: the project before 5 December; the documentation can be added until 11 December.

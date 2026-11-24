@@ -443,7 +443,7 @@ def sheet_panel(request, campaign, character):
     tokens change on every render, so they are left out of the fingerprint."""
     context = sheet_context(request, campaign, character)
     html = render_to_string("partials/sheet_panel.html", context, request=request)
-    version = hashlib.sha1(CSRF_FIELD.sub("", html).encode()).hexdigest()[:16]
+    version = hashlib.sha1(CSRF_FIELD.sub("", html).encode(), usedforsecurity=False).hexdigest()[:16]
     return context, html, version
 
 
@@ -461,7 +461,9 @@ class SheetView(CampaignMemberMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         character = character_in_campaign(self.campaign, self.kwargs["pk"], self.request.user)
         sheet, html, version = sheet_panel(self.request, self.campaign, character)
-        context.update(sheet, panel=mark_safe(html), sheet_version=version)
+        # The panel is the output of render_to_string, already escaped by the template
+        # engine; it is rendered once to also fingerprint it, so it is marked safe here.
+        context.update(sheet, panel=mark_safe(html), sheet_version=version)  # nosec B308 B703
         return context
 
 

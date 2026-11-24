@@ -4,8 +4,8 @@ Everything drawn on the map lives in .mapa-lienzo, so positions in % are relativ
 The route is one line per stretch (previous stop, waypoints, stop) with an arrow head just before the stop.{% endcomment %}{% load i18n l10n %}{% localize off %}
 <div class="mapa{% if placing %} colocando{% endif %}{% if editing_route %} editando-ruta{% endif %}" style="aspect-ratio:1.6"{% if placing %} data-colocar="#form-nuevo-lugar" data-unidad="%"{% endif %}{% if zoom and md.map.image %} data-zoom="mapa-{{ md.map.pk }}" tabindex="0" aria-label="{% translate 'Mapa: rueda o pellizco para acercar, arrastra para moverte' %}"{% endif %}>
     <div class="mapa-lienzo">
-    {% if md.map.image %}<img src="{{ md.map.image.url }}" alt="Mapa de {{ md.map.name }}" draggable="false" decoding="async">
-    {% else %}<div class="vacio">{% if is_master %}Este mapa todavía no tiene imagen. Súbela con «Subir imagen».{% else %}El máster todavía no ha subido la imagen de este mapa.{% endif %}</div>{% endif %}
+    {% if md.map.image %}<img src="{{ md.map.image.url }}" alt="{% blocktranslate with name=md.map.name %}Mapa de {{ name }}{% endblocktranslate %}" draggable="false" decoding="async">
+    {% else %}<div class="vacio">{% if is_master %}{% translate "Este mapa todavía no tiene imagen. Súbela con «Subir imagen»." %}{% else %}{% translate "El máster todavía no ha subido la imagen de este mapa." %}{% endif %}</div>{% endif %}
     {% if md.segments %}
     <svg class="ruta" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
         {% for seg in md.segments %}<polyline points="{{ seg.points }}" data-tramo="{{ seg.move.pk }}"{% if editing_route %} data-guardar="{% url 'map_move_path' campaign.pk seg.move.pk %}"{% endif %} fill="none" stroke="#BC6C25" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>

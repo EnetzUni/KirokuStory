@@ -725,6 +725,19 @@ class HiddenContentTests(DemoData):
 
 
 class AccessTests(DemoData):
+    def test_admin_roles_have_different_permissions(self):
+        """«Reglas» (nerea) edits the rules catalog; «Campañas» (mikel) edits the campaigns
+        and only views the catalog (migration 0018)."""
+        rules_add, campaign_add = reverse("admin:CampaignManager_ability_add"), reverse("admin:CampaignManager_campaign_add")
+        rules_list = reverse("admin:CampaignManager_ability_changelist")
+        self.client.force_login(User.objects.get(username="nerea"))
+        self.assertEqual(self.client.get(rules_add).status_code, 200)
+        self.assertEqual(self.client.get(campaign_add).status_code, 403)
+        self.client.force_login(User.objects.get(username="mikel"))
+        self.assertEqual(self.client.get(campaign_add).status_code, 200)
+        self.assertEqual(self.client.get(rules_list).status_code, 200)
+        self.assertEqual(self.client.get(rules_add).status_code, 403)
+
     def test_everything_needs_a_login(self):
         for url in (self.url("home"), self.url("characters"), reverse("index"), reverse("character_list")):
             response = self.client.get(url)

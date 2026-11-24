@@ -97,6 +97,50 @@
  }
 },
 {
+ "model": "CampaignManager.user",
+ "pk": 6,
+ "fields": {
+  "password": "pbkdf2_sha256$1500000$ylH4eE5GBA2iKRDlHeApxn$9o9l8Hiojz3JmbWPMtatAOp6loDB5oL2u/2rWz4CA2Q=",
+  "last_login": null,
+  "is_superuser": false,
+  "username": "nerea",
+  "first_name": "Nerea",
+  "last_name": "",
+  "email": "nerea@example.com",
+  "is_staff": true,
+  "is_active": true,
+  "date_joined": "2026-11-24T10:00:00.000Z",
+  "groups": [
+   [
+    "Reglas"
+   ]
+  ],
+  "user_permissions": []
+ }
+},
+{
+ "model": "CampaignManager.user",
+ "pk": 7,
+ "fields": {
+  "password": "pbkdf2_sha256$1500000$z7xbt9g6mpYV85xllFGJi7$6H+vndrErVYcaGPyFllxBHyVAqhnXBn7CDiUsDjnT+k=",
+  "last_login": null,
+  "is_superuser": false,
+  "username": "mikel",
+  "first_name": "Mikel",
+  "last_name": "",
+  "email": "mikel@example.com",
+  "is_staff": true,
+  "is_active": true,
+  "date_joined": "2026-11-24T10:00:01.000Z",
+  "groups": [
+   [
+    "Campañas"
+   ]
+  ],
+  "user_permissions": []
+ }
+},
+{
  "model": "CampaignManager.campaign",
  "pk": 1,
  "fields": {
