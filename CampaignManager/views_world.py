@@ -23,60 +23,66 @@ CATEGORIES = [
 CATEGORY_INFO = {key: (label, intro) for key, label, intro in CATEGORIES}
 
 
-def tree(pages, category):
-    """Pages of a category as an indented list. Pages whose parent belongs to
-    another category go under a header with that parent's title."""
+def tree(pages, category, current=None):
+    """Pages of a category as nested branches: each page with the pages inside it, so the
+    menu can fold every branch. Pages whose parent belongs to another category go under a
+    branch named after that parent («Academia de Makep» › Laplace, Satela...).
+    A branch is `here` when the page being read is in it: it opens by itself."""
     by_id = {p.pk: p for p in pages}
     in_cat = [p for p in pages if p.category == category]
     children = {}
     for p in in_cat:
         children.setdefault(p.parent_id, []).append(p)
-    out = []
-
-    def walk(page, depth, seen):
-        if page.pk in seen:
-            return
-        seen.add(page.pk)
-        out.append({"page": page, "depth": depth, "pad": 16 + depth * 16})
-        for child in children.get(page.pk, []):
-            walk(child, depth + 1, seen)
-
-    roots = [p for p in in_cat if not p.parent_id or p.parent_id not in by_id or by_id[p.parent_id].category != category]
+    line = {current.pk, *(a.pk for a in current.ancestors())} if current is not None else set()
     seen = set()
-    for page in roots:
-        if not page.parent_id or page.parent_id not in by_id:
-            walk(page, 0, seen)
-    external = []
-    for page in roots:
-        if page.parent_id in by_id and page.parent_id not in external:
-            external.append(page.parent_id)
-    for parent_id in external:
-        out.append({"header": by_id[parent_id]})
-        for page in roots:
-            if page.parent_id == parent_id:
-                walk(page, 1, seen)
-    return out
+
+    def branch(page):
+        if page.pk in seen:
+            return None
+        seen.add(page.pk)
+        kids = [node for node in (branch(child) for child in children.get(page.pk, [])) if node]
+        return {"page": page, "children": kids, "here": page.pk in line, "count": len(kids)}
+
+    nodes = [node for node in (branch(p) for p in in_cat if not p.parent_id or p.parent_id not in by_id) if node]
+    outside = []
+    for p in in_cat:
+        if p.parent_id in by_id and by_id[p.parent_id].category != category and p.parent_id not in outside:
+            outside.append(p.parent_id)
+    for parent_id in outside:
+        kids = [node for node in (branch(p) for p in in_cat if p.parent_id == parent_id) if node]
+        if kids:
+            # Opens only when the page being read is one of its pages (not merely below the same place).
+            nodes.append({"header": by_id[parent_id], "children": kids, "count": len(kids),
+                          "here": any(k["here"] for k in kids)})
+    return nodes
 
 
 class WorldMixin(CampaignMemberMixin):
-    def sidebar(self, current=None):
+    def sidebar(self, current=None, category=None):
+        """The left menu, one foldable section per category. Open: the section of the page
+        or category being read, or every section with results while searching."""
         pages = list(Page.objects.visible_for(self.request.user, self.campaign).order_by("title"))
         query = self.request.GET.get("q", "").strip().lower()
         party = list(self.campaign.party)
         groups = []
         for key, label, _ in CATEGORIES:
+            nodes = None  # a tree of foldable branches; flat `items` for the party and for a search
             if key == "pj":
-                items = [{"character": c, "depth": 0} for c in party]
+                items = [{"character": c} for c in party]
                 if query:
                     items = [i for i in items if query in i["character"].name.lower()]
+                count = len(items)
             elif query:
-                items = [{"page": p, "depth": 0, "pad": 16} for p in pages if p.category == key and query in p.title.lower()]
+                items = [{"page": p} for p in pages if p.category == key and query in p.title.lower()]
+                count = len(items)
             else:
-                items = tree(pages, key)
+                items, nodes = [], tree(pages, key, current)
+                count = sum(1 for p in pages if p.category == key)
             if query and not items:
                 continue
-            groups.append({"key": key, "label": label, "items": items,
-                           "count": sum(1 for i in items if "header" not in i)})
+            here = (current is not None and current.category == key) or category == key
+            groups.append({"key": key, "label": label, "items": items, "nodes": nodes, "here": here,
+                           "open": here or bool(query), "count": count})
         return {"world_groups": groups, "q": self.request.GET.get("q", ""), "current_page": current,
                 "no_results": bool(query) and not groups}
 
@@ -101,7 +107,8 @@ class WorldIndexView(WorldMixin, TemplateView):
             cards = [{"page": p, "summary": p.summary or first_sentence(p.body) or "Página vacía."}
                      for p in pages.filter(category=category).order_by("title")]
         label, intro = CATEGORY_INFO[category]
-        context.update(self.sidebar(), category=category, category_label=label, category_intro=intro, cards=cards)
+        context.update(self.sidebar(category=category), category=category, category_label=label, category_intro=intro,
+                       cards=cards)
         return context
 
 

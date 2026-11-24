@@ -5,7 +5,10 @@
 <section class="pila" aria-labelledby="h-personajes">
     <div class="cabeza-seccion">
         <h1 id="h-personajes">{% translate "Personajes" %}</h1>
-        <a class="btn btn-principal" href="{% url 'creator' campaign.pk %}">+ {% translate "Crear personaje" %}</a>
+        <span class="fila-s">
+            {% if is_master %}<a class="btn" href="{% url 'npc_creator' campaign.pk %}">+ {% translate "Crear PNJ" %}</a>{% endif %}
+            <a class="btn btn-principal" href="{% url 'creator' campaign.pk %}">+ {% translate "Crear personaje" %}</a>
+        </span>
     </div>
     <p id="mensaje-ajax" class="mensaje" role="status" hidden></p>
 
@@ -48,6 +51,7 @@
             <div class="medidor"><span style="min-width:28px">AP</span><span class="barra ap"><span style="width:{% pct c.temp_ap c.max_ap %}%"></span></span><b>{{ c.temp_ap }}/{{ c.max_ap }}</b></div>
             <div class="fila-s">
                 <a class="btn btn-pequeno" href="{% url 'sheet' campaign.pk c.pk %}">{% if c.can_edit %}{% translate "Abrir ficha" %}{% else %}{% translate "Ver ficha" %}{% endif %}</a>
+                {% if is_master %}<a class="btn btn-pequeno" href="{% url 'character_edit' campaign.pk c.pk %}">{% translate "Editar" %}</a>{% endif %}
                 {% if is_master and c.status == "pendiente" %}
                 <form method="post" action="{% url 'character_review' campaign.pk c.pk %}" class="en-linea">{% csrf_token %}
                     <button class="btn btn-pequeno btn-bien" name="accion" value="aprobar">{% translate "Aprobar" %}</button>
@@ -81,7 +85,10 @@
     {% endif %}
 
     {% if is_master %}
-    <h2 class="rotulo">{% translate "PNJ de la campaña" %}</h2>
+    <div class="fila-s" style="justify-content:space-between">
+        <h2 class="rotulo">{% translate "PNJ de la campaña" %}</h2>
+        <a class="btn btn-pequeno" href="{% url 'npc_creator' campaign.pk %}">+ {% translate "Crear PNJ" %}</a>
+    </div>
     <div class="tarjeta sin-relleno">
         {% for c in npcs %}
         <div class="fila-tabla">
@@ -89,9 +96,10 @@
             <span style="flex:1 1 180px"><b>{{ c.name }}</b><br><span class="pequeno atenuado">{% if c.template %}{% translate "Copia de" %} {{ c.template.name }}{% else %}{% translate "Plantilla" %}{% endif %}</span></span>
             <span class="pequeno">{% translate "Vida" %} <b>{{ c.temp_hp }}/{{ c.hp }}</b> · AP <b>{{ c.temp_ap }}</b></span>
             <a class="btn btn-pequeno" href="{% url 'sheet' campaign.pk c.pk %}">{% translate "Ficha" %}</a>
+            <a class="btn btn-pequeno" href="{% url 'character_edit' campaign.pk c.pk %}">{% translate "Editar" %}</a>
         </div>
         {% empty %}
-        <p class="atenuado" style="padding:16px">{% translate "No hay PNJ en esta campaña. Copia una plantilla para añadir uno." %}</p>
+        <p class="atenuado" style="padding:16px">{% translate "No hay PNJ en esta campaña. Crea uno con «Crear PNJ» o copia una plantilla." %}</p>
         {% endfor %}
     </div>
 
@@ -113,7 +121,7 @@
             {% endif %}
         </div>
         {% empty %}
-        <p class="atenuado" style="padding:16px">{% translate "No hay plantillas de PNJ. Se crean en la administración." %}</p>
+        <p class="atenuado" style="padding:16px">{% translate "No hay plantillas de PNJ. Crea una con «Crear PNJ»." %}</p>
         {% endfor %}
     </div>
     {% endif %}

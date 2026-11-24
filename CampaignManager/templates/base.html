@@ -31,6 +31,7 @@
                     {{ item.campaign.name }}<small>{{ item.status }} · {% if item.is_master %}{% translate "diriges" %}{% else %}{% translate "juegas" %}{% endif %}</small>
                 </a>
                 {% endfor %}
+                <a href="{% url 'campaign_new' %}">+ {% translate "Nueva campaña" %}<small>{% translate "con el asistente, pestaña a pestaña" %}</small></a>
             </div>
         </details>
         {% endif %}

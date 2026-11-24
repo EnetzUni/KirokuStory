@@ -36,7 +36,10 @@ class HomeView(CampaignMemberMixin, TemplateView):
         encounter = active_encounter(campaign)
         actor = current_combatant(encounter)
         quests = []
-        for quest in Quest.objects.of(campaign).filter(status=Quest.Status.ACTIVA).prefetch_related("objectives"):
+        visible = list(Quest.objects.visible_for(user, campaign).select_related("parent").prefetch_related("objectives"))
+        with_missions = {q.parent_id for q in visible if q.parent_id}
+        # What the party is doing now: the missions in progress, and adventures without missions.
+        for quest in [q for q in visible if q.status == Quest.Status.ACTIVA and q.pk not in with_missions]:
             # Only the objectives this reader can see count.
             objectives = [o for o in quest.objectives.all() if is_master or not o.hidden]
             done = sum(1 for o in objectives if o.done)

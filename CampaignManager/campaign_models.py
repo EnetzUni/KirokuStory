@@ -43,7 +43,7 @@ class Session(models.Model):
     campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, related_name="sessions")
     number = models.PositiveIntegerField()
     title = models.CharField(max_length=200)
-    played_on = models.DateField(help_text="Real date the session was played")
+    played_on = models.DateField(null=True, blank=True, help_text="Real date the session was played; empty if unknown")
     world_day = models.CharField(max_length=100, blank=True)
     body = models.TextField(blank=True, help_text="[[Name]] links to a world page or a player character")
     xp_awarded = models.PositiveIntegerField(default=0)
@@ -87,6 +87,7 @@ class TimelineEvent(models.Model):
     characters = models.ManyToManyField(Character, blank=True, related_name="events")
     location = models.ForeignKey("MapLocation", on_delete=models.SET_NULL, null=True, blank=True, related_name="events")
     hidden = models.BooleanField(default=False)
+    secret = models.TextField(blank=True, help_text="Only masters see it, even when the event is visible")
 
     objects = TimelineEventQuerySet.as_manager()
 
@@ -214,6 +215,12 @@ class Page(models.Model):
 # Aventuras (the model keeps its first name, Quest)
 # ---------------------------------------------------------------------------
 
+class QuestQuerySet(CampaignQuerySet):
+    def hide_from_players(self, qs):
+        # A hidden adventure does not exist for players, nor do the missions inside it.
+        return qs.filter(hidden=False).exclude(parent__hidden=True)
+
+
 class Quest(models.Model):
     """An adventure: a story arc that starts in one session and ends in another (or is
     still going on), with the master's checklist of objectives. The sessions it covers
@@ -223,6 +230,8 @@ class Quest(models.Model):
         ACTIVA = "activa", "En curso"
         COMPLETADA = "completada", "Completada"
         FALLIDA = "fallida", "Fallida"
+        SIN_DATO = "sin_dato", "Sin dato"  # finished, but nobody wrote down how it ended
+        TERMINADA = "terminada", "Terminada"  # an arc that is over, whatever came of its missions
 
     campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, related_name="quests")
     title = models.CharField(max_length=200)
@@ -233,13 +242,18 @@ class Quest(models.Model):
                                       help_text="Session in which the adventure starts")
     end_session = models.ForeignKey(Session, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
                                     help_text="Session in which it was completed or failed; empty while in progress")
+    secret = models.TextField(blank=True, help_text="Only masters see it")
+    hidden = models.BooleanField(default=False, help_text="A hidden adventure does not exist for players")
+    # An adventure (an arc) holds missions: quests with a parent. Only one level deep.
+    parent = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True, related_name="missions",
+                               help_text="The adventure this mission belongs to; empty for an adventure")
 
-    objects = CampaignQuerySet.as_manager()
+    objects = QuestQuerySet.as_manager()
 
     class Meta:
         verbose_name = "adventure"
         ordering = ["campaign", "id"]
-        indexes = [models.Index(fields=["campaign", "status"])]
+        indexes = [models.Index(fields=["campaign", "status"]), models.Index(fields=["campaign", "hidden"])]
 
     def __str__(self):
         return self.title
@@ -249,6 +263,15 @@ class Quest(models.Model):
             session = getattr(self, field)
             if session is not None and self.campaign_id and session.campaign_id != self.campaign_id:
                 raise ValidationError({field: "Esa sesión es de otra campaña."})
+        if self.parent_id:
+            if self.parent_id == self.pk:
+                raise ValidationError({"parent": "Una aventura no puede estar dentro de sí misma."})
+            if self.campaign_id and self.parent.campaign_id != self.campaign_id:
+                raise ValidationError({"parent": "Esa aventura es de otra campaña."})
+            if self.parent.parent_id:
+                raise ValidationError({"parent": "Esa ya es una misión: elige una aventura."})
+            if self.pk and self.missions.exists():
+                raise ValidationError({"parent": "Esta aventura tiene misiones: no puede ir dentro de otra."})
         if self.end_session_id:
             if self.status == self.Status.ACTIVA:
                 raise ValidationError({"end_session": "Una aventura en curso todavía no ha terminado: deja vacía la sesión final o cambia el estado."})

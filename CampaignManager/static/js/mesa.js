@@ -30,6 +30,52 @@
     $(this).attr("aria-expanded", open ? "true" : "false");
   });
 
+  // ---- Secciones plegables que se recuerdan (menú del Mundo, aventuras terminadas) ----
+  // <details data-recordar="key">: the browser keeps whether it was left open. The section
+  // being read (data-aqui) always opens. Storage can fail (private mode): then nothing is kept.
+  function remembered(key) {
+    try { return window.localStorage.getItem("plegable:" + key); } catch (e) { return null; }
+  }
+  function remember(key, open) {
+    try { window.localStorage.setItem("plegable:" + key, open ? "1" : "0"); } catch (e) { /* not kept */ }
+  }
+  function restoreFolds(root) {
+    $(root).find("details[data-recordar]").each(function () {
+      var saved = remembered($(this).data("recordar"));
+      if (saved !== null && !this.hasAttribute("data-aqui")) {
+        this.open = saved === "1";
+      }
+    });
+  }
+  restoreFolds(document);
+  $("[data-plegar-todo]").prop("hidden", false);
+  // «toggle» does not bubble, so it is caught on its way down (capture), also for parts sent by AJAX.
+  document.addEventListener("toggle", function (event) {
+    var target = event.target;
+    if (target.matches && target.matches("details[data-recordar]")) {
+      remember(target.getAttribute("data-recordar"), target.open);
+    }
+  }, true);
+  $(document).on("click", "[data-plegar]", function () {
+    var open = $(this).data("plegar") === "abrir";
+    $(this).closest("nav, section, [data-plegables]").find("details[data-recordar], details.seccion-arbol").each(function () {
+      this.open = open;
+    });
+  });
+  // A link to something inside a folded section (#aventura-3, #sesion-12) opens the folds around it.
+  function openHashTarget() {
+    if (!window.location.hash) return;
+    var target = document.getElementById(decodeURIComponent(window.location.hash.slice(1)));
+    if (!target) return;
+    var folds = $(target).parents("details").addBack("details");
+    if (!folds.length) return;
+    folds.prop("open", true);
+    target.scrollIntoView();
+  }
+  openHashTarget();
+  $(window).on("hashchange", openHashTarget);
+
+
   // ---- Formularios por AJAX ----
   // The button that sent the form, so its name/value travels with the data.
   // ":submit" also matches <button> without a type attribute (submit by default);
@@ -135,6 +181,37 @@
   });
   $(document).on("change", "form[data-ajax-get] input[type=range]", function () {
     $(this).closest("form").trigger("submit");
+  });
+
+  // The map's two-handle slider: «desde» never passes «hasta». While dragging, the numbers
+  // and the coloured stretch follow; the route reloads when the handle is let go («change»).
+  function rangeEnds($box) {
+    var $since = $box.find("[data-extremo=desde]"), $until = $box.find("[data-extremo=hasta]");
+    return { since: $since, until: $until, max: parseInt($until.attr("max"), 10) };
+  }
+  function paintRange($box) {
+    var ends = rangeEnds($box);
+    var since = parseInt(ends.since.val(), 10), until = parseInt(ends.until.val(), 10);
+    var pct = function (n) { return ends.max > 1 ? ((n - 1) * 100 / (ends.max - 1)) + "%" : "0%"; };
+    $box[0].style.setProperty("--desde", pct(since));
+    $box[0].style.setProperty("--hasta", pct(until));
+    var $form = $box.closest("form");
+    $form.find("[data-rango-desde]").text(since);
+    $form.find("[data-rango-hasta]").text(until);
+    // When both handles meet, the one that can still move goes on top.
+    ends.since.toggleClass("encima", since === until && since > ends.max / 2);
+  }
+  $(document).on("input", "[data-doble-rango] input[type=range]", function () {
+    var $box = $(this).closest("[data-doble-rango]"), ends = rangeEnds($box);
+    if (parseInt(ends.since.val(), 10) > parseInt(ends.until.val(), 10)) {
+      // Keep the order: the handle being moved stops at the other one.
+      $(this).val($(this).is(ends.since) ? ends.until.val() : ends.since.val());
+    }
+    paintRange($box);
+  });
+  $("[data-doble-rango]").each(function () { paintRange($(this)); });
+  $(document).on("mesa:actualizado", function (event) {
+    $(event.target).find("[data-doble-rango]").addBack("[data-doble-rango]").each(function () { paintRange($(this)); });
   });
 
   // Timeline: show an event's detail without reloading.

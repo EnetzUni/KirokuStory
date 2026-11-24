@@ -1,18 +1,21 @@
 {% extends "base.html" %}
 {% load i18n mesa %}
-{% block title %}{% translate "Crear personaje" %} · {{ campaign.name }}{% endblock %}
+{% block title %}{% if npc %}{% translate "Crear PNJ" %}{% else %}{% translate "Crear personaje" %}{% endif %} · {{ campaign.name }}{% endblock %}
 {% block content %}
 <section class="pila" aria-labelledby="h-creador">
-    <nav class="migas" aria-label="{% translate 'Ruta' %}"><a href="{% url 'characters' campaign.pk %}">{% translate "Personajes" %}</a> <span aria-hidden="true">›</span> <span>{% translate "Crear personaje" %}</span></nav>
-    <h1 id="h-creador">{% translate "Crear personaje" %}</h1>
+    <nav class="migas" aria-label="{% translate 'Ruta' %}"><a href="{% url 'characters' campaign.pk %}">{% translate "Personajes" %}</a> <span aria-hidden="true">›</span> <span>{% if npc %}{% translate "Crear PNJ" %}{% else %}{% translate "Crear personaje" %}{% endif %}</span></nav>
+    <h1 id="h-creador">{% if npc %}{% translate "Crear PNJ" %}{% else %}{% translate "Crear personaje" %}{% endif %}</h1>
+    {% if npc %}<p class="ayuda">{% translate "Los mismos pasos que un personaje, sin jugador. El PNJ queda en la campaña como plantilla: luego puedes copiarlo a la campaña o a los turnos tantas veces como quieras." %}</p>{% endif %}
 
+    {# Enter in a field presses the form's first button: this one, so Enter still moves forward and not to step 1. #}
+    <button type="submit" form="creador" name="ir" value="{% if step < last_step %}siguiente{% else %}enviar{% endif %}" class="sr-only" tabindex="-1" aria-hidden="true"></button>
     <ol class="pasos" aria-label="{% translate 'Pasos' %}">
         {% for s in steps %}
-        <li>{% if s.current %}<span aria-current="step"><b>{{ s.num }}</b>{% translate s.label %}</span>{% else %}<a href="?paso={{ s.n }}"><b>{{ s.num }}</b>{% translate s.label %}</a>{% endif %}</li>
+        <li>{% if s.current %}<span aria-current="step"><b>{{ s.num }}</b>{% translate s.label %}</span>{% else %}<button type="submit" form="creador" name="ir" value="paso-{{ s.n }}" formnovalidate><b>{{ s.num }}</b>{% translate s.label %}</button>{% endif %}</li>
         {% endfor %}
     </ol>
 
-    <form method="post" enctype="multipart/form-data" class="tarjeta pila" novalidate>{% csrf_token %}
+    <form id="creador" method="post" enctype="multipart/form-data" class="tarjeta pila" novalidate>{% csrf_token %}
         <input type="hidden" name="paso" value="{{ step }}">
         {% if form.non_field_errors %}{{ form.non_field_errors }}{% endif %}
 
@@ -44,6 +47,16 @@
             </div>
         </fieldset>
         {% endif %}{% endfor %}
+        {% if npc %}
+        <fieldset class="pila-s libre" style="margin:0">
+            <legend class="etiqueta">{% translate "Libre: una raza nueva" %}</legend>
+            <p class="ayuda">{% translate "Si la escribes, el PNJ será de esta raza y no de la elegida arriba. Queda guardada para tus próximos PNJ; los jugadores no la ven." %}</p>
+            <div class="fila-s" style="align-items:flex-start">
+                <div style="flex:1 1 220px">{% include "partials/field.html" with field=form.race_name %}</div>
+                <div style="flex:0 1 140px">{% include "partials/field.html" with field=form.race_speed %}</div>
+            </div>
+        </fieldset>
+        {% endif %}
         {% if race_traits %}
         <div class="pila-s"><span class="etiqueta">{% blocktranslate with race=race.name %}Rasgos de {{ race }} a nivel 1{% endblocktranslate %}</span>
             <p class="pequeno">{% for t in race_traits %}{{ t.ability.name }}{% if not forloop.last %} · {% endif %}{% endfor %}{% for t in subrace_traits %} · {{ t.ability.name }}{% endfor %}</p></div>
@@ -62,6 +75,16 @@
                 {% endfor %}
             </div>
         </fieldset>
+        {% if npc %}
+        <fieldset class="pila-s libre" style="margin:0">
+            <legend class="etiqueta">{% translate "Libre: una clase nueva" %}</legend>
+            <p class="ayuda">{% translate "Si la escribes, el PNJ será de esta clase. Su magia decide los puntos de magia por nivel." %}</p>
+            <div class="fila-s" style="align-items:flex-start">
+                <div style="flex:1 1 220px">{% include "partials/field.html" with field=form.class_name %}</div>
+                <div style="flex:0 1 200px">{% include "partials/field.html" with field=form.class_magic %}</div>
+            </div>
+        </fieldset>
+        {% endif %}
         {% if class_traits %}
         <div class="pila-s"><span class="etiqueta">{% blocktranslate with c=char_class.name %}Rasgos de {{ c }} a nivel 1{% endblocktranslate %}</span>
             <p class="pequeno">{% for t in class_traits %}{{ t.ability.name }}{% if not forloop.last %} · {% endif %}{% endfor %}</p></div>
@@ -72,17 +95,19 @@
             <legend class="etiqueta">{% translate "Método" %}</legend>
             <div class="fila-s">
                 <label class="chip"><input type="radio" name="method" value="estandar"{% if method == "estandar" %} checked{% endif %}>{% translate "Valores estándar" %}</label>
-                <label class="chip"><input type="radio" name="method" value="puntos"{% if method != "estandar" %} checked{% endif %}>{% translate "Reparto de puntos" %}</label>
+                <label class="chip"><input type="radio" name="method" value="puntos"{% if method == "puntos" %} checked{% endif %}>{% translate "Reparto de puntos" %}</label>
+                {% if npc %}<label class="chip"><input type="radio" name="method" value="libre"{% if method == "libre" %} checked{% endif %}>{% translate "Libre" %}</label>{% endif %}
             </div>
             <p class="ayuda">{% translate "Valores estándar: reparte 15, 14, 13, 12, 10 y 8, uno en cada característica." %}<br>
                 {% blocktranslate with total=points_total %}Reparto de puntos: tienes {{ total }} puntos y cada característica va de 8 a 15.{% endblocktranslate %}
-                {% translate "Coste" %}: {% for score, cost in point_costs %}{{ score }} → {{ cost }}{% if not forloop.last %} · {% endif %}{% endfor %}.</p>
+                {% translate "Coste" %}: {% for score, cost in point_costs %}{{ score }} → {{ cost }}{% if not forloop.last %} · {% endif %}{% endfor %}.
+                {% if npc %}<br>{% translate "Libre: cualquier valor de 1 a 30, sin límite de puntos. Solo para PNJ." %}{% endif %}</p>
         </fieldset>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px" data-reparto data-total="{{ points_total }}">
             {% for s in stats %}
             <div class="caracteristica">
                 <label for="id_{{ s.key }}"><small>{{ s.abbr }}</small> <span class="pequeno" style="border:0;background:none">{{ s.label }}</span></label>
-                <input id="id_{{ s.key }}" class="entrada-num" style="text-align:center" type="number" name="{{ s.key }}" value="{{ s.value }}" min="3" max="20" inputmode="numeric">
+                <input id="id_{{ s.key }}" class="entrada-num" style="text-align:center" type="number" name="{{ s.key }}" value="{{ s.value }}" min="{{ score_min }}" max="{{ score_max }}" inputmode="numeric">
                 <span data-mod>{{ s.mod|signed }}</span>
             </div>
             {% endfor %}
@@ -96,6 +121,16 @@
         {% include "partials/field.html" with field=form.portrait %}
         {% include "partials/field.html" with field=form.background %}
         {% if form.player %}{% include "partials/field.html" with field=form.player %}{% endif %}
+        {% if npc %}
+        <fieldset class="pila-s libre" style="margin:0">
+            <legend class="etiqueta">{% translate "Libre: nivel y números" %}</legend>
+            <div class="fila-s" style="align-items:flex-start">
+                <div style="flex:0 1 120px">{% include "partials/field.html" with field=form.level %}</div>
+                <div style="flex:1 1 200px">{% include "partials/field.html" with field=form.hp %}</div>
+                <div style="flex:1 1 200px">{% include "partials/field.html" with field=form.ac %}</div>
+            </div>
+        </fieldset>
+        {% endif %}
 
         {% elif step == 4 %}
         <fieldset class="pila-s" style="border:0;padding:0;margin:0">
@@ -124,6 +159,34 @@
             </div>
         </fieldset>
         <p class="ayuda">{% translate "Cada arma y armadura que elijas será una copia propia del personaje, ya equipada." %}</p>
+        {% if npc %}
+        <fieldset class="pila-s libre" style="margin:0">
+            <legend class="etiqueta">{% translate "Libre: un arma única" %}</legend>
+            <p class="ayuda">{% translate "Hecha para este PNJ. Déjale el nombre vacío si no quieres ninguna. Queda guardada para tus próximos PNJ; los jugadores no la ven en el catálogo." %}</p>
+            <div class="rejilla-campos">
+                {% include "partials/field.html" with field=form.weapon_name %}
+                {% include "partials/field.html" with field=form.weapon_damage %}
+                {% include "partials/field.html" with field=form.weapon_extra %}
+                {% include "partials/field.html" with field=form.weapon_stat_bonus %}
+                {% include "partials/field.html" with field=form.weapon_hit_bonus %}
+                {% include "partials/field.html" with field=form.weapon_hit_stat %}
+                {% include "partials/field.html" with field=form.weapon_range %}
+                {% include "partials/field.html" with field=form.weapon_pierce %}
+                {% include "partials/field.html" with field=form.weapon_shred %}
+            </div>
+            {% include "partials/field.html" with field=form.weapon_description %}
+        </fieldset>
+        <fieldset class="pila-s libre" style="margin:0">
+            <legend class="etiqueta">{% translate "Libre: una armadura propia" %}</legend>
+            <p class="ayuda">{% translate "Con el tipo y los AP que quieras. Si la escribes, la lleva puesta en lugar de la armadura elegida arriba." %}</p>
+            <div class="rejilla-campos">
+                {% include "partials/field.html" with field=form.armor_name %}
+                {% include "partials/field.html" with field=form.armor_type %}
+                {% include "partials/field.html" with field=form.armor_ap %}
+                {% include "partials/field.html" with field=form.armor_magic_ap %}
+            </div>
+        </fieldset>
+        {% endif %}
 
         {% elif step == 5 %}
         <div class="pila-s">
@@ -138,7 +201,7 @@
             <span class="avatar grande" style="background:{{ draft.name|default:'?'|avatar_color }}">{% if portrait_url %}<img src="{{ portrait_url }}" alt="">{% else %}{{ draft.name|initial }}{% endif %}</span>
             <div class="pila-s" style="flex:1 1 260px">
                 <h2>{{ draft.name|default:_("Sin nombre") }}</h2>
-                <span>{{ race.name|default:"—" }}{% if subrace %} ({{ subrace.name }}){% endif %} · {{ char_class.name|default:"—" }} 1{% if player %} · {{ player.username }}{% endif %}</span>
+                <span>{% if race_custom %}{{ race_custom }}{% else %}{{ race.name|default:"—" }}{% if subrace %} ({{ subrace.name }}){% endif %}{% endif %} · {% if class_custom %}{{ class_custom }}{% else %}{{ char_class.name|default:"—" }}{% endif %} {{ level }}{% if player %} · {{ player.username }}{% endif %}</span>
                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px">
                     {% for s in stats %}<div class="caracteristica"><small>{{ s.abbr }}</small><b>{{ s.value }}</b><span>{{ s.mod|signed }}</span></div>{% endfor %}
                 </div>
@@ -147,7 +210,7 @@
                     <div class="dato"><small>{% translate "Clase de armadura" %}</small><b>{{ ac }}</b></div>
                     <div class="dato"><small>AP</small><b>{{ max_ap }}</b></div>
                 </div>
-                <span class="pequeno">{% translate "Equipo" %}: {% for w in weapons %}{{ w.name }}, {% endfor %}{{ armor.name|default:_("sin armadura") }}</span>
+                <span class="pequeno">{% translate "Equipo" %}: {% for w in weapons %}{{ w.name }}, {% endfor %}{% if bespoke_weapon %}{{ bespoke_weapon.name }} ({% translate "arma única" %}), {% endif %}{% if bespoke_armor %}{{ bespoke_armor.name }} ({{ bespoke_armor.type }}, AP {{ bespoke_armor.ap }}){% else %}{{ armor.name|default:_("sin armadura") }}{% endif %}</span>
                 {% if draft.background %}<p class="pequeno" style="white-space:pre-line">{{ draft.background|truncatechars:400 }}</p>{% endif %}
                 {% if draft.skill_name %}<p class="pequeno"><b>{% translate "Habilidad única" %}: {{ draft.skill_name }}</b>{% if not is_master %} ({% translate "pendiente del máster" %}){% endif %}<br>{{ draft.skill_description|truncatechars:300 }}</p>{% endif %}
             </div>
@@ -156,6 +219,8 @@
         <div class="aviso"><span class="rotulo">{% translate "Falta por completar" %}</span>
             <ul class="lista-limpia" style="gap:4px">{% for n, message in problems %}<li><a href="?paso={{ n }}">{{ message }}</a></li>{% endfor %}</ul>
         </div>
+        {% elif npc %}
+        <p class="ayuda">{% translate "Al crearlo, el PNJ aparece en «PNJ de la campaña» y en las plantillas. Los jugadores no ven su ficha." %}</p>
         {% elif not is_master %}
         <p class="ayuda">{% translate "Al enviarlo, el personaje queda pendiente hasta que el máster lo apruebe." %}</p>
         {% endif %}
@@ -165,7 +230,7 @@
         <div class="fila-s" style="flex-direction:row-reverse;justify-content:space-between;border-top:1px solid var(--line);padding-top:14px">
             <span class="fila-s" style="flex-direction:row-reverse">
                 {% if step < last_step %}<button class="btn btn-principal" name="ir" value="siguiente">{% translate "Siguiente" %} →</button>
-                {% else %}<button class="btn btn-principal" name="ir" value="enviar"{% if problems %} disabled{% endif %}>{% if is_master %}{% translate "Crear personaje" %}{% else %}{% translate "Enviar al máster" %}{% endif %}</button>{% endif %}
+                {% else %}<button class="btn btn-principal" name="ir" value="enviar"{% if problems %} disabled{% endif %}>{% if npc %}{% translate "Crear PNJ" %}{% elif is_master %}{% translate "Crear personaje" %}{% else %}{% translate "Enviar al máster" %}{% endif %}</button>{% endif %}
                 <button class="btn btn-texto" name="ir" value="empezar">{% translate "Empezar de nuevo" %}</button>
             </span>
             {% if step > 0 %}<button class="btn" name="ir" value="atras">← {% translate "Atrás" %}</button>{% endif %}

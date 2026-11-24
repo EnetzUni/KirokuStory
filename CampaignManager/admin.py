@@ -368,7 +368,7 @@ class SessionAdmin(admin.ModelAdmin):
 class TimelineEventAdmin(admin.ModelAdmin):
     list_display = ("title", "campaign", "kind", "session", "world_day", "hidden")
     list_filter = ("campaign", "kind", "hidden")
-    search_fields = ["title", "description"]
+    search_fields = ["title", "description", "secret"]
     list_select_related = ["campaign", "session"]
     filter_horizontal = ["characters"]
 
@@ -390,9 +390,9 @@ class QuestObjectiveInline(admin.TabularInline):
 
 @admin.register(Quest)
 class QuestAdmin(admin.ModelAdmin):
-    list_display = ("title", "campaign", "status", "giver")
-    list_filter = ("campaign", "status")
-    search_fields = ["title", "description", "objectives__text"]
+    list_display = ("title", "campaign", "status", "giver", "hidden")
+    list_filter = ("campaign", "status", "hidden")
+    search_fields = ["title", "description", "secret", "objectives__text"]
     list_select_related = ["campaign", "giver"]
     inlines = [QuestObjectiveInline]
 

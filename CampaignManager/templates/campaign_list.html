@@ -4,7 +4,10 @@
 {% block content %}
 <section class="pila" aria-labelledby="h-reglas">
     <nav class="migas" aria-label="{% translate 'Ruta' %}"><a href="{% url 'index' %}">{% translate "Reglas" %}</a> <span aria-hidden="true">›</span> <span>{% translate "Tus campañas" %}</span></nav>
-    <h1 id="h-reglas">{% translate "Tus campañas" %}</h1>
+    <div class="cabeza-seccion">
+        <h1 id="h-reglas">{% translate "Tus campañas" %}</h1>
+        <a class="btn btn-principal" href="{% url 'campaign_new' %}">+ {% translate "Nueva campaña" %}</a>
+    </div>
     <div class="tarjeta sin-relleno tabla-marco">
         <table class="tabla">
             <thead><tr><th>{% translate "Nombre" %}</th><th>{% translate "Estado" %}</th><th>{% translate "Inicio" %}</th></tr></thead>

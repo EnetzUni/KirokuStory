@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load i18n mesa %}
+{% block title %}{% translate "Editar ficha" %} · {{ character.name }}{% endblock %}
+{% block content %}
+<section class="pila lectura" aria-labelledby="h-editar">
+    <nav class="migas" aria-label="{% translate 'Ruta' %}"><a href="{% url 'characters' campaign.pk %}">{% translate "Personajes" %}</a> <span aria-hidden="true">›</span>
+        <a href="{% url 'sheet' campaign.pk character.pk %}">{{ character.name }}</a> <span aria-hidden="true">›</span> <span>{% translate "Editar ficha" %}</span></nav>
+    <h1 id="h-editar">{% blocktranslate with name=character.name %}Editar la ficha de {{ name }}{% endblocktranslate %}</h1>
+    <p class="ayuda">{% translate "Como máster puedes cambiar cualquier dato, siga o no las reglas: nivel, vida, AP, características de 1 a 30, una raza o clase nueva... Solo se comprueba que los datos encajen entre sí (un linaje de su raza, una subclase de su clase)." %}</p>
+
+    <form method="post" enctype="multipart/form-data" class="pila" novalidate>{% csrf_token %}
+        {% if form.non_field_errors %}<div class="aviso">{{ form.non_field_errors }}</div>{% endif %}
+        {% for title, names in groups %}
+        <fieldset class="tarjeta pila-s">
+            <legend class="rotulo">{% translate title %}</legend>
+            <div class="rejilla-campos">
+                {% for name in names %}{% with field=form|field_named:name %}{% if field %}{% include "partials/field.html" %}{% endif %}{% endwith %}{% endfor %}
+            </div>
+        </fieldset>
+        {% endfor %}
+
+        {% if worn_form %}
+        <fieldset class="tarjeta pila-s">
+            <legend class="rotulo">{% blocktranslate with armor=worn.item.name %}Armadura equipada: {{ armor }}{% endblocktranslate %}</legend>
+            <p class="ayuda">{% translate "Los AP que da en total. El máximo de AP de la ficha sale de aquí." %}</p>
+            <div class="rejilla-campos">{% for field in worn_form %}{% include "partials/field.html" %}{% endfor %}</div>
+        </fieldset>
+        {% endif %}
+
+        <fieldset class="tarjeta pila-s">
+            <legend class="rotulo">{% translate "Darle un arma única" %}</legend>
+            <p class="ayuda">{% translate "Hecha a mano: la lleva equipada. Déjale el nombre vacío si no quieres ninguna. Los jugadores no la ven en el catálogo." %}</p>
+            <div class="rejilla-campos">{% for field in weapon_form %}{% if field.name != "weapon_description" %}{% include "partials/field.html" %}{% endif %}{% endfor %}</div>
+            {% include "partials/field.html" with field=weapon_form.weapon_description %}
+        </fieldset>
+
+        <fieldset class="tarjeta pila-s">
+            <legend class="rotulo">{% translate "Darle una armadura propia" %}</legend>
+            <p class="ayuda">{% translate "Con el tipo y los AP que quieras. Se la pone en lugar de la que lleve." %}</p>
+            <div class="rejilla-campos">{% for field in armor_form %}{% include "partials/field.html" %}{% endfor %}</div>
+        </fieldset>
+
+        <div class="fila-s">
+            <button type="submit" class="btn btn-principal">{% translate "Guardar" %}</button>
+            <a class="btn" href="{% url 'sheet' campaign.pk character.pk %}">{% translate "Cancelar" %}</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

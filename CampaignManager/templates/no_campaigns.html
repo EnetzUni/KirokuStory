@@ -3,6 +3,7 @@
 {% block content %}
 <section class="tarjeta lectura">
     <h1>{% translate "Todavía no tienes campañas" %}</h1>
-    <p class="atenuado">{% translate "Cuando un máster te añada a una campaña, aparecerá aquí." %}</p>
+    <p class="atenuado">{% translate "Cuando un máster te añada a una campaña, aparecerá aquí. O crea la tuya y dirígela." %}</p>
+    <a class="btn btn-principal" style="align-self:flex-start" href="{% url 'campaign_new' %}">+ {% translate "Nueva campaña" %}</a>
 </section>
 {% endblock %}

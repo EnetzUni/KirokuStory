@@ -3,7 +3,7 @@
 {% block diary %}
 <div class="pila lectura">
     <div class="cabeza-seccion">
-        <p class="atenuado">{% if is_master %}{% translate "Cada aventura va de la sesión en que empieza a la que termina. Marca sus objetivos a medida que el grupo los cumple." %}{% else %}{% translate "Las aventuras del grupo, con sus objetivos y lo que pasó en cada sesión." %}{% endif %}</p>
+        <p class="atenuado">{% if is_master %}{% translate "Cada aventura es un arco: cuenta de qué va y guarda dentro sus misiones, de la sesión en que empiezan a la que terminan. Marca sus objetivos a medida que el grupo los cumple." %}{% else %}{% translate "Las aventuras del grupo: de qué va cada una y, dentro, sus misiones con sus objetivos y lo que pasó en cada sesión." %}{% endif %}</p>
         {% if is_master %}
         <div class="fila-s">
             <a class="btn btn-principal" href="{% url 'diary_quest_new' campaign.pk %}">+ {% translate "Nueva aventura" %}</a>
@@ -13,24 +13,39 @@
     </div>
 
     {% for group in groups %}
+    {% if group.folded %}
+    {# Adventures that are over: two by two, folded to their title. Open one to read it, and its sessions inside. #}
+    <div class="pila-s" style="gap:12px" data-plegables>
+        <div class="fila-s" style="justify-content:space-between">
+            <h2 style="font-size:22px">{% translate group.label %} <span class="atenuado" style="font-size:16px">{{ group.items|length }}</span></h2>
+            <span class="fila-s" style="gap:4px" data-plegar-todo hidden>
+                <button type="button" class="btn btn-texto btn-pequeno" data-plegar="abrir">{% translate "Abrir todas" %}</button>
+                <button type="button" class="btn btn-texto btn-pequeno" data-plegar="cerrar">{% translate "Cerrar todas" %}</button>
+            </span>
+        </div>
+        <div class="rejilla-aventuras">
+            {% for item in group.items %}
+            {% with quest=item.q.quest %}
+            <details id="aventura-{{ quest.pk }}" class="aventura-plegada tarjeta compacta{% if quest.hidden %} oculta{% endif %}" data-recordar="aventura-{{ campaign.pk }}-{{ quest.pk }}">
+                {% include "partials/quest_summary.html" %}
+                <div class="pila-s" style="gap:10px;padding-top:10px">
+                    {% include "partials/adventure_body.html" %}
+                </div>
+            </details>
+            {% endwith %}
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
     <div class="pila-s" style="gap:16px">
         <h2 style="font-size:22px">{% translate group.label %}</h2>
         {% for item in group.items %}
-        <section id="aventura-{{ item.q.quest.pk }}" class="pila-s" style="gap:10px" aria-label="{{ item.q.quest.title }}">
-            {% include "partials/quest_card.html" with q=item.q %}
-            {% if item.sessions %}
-            <details id="sesiones-{{ item.q.quest.pk }}" class="pila-s" {% if item.q.quest.status == "activa" %}open{% endif %}>
-                <summary class="btn btn-texto" style="align-self:flex-start">
-                    {% blocktranslate count n=item.sessions|length %}{{ n }} sesión de esta aventura{% plural %}{{ n }} sesiones de esta aventura{% endblocktranslate %}
-                </summary>
-                <div class="pila-s" style="gap:12px;padding-left:14px;border-left:3px solid var(--line)">
-                    {% for session in item.sessions %}{% include "partials/session_article.html" %}{% endfor %}
-                </div>
-            </details>
-            {% endif %}
+        <section id="aventura-{{ item.q.quest.pk }}" class="tarjeta pila-s aventura-abierta" style="gap:10px" aria-label="{{ item.q.quest.title }}">
+            {% include "partials/adventure_body.html" %}
         </section>
         {% endfor %}
     </div>
+    {% endif %}
     {% endfor %}
 
     {% if loose %}

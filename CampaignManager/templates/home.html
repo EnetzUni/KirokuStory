@@ -20,7 +20,10 @@
                 <h1 id="h-home">{{ campaign.name }}</h1>
                 <span class="mundo">{{ campaign.world_day }}{% if campaign.world_year %}, {{ campaign.world_year }}{% endif %}{% if where %} · {% translate "el grupo está en" %} {{ where.name }}{% endif %}</span>
             </div>
-            {% if is_master %}<a class="btn" href="{% url 'admin:CampaignManager_campaign_change' campaign.pk %}">{% translate "Cambiar portada" %}</a>{% endif %}
+            {% if is_master %}<span class="fila-s">
+                <a class="btn" href="{% url 'campaign_setup' campaign.pk %}?paso=2">{% translate "Cambiar portada" %}</a>
+                <a class="btn" href="{% url 'campaign_setup' campaign.pk %}">{% translate "Asistente de la campaña" %}</a>
+            </span>{% endif %}
         </div>
     </div>
 
@@ -28,7 +31,7 @@
         <div class="principal pila">
             {% if last_session %}
             <article class="tarjeta">
-                <span class="rotulo">{% translate "Lo último" %} · {% translate "Sesión" %} {{ last_session.number }} · {{ last_session.played_on|date:"j M Y" }}</span>
+                <span class="rotulo">{% translate "Lo último" %} · {% translate "Sesión" %} {{ last_session.number }}{% if last_session.played_on %} · {{ last_session.played_on|date:"j M Y" }}{% endif %}</span>
                 <h2>{{ last_session.title }}</h2>
                 <div class="cronica">{% wiki last_session.body|first_paragraph %}</div>
                 <a class="btn" style="align-self:flex-start" href="{% url 'diary' campaign.pk %}">{% translate "Leer el diario" %}</a>
@@ -94,7 +97,7 @@
                 <h2 class="rotulo">{% translate "Aventuras en curso" %}</h2>
                 {% for q in quests %}
                 <div class="pila-s" style="gap:6px">
-                    <div class="fila-s" style="justify-content:space-between;font-size:14px"><b>{{ q.quest.title }}</b><span class="atenuado">{{ q.done }} {% translate "de" %} {{ q.total }}</span></div>
+                    <div class="fila-s" style="justify-content:space-between;font-size:14px"><b>{% if q.quest.parent %}<span class="atenuado" style="font-weight:400">{{ q.quest.parent.title }} › </span>{% endif %}{{ q.quest.title }}{% if q.quest.hidden %} <span class="pastilla p-morado" style="font-size:10px">{% translate "OCULTA" %}</span>{% endif %}</b><span class="atenuado">{{ q.done }} {% translate "de" %} {{ q.total }}</span></div>
                     <span class="barra"><span style="width:{% pct q.done q.total %}%"></span></span>
                 </div>
                 {% empty %}<p class="atenuado">{% translate "No hay aventuras en curso." %}</p>{% endfor %}

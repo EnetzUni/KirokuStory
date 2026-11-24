@@ -1,0 +1,41 @@
+{% load i18n %}{% comment %}
+Inside an adventure: what it is about (its card), its missions folded one under the other, and the
+sessions none of its missions covers. Each mission, opened: its objectives and what happened in its sessions.
+{% endcomment %}
+{% include "partials/quest_card.html" with q=item.q %}
+{% if item.missions %}
+<div class="misiones pila-s">
+    <span class="rotulo">{% blocktranslate count n=item.missions|length %}{{ n }} misión{% plural %}{{ n }} misiones{% endblocktranslate %}</span>
+    {% for m in item.missions %}
+    {% with quest=m.q.quest %}
+    <details id="aventura-{{ quest.pk }}" class="mision{% if quest.hidden %} oculta{% endif %}" data-recordar="aventura-{{ campaign.pk }}-{{ quest.pk }}">
+        {% include "partials/quest_summary.html" %}
+        <div class="pila-s" style="gap:8px;padding:6px 0 4px 22px">
+            {% include "partials/quest_card.html" with q=m.q %}
+            {% if m.sessions %}
+            <details id="sesiones-{{ quest.pk }}" class="pila-s">
+                <summary class="btn btn-texto" style="align-self:flex-start">{% blocktranslate count n=m.sessions|length %}Lo que pasó: {{ n }} sesión{% plural %}Lo que pasó: {{ n }} sesiones{% endblocktranslate %}</summary>
+                <div class="pila-s" style="gap:12px;padding-left:10px;border-left:3px solid var(--line)">
+                    {% for session in m.sessions %}{% include "partials/session_article.html" %}{% endfor %}
+                </div>
+            </details>
+            {% endif %}
+        </div>
+    </details>
+    {% endwith %}
+    {% endfor %}
+</div>
+{% endif %}
+{% if item.sessions %}
+<details id="sesiones-{{ item.q.quest.pk }}" class="pila-s" {% if not item.missions and item.q.quest.status == "activa" and not item.q.quest.parent_id %}open{% endif %}>
+    <summary class="btn btn-texto" style="align-self:flex-start">
+        {% if item.missions %}{% blocktranslate count n=item.sessions|length %}Otra sesión del arco{% plural %}Otras {{ n }} sesiones del arco{% endblocktranslate %}
+        {% elif item.q.folded %}{% blocktranslate count n=item.sessions|length %}Lo que pasó: {{ n }} sesión{% plural %}Lo que pasó: {{ n }} sesiones{% endblocktranslate %}
+        {% else %}{% blocktranslate count n=item.sessions|length %}{{ n }} sesión de esta aventura{% plural %}{{ n }} sesiones de esta aventura{% endblocktranslate %}{% endif %}
+    </summary>
+    <div class="pila-s" style="gap:12px;padding-left:14px;border-left:3px solid var(--line)">
+        {% for session in item.sessions %}{% include "partials/session_article.html" %}{% endfor %}
+    </div>
+</details>
+{% endif %}
+{% if is_master %}<a class="btn btn-texto btn-pequeno" style="align-self:flex-start" href="{% url 'diary_quest_new' campaign.pk %}?dentro={{ item.q.quest.pk }}">+ {% translate "Nueva misión en esta aventura" %}</a>{% endif %}

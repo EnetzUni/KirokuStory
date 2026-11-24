@@ -15,8 +15,8 @@ from django.urls import reverse
 from . import rules
 from .models import (
     Ability, Armor, ArmorDamage, ArmorType, BoardCard, Campaign, Character, CharacterAbility, CharacterClass,
-    ClassAbility, Combatant, Encounter, Inventory, Item, MapLocation, Page, PartyMove, Post, Quest, QuestObjective, Race, Session,
-    Spell, Subclass, TimelineEvent, UniqueSkill, User, Weapon,
+    ClassAbility, Combatant, Encounter, Inventory, Item, Map, MapLocation, Page, PartyMove, Post, Quest, QuestObjective, Race, Session,
+    Spell, Subclass, Subrace, TimelineEvent, UniqueSkill, User, Weapon,
 )
 
 AJAX = {"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"}
@@ -603,6 +603,17 @@ class DemoData(TestCase):
 class HiddenContentTests(DemoData):
     """Nothing hidden reaches a player: not in the HTML, not in the JSON."""
 
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        # The demo has no hidden adventures nor secrets on adventures and events: add some.
+        first = Session.objects.filter(campaign=cls.corona).order_by("number").first()
+        hidden = Quest.objects.create(campaign=cls.corona, title="El pacto que nadie firmó", start_session=first,
+                                      description="Morwen compra a los guardias del faro.", hidden=True)
+        QuestObjective.objects.create(quest=hidden, text="Descubrir quién paga a los guardias")
+        Quest.objects.filter(campaign=cls.corona, hidden=False).update(secret="La corona entera es una réplica de cobre.")
+        TimelineEvent.objects.filter(campaign=cls.corona, hidden=False).update(secret="El orco del faro era un espía de la torre.")
+
     def secrets(self):
         """Texts only the masters may read (whispers to others included)."""
         corona = self.corona
@@ -612,6 +623,10 @@ class HiddenContentTests(DemoData):
         texts += Page.objects.filter(campaign=corona).exclude(secret="").values_list("secret", flat=True)
         texts += Page.objects.filter(campaign=corona, revealed=False).exclude(body="").values_list("body", flat=True)
         texts += TimelineEvent.objects.filter(campaign=corona, hidden=True).exclude(description="").values_list("description", flat=True)
+        texts += TimelineEvent.objects.filter(campaign=corona).exclude(secret="").values_list("secret", flat=True)
+        texts += Quest.objects.filter(campaign=corona).exclude(secret="").values_list("secret", flat=True)
+        for quest in Quest.objects.filter(campaign=corona, hidden=True):
+            texts += [quest.title, quest.description, *quest.objectives.values_list("text", flat=True)]
         texts += Session.objects.filter(campaign=corona).exclude(master_notes="").values_list("master_notes", flat=True)
         texts += Session.objects.filter(campaign=corona, published=False).exclude(body="").values_list("body", flat=True)
         texts += (Post.objects.filter(scene__campaign=corona, whisper_to__isnull=False)
@@ -661,6 +676,22 @@ class HiddenContentTests(DemoData):
         body = "".join(self.client.get(url).content.decode() for url in self.pages() + hidden_pages)
         for secret in self.secrets():
             self.assertTrue(secret in body, f"the master does not see {secret!r}")
+
+    def test_hidden_adventures_do_not_exist_for_players(self):
+        quest = Quest.objects.get(campaign=self.corona, hidden=True)
+        client = self.player()
+        self.assertNotContains(client.get(self.url("diary")), quest.title)
+        self.assertNotContains(client.get(self.url("diary_timeline") + f"?aventura={quest.pk}"), quest.title)
+        self.assertNotContains(client.get(self.url("home")), quest.title)
+        self.assertEqual(client.get(self.url("diary_quest_edit", quest.pk)).status_code, 403)
+        self.client.force_login(self.carlos)
+        self.assertContains(self.client.get(self.url("diary")), "OCULTA · solo la ves tú")
+
+    def test_sessions_without_a_date(self):
+        session = Session.objects.filter(campaign=self.corona, published=True).order_by("number").first()
+        Session.objects.filter(pk=session.pk).update(played_on=None)
+        for name in ("diary", "diary_timeline", "home"):
+            self.assertEqual(self.player().get(self.url(name)).status_code, 200, name)
 
     def test_hidden_objective_text_is_not_sent(self):
         objective = QuestObjective.objects.filter(quest__campaign=self.corona, hidden=True, done=False).first()
@@ -1088,8 +1119,10 @@ class AdventureTests(DemoData):
 
     def test_each_adventure_shows_its_span_and_its_sessions(self):
         page = self.player().get(self.url("diary")).content.decode()
-        raiders = page[page.index('id="aventura-%d"' % self.quest("Saqueadores en el Camino del Faro").pk):]
-        raiders = raiders[:raiders.index("</section>")]
+        # From this adventure to the next one (finished adventures are folded <details>, not <section>).
+        start = page.index('id="aventura-%d"' % self.quest("Saqueadores en el Camino del Faro").pk)
+        end = page.find('id="aventura-', start + 1)
+        raiders = page[start:end if end != -1 else None]
         self.assertIn("Sesión 2 → 2", raiders)
         self.assertIn('id="sesion-%d"' % self.session(2).pk, raiders)
         self.assertNotIn('id="sesion-%d"' % self.session(3).pk, raiders)
@@ -1334,3 +1367,403 @@ class SheetViewTests(DemoData):
         # The master changes her hit points from Turns: the tablet's next refresh sees it.
         Character.objects.filter(pk=aria.pk).update(temp_hp=aria.temp_hp - 1)
         self.assertNotEqual(self.client.get(url, **AJAX).json()["version"], first)
+
+
+class NpcCreatorTests(DemoData):
+    """A master makes an NPC with the same creator: no player, free scores, own hit points.
+    It lands in the campaign as a template that can be copied."""
+
+    def walk(self, client, name, steps):
+        url = self.url(name)
+        for step, data in steps:
+            response = client.post(url, {"paso": step, "ir": "siguiente", **data})
+            self.assertEqual(response.status_code, 302, (step, getattr(response, "context", None) and response.context["form"].errors))
+        return client.post(url, {"paso": rules_last_step(), "ir": "enviar"})
+
+    def steps(self, scores, **identity):
+        race = Race.objects.filter(subraces__isnull=True).order_by("name").first()
+        char_class = CharacterClass.objects.order_by("name").first()
+        return [(0, {"race": race.pk}), (1, {"char_class": char_class.pk}), (2, scores),
+                (3, {"name": "Guardia de la torre", **identity}), (4, {}), (5, {})]
+
+    def test_the_master_creates_an_npc(self):
+        scores = {"method": "libre", "strength": 18, "dexterity": 12, "constitution": 16,
+                  "intelligence": 6, "wisdom": 9, "charisma": 4}
+        self.client.force_login(self.carlos)
+        response = self.walk(self.client, "npc_creator", self.steps(scores, hp="120"))
+        self.assertRedirects(response, self.url("characters"), fetch_redirect_response=False)
+        npc = Character.objects.get(name="Guardia de la torre")
+        self.assertEqual((npc.is_npc, npc.player, npc.status, npc.hp, npc.temp_hp, npc.strength, npc.charisma),
+                         (True, None, Character.Status.APROBADO, 120, 120, 18, 4))
+        self.assertTrue(npc.campaigns.filter(pk=self.corona.pk).exists())
+        self.assertIsNone(npc.template)
+        page = self.client.get(self.url("characters")).content.decode()
+        self.assertIn("Guardia de la torre", page)
+        self.assertIn(reverse("character_copy", args=[self.corona.pk, npc.pk]), page)  # it can be copied
+
+    def test_players_cannot_create_npcs_nor_use_free_scores(self):
+        client = self.player()
+        self.assertEqual(client.get(self.url("npc_creator")).status_code, 403)
+        self.assertNotContains(client.get(self.url("characters")), self.url("npc_creator"))
+        scores = {"method": "libre", "strength": 18, "dexterity": 18, "constitution": 18,
+                  "intelligence": 18, "wisdom": 18, "charisma": 18}
+        client.post(self.url("creator"), {"paso": 0, "ir": "siguiente", "race": Race.objects.filter(subraces__isnull=True).first().pk})
+        response = client.post(self.url("creator"), {"paso": 2, "ir": "siguiente", **scores})
+        self.assertEqual(response.status_code, 200)  # refused: «libre» is not a choice for players
+        self.assertTrue(response.context["form"].errors)
+
+
+def rules_last_step():
+    from .views_characters import LAST_STEP
+    return LAST_STEP
+
+
+class RouteBetweenSessionsTests(DemoData):
+    """The map's slider has two ends: the route from session «desde» to session «hasta»,
+    starting where the party was when «desde» began."""
+
+    def md(self, query):
+        the_map = Map.objects.filter(campaign=self.corona).order_by("order", "id").first()
+        return self.player().get(self.url("map") + f"?mapa={the_map.pk}&{query}").context
+
+    def test_only_the_route_between_two_sessions(self):
+        moves = list(PartyMove.objects.filter(map__campaign=self.corona).select_related("session", "location"))
+        last = max(m.session.number for m in moves if m.session)
+        context = self.md(f"desde={last}&hasta={last}")
+        shown = context["md"]["moves"]
+        before = [m for m in moves if m.session and m.session.number < last]
+        # The last stop before that session, then the stops of that session.
+        self.assertEqual(shown[0], before[-1])
+        self.assertTrue(all(m.session.number == last for m in shown[1:]))
+        self.assertEqual(len(context["md"]["segments"]), len(shown) - 1)
+        self.assertEqual((context["since"], context["until"]), (last, last))
+
+    def test_the_whole_route_by_default_and_ends_kept_in_order(self):
+        moves = PartyMove.objects.filter(map__campaign=self.corona)
+        self.assertEqual(len(self.md("")["md"]["moves"]), moves.count())
+        context = self.md("desde=5&hasta=2")
+        self.assertEqual((context["since"], context["until"]), (2, 2))
+        self.assertIn('name="desde"', self.player().get(self.url("map")).content.decode())
+
+
+class FoldingTests(DemoData):
+    """Adventures that are over are folded two by two; the world menu folds by category."""
+
+    def test_finished_adventures_are_folded(self):
+        page = self.player().get(self.url("diary")).content.decode()
+        for quest in Quest.objects.filter(campaign=self.corona).exclude(status=Quest.Status.ACTIVA):
+            self.assertRegex(page, rf'<details id="aventura-{quest.pk}" class="aventura-plegada[^"]*"')
+        for quest in Quest.objects.filter(campaign=self.corona, status=Quest.Status.ACTIVA):
+            self.assertIn(f'<section id="aventura-{quest.pk}"', page)
+        self.assertIn('class="rejilla-aventuras"', page)
+
+    def test_the_world_menu_opens_the_section_being_read(self):
+        page = self.player().get(self.url("world") + "?cat=pnj").content.decode()
+        sections = re.findall(r'<details class="seccion-arbol"([^>]*)>', page)
+        self.assertGreater(len(sections), 1)
+        open_ones = [s for s in sections if re.search(r"\bopen\b", s)]
+        self.assertEqual(len(open_ones), 1)
+        self.assertIn("mundo-{}-pnj".format(self.corona.pk), open_ones[0])
+        # While searching, every section with results opens.
+        page = self.player().get(self.url("world") + "?q=a").content.decode()
+        sections = re.findall(r'<details class="seccion-arbol"([^>]*)>', page)
+        self.assertTrue(sections and all(re.search(r"\bopen\b", s) for s in sections))
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp(prefix="kiroku-test-media-"))
+class FreeNpcTests(DemoData):
+    """The NPC creator lets the master choose freely: a new race and class, any level, hit points,
+    armor class, a unique weapon and an armor of their own. Players never see those pieces."""
+
+    def post(self, step, **data):
+        return self.client.post(self.url("npc_creator"), {"paso": step, "ir": "siguiente", **data})
+
+    def test_an_npc_with_everything_written_by_hand(self):
+        self.client.force_login(self.carlos)
+        self.post(0, race_name="Inmortal", race_speed=12)
+        self.post(1, class_name="Guerrero inmortal", class_magic="ninguna")
+        self.post(2, method="libre", strength=24, dexterity=14, constitution=22, intelligence=10, wisdom=12, charisma=8)
+        self.post(3, name="Ealoseum", level=19, hp=520, ac=21)
+        self.post(4, weapon_name="Martillo del Inquisidor", weapon_damage="2d10 + 1d6", weapon_extra=4,
+                  weapon_stat_bonus="str", weapon_hit_bonus=3, weapon_hit_stat="str", weapon_range=2, weapon_shred=3,
+                  armor_name="Coraza de cazamagos", armor_type="Pesada", armor_ap=11, armor_magic_ap=2)
+        self.post(5)
+        self.client.post(self.url("npc_creator"), {"paso": 6, "ir": "enviar"})
+        npc = Character.objects.get(name="Ealoseum")
+        self.assertEqual((npc.race.name, npc.race.speed, npc.race.bespoke), ("Inmortal", 12, True))
+        self.assertEqual((npc.char_class.name, npc.char_class.bespoke), ("Guerrero inmortal", True))
+        self.assertEqual((npc.level, npc.hp, npc.temp_hp, npc.ac, npc.strength, npc.constitution, npc.can_level_up),
+                         (19, 520, 520, 21, 24, 22, False))
+        self.assertEqual((npc.max_ap, npc.max_magic_ap, npc.temp_ap), (11, 2, 11))
+        weapon = Weapon.objects.get(item__inventory__character=npc)
+        attack = weapon.attacks.get()
+        self.assertTrue(weapon.equipped and weapon.item.template.bespoke)
+        self.assertEqual((weapon.to_hit, attack.damage_text(npc), attack.range), ("3 + str", "2d10 + 1d6 + 11", 2))
+        self.assertEqual([(d.type, d.amount) for d in attack.armor_damages.all()], [("shredding", 3)])
+        # Players do not see the master's pieces in their creator.
+        page = self.player().get(self.url("creator") + "?paso=4").content.decode()
+        self.assertNotIn("Martillo del Inquisidor", page)
+        self.assertNotIn("Inmortal", self.player().get(self.url("creator")).content.decode())
+        # Nor in the rules catalog; masters do see them there.
+        self.assertNotContains(self.player().get(reverse("race_list")), "Inmortal")
+        self.assertNotContains(self.player().get(reverse("item_list")), "Martillo del Inquisidor")
+        template = weapon.item.template
+        self.assertEqual(self.player().get(reverse("item_detail", args=[template.pk])).status_code, 404)
+        self.client.force_login(self.carlos)
+        self.assertContains(self.client.get(reverse("race_list")), "Inmortal")
+
+    def test_wrong_dice_are_refused(self):
+        self.client.force_login(self.carlos)
+        response = self.post(4, weapon_name="Hacha", weapon_damage="dos dados")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "no son dados")
+
+    def test_jumping_to_another_step_keeps_the_portrait(self):
+        self.client.force_login(self.carlos)
+        url = self.url("npc_creator")
+        # A step link of the list on top: what is written is saved, the image too.
+        self.client.post(url, {"paso": 3, "ir": "paso-6", "name": "Kaledric", "portrait": png_upload("kaledric.png")})
+        draft = self.client.session[f"creador-pnj:{self.corona.pk}"]
+        self.assertEqual(draft["name"], "Kaledric")
+        self.assertTrue(draft["portrait"].startswith("retratos/kaledric"))
+        # With another field wrong, the image is kept anyway (the browser empties the file box).
+        self.client.post(url, {"paso": 3, "ir": "siguiente", "name": "", "portrait": png_upload("otra.png")})
+        self.assertTrue(self.client.session[f"creador-pnj:{self.corona.pk}"]["portrait"].startswith("retratos/otra"))
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp(prefix="kiroku-test-media-"))
+class MasterEditTests(DemoData):
+    """The master changes anything on a sheet, with or without the rules."""
+
+    def edit(self, character, **changes):
+        self.client.force_login(self.carlos)
+        url = self.url("character_edit", character.pk)
+        context = self.client.get(url).context
+        form = context["form"]
+        data = {name: ("" if value is None else value) for name, value in form.initial.items()
+                if name in form.fields and name != "portrait"}
+        if context["worn_form"] is not None:  # what the browser sends already filled in
+            data.update(context["worn_form"].initial)
+        data = {k: (v.pk if hasattr(v, "pk") else v) for k, v in data.items()}
+        data.update(changes)
+        data = {k: v for k, v in data.items() if v is not False}
+        return self.client.post(url, data)
+
+    def test_anything_beyond_the_rules(self):
+        aria = Character.objects.get(name="Aria")
+        response = self.edit(aria, level=17, hp=300, temp_hp=250, strength=28, ac=25, new_race="Owling",
+                             new_race_speed=12, weapon_name="Bastón de Sócrates", weapon_damage="3d8",
+                             armor_name="Túnica de la academia", armor_type="Ligera", armor_ap=5, armor_magic_ap=6)
+        self.assertRedirects(response, self.url("sheet", aria.pk), fetch_redirect_response=False)
+        aria.refresh_from_db()
+        self.assertEqual((aria.level, aria.hp, aria.temp_hp, aria.strength, aria.ac, aria.race.name, aria.subrace),
+                         (17, 300, 250, 28, 25, "Owling", None))
+        self.assertEqual((aria.max_ap, aria.max_magic_ap), (5, 6))
+        self.assertTrue(Weapon.objects.filter(item__inventory__character=aria, item__name="Bastón de Sócrates").exists())
+
+    def test_the_armor_worn_changes_its_ap(self):
+        brom = Character.objects.get(name="Brom")
+        self.assertIsNotNone(brom.equipped_armor)
+        self.edit(brom, worn_type="Pesada", worn_ap=12, worn_magic_ap=1)
+        self.assertEqual((brom.max_ap, brom.max_magic_ap), (12, 1))
+
+    def test_data_that_would_break_is_refused(self):
+        aria = Character.objects.get(name="Aria")
+        other = Subrace.objects.exclude(race=aria.race).first()
+        response = self.edit(aria, subrace=other.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "es un linaje de")
+
+    def test_only_masters(self):
+        aria = Character.objects.get(name="Aria")
+        self.assertEqual(self.player().get(self.url("character_edit", aria.pk)).status_code, 403)
+        self.client.force_login(self.carlos)
+        self.assertContains(self.client.get(self.url("sheet", aria.pk)), self.url("character_edit", aria.pk))
+
+    def test_the_paper_sheet_shows_the_portrait(self):
+        aria = Character.objects.get(name="Aria")
+        aria.portrait = png_upload("aria.png")
+        aria.save()
+        self.client.force_login(self.lucia)
+        self.client.post(self.url("sheet_view", aria.pk), {"vista": "ficha"})
+        self.assertContains(self.client.get(self.url("sheet", aria.pk)), 'class="avatar grande hoja-retrato"')
+        self.assertContains(self.client.get(self.url("sheet", aria.pk)), aria.portrait.url)
+
+
+class WorldBranchesTests(DemoData):
+    """Pages inside other pages fold in the world menu; the branch being read opens."""
+
+    def test_branches_fold_and_the_one_being_read_opens(self):
+        child = next(p for p in Page.objects.filter(campaign=self.corona, revealed=True, parent__revealed=True)
+                     if p.category == p.parent.category)
+        parent = child.parent
+        page = self.player().get(self.url("world_page", child.slug)).content.decode()
+        branch = re.search(r'<details class="rama"([^>]*)>\s*<summary>(.*?)</summary>', page, re.S)
+        self.assertIsNotNone(branch)
+        opened = re.findall(r'<details class="rama" open data-aqui[^>]*data-recordar="mundo-\d+-(\d+)"', page)
+        self.assertIn(str(parent.pk), opened)
+
+
+class MissionTests(DemoData):
+    """An adventure is an arc that tells what it is about and holds its missions, folded inside."""
+
+    def setUp(self):
+        self.arc = Quest.objects.get(campaign=self.corona, title="La Corona de Ceniza")
+        self.mission = Quest.objects.get(campaign=self.corona, title="Saqueadores en el Camino del Faro")
+        self.mission.parent = self.arc
+        self.mission.save()
+
+    def test_missions_are_told_inside_their_adventure(self):
+        page = self.player().get(self.url("diary")).content.decode()
+        start = page.index(f'id="aventura-{self.arc.pk}"')
+        end = page.index("</section>", start)
+        self.assertIn(f'<details id="aventura-{self.mission.pk}" class="mision', page[start:end])
+        # Not on its own any more, nor as a bar of the timeline.
+        self.assertEqual(page.count(f'id="aventura-{self.mission.pk}"'), 1)
+        timeline = self.player().get(self.url("diary_timeline")).content.decode()
+        self.assertNotIn(f"#aventura-{self.mission.pk}", timeline)
+
+    def test_a_hidden_adventure_hides_its_missions(self):
+        Quest.objects.filter(pk=self.arc.pk).update(hidden=True)
+        self.assertNotContains(self.player().get(self.url("diary")), self.mission.title)
+
+    def test_only_one_level(self):
+        other = Quest.objects.get(campaign=self.corona, title="Una deuda en los muelles")
+        other.parent = self.mission
+        with self.assertRaises(ValidationError):
+            other.full_clean()
+        self.arc.parent = other
+        with self.assertRaises(ValidationError):
+            self.arc.full_clean()
+
+
+def as_browser(*forms):
+    """What a browser sends for these forms (and formsets) as the page shows them, untouched."""
+    data = {}
+    for form in forms:
+        if form is None:
+            continue
+        subforms = [form]
+        if hasattr(form, "management_form"):
+            management = form.management_form
+            data.update({management.add_prefix(name): value for name, value in management.initial.items()})
+            subforms = form.forms
+        for sub in subforms:
+            for name in sub.fields:
+                value = sub[name].value()
+                if value is None or value is False or value == "":  # 0 is a value («XP repartida: 0»)
+                    continue
+                if value is True:
+                    value = "on"
+                elif isinstance(value, (list, tuple)) or hasattr(value, "all"):
+                    value = [getattr(v, "pk", v) for v in value]
+                else:
+                    value = getattr(value, "pk", value)
+                data[sub.add_prefix(name)] = value
+    return data
+
+
+class CampaignSetupTests(DemoData):
+    """A campaign made from the web: the first tab creates it, the others fill it little by little."""
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.unai = User.objects.get(username="unai")
+
+    def create(self):
+        self.client.force_login(self.unai)
+        response = self.client.post(reverse("campaign_new"), {
+            "name": "Las Islas Rotas", "description": "Un archipiélago tras el fin del mundo.", "start_date": "2026-11-23",
+            "ruleset": "aegis", "status": "activa"})
+        campaign = Campaign.objects.get(name="Las Islas Rotas")
+        self.assertRedirects(response, reverse("campaign_setup", args=[campaign.pk]) + "?paso=1", fetch_redirect_response=False)
+        return campaign
+
+    def tab(self, campaign, step, ir="siguiente", **changes):
+        """Open a tab, change some fields and press a button, as in the browser."""
+        url = reverse("campaign_setup", args=[campaign.pk])
+        context = self.client.get(url + f"?paso={step}").context
+        data = as_browser(*(context.get(name) for name in ("form", "page_form", "formset")))
+        data.update({"paso": step, "ir": ir})
+        data.update(changes)
+        return self.client.post(url, data)
+
+    def test_anonymous_users_log_in_first(self):
+        response = self.client.get(reverse("campaign_new"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("login"), response["Location"])
+
+    def test_create_it_and_fill_it_tab_by_tab(self):
+        campaign = self.create()
+        self.assertTrue(campaign.is_master(self.unai))
+        self.assertEqual((campaign.ruleset, campaign.status), ("aegis", "activa"))
+        # La mesa
+        self.tab(campaign, 1, masters=[self.unai.pk], players=[self.lucia.pk], notice="Traed dados.")
+        campaign.refresh_from_db()
+        self.assertEqual((list(campaign.players.all()), campaign.notice), ([self.lucia], "Traed dados."))
+        # El mundo
+        self.tab(campaign, 2, world_year="año 12 tras la Caída", **{"mundo-title": "El Archipiélago",
+                 "mundo-body": "Islas y mar.", "mundo-secret": "El mar está vivo."})
+        root = Page.objects.get(campaign=campaign, title="El Archipiélago")
+        self.assertEqual((root.category, root.revealed, root.secret), ("lugar", True, "El mar está vivo."))
+        # Lugares: one written, two left empty; inside the world by default and hidden until revealed.
+        self.tab(campaign, 4, **{"paginas-0-title": "Puerto Sal", "paginas-0-body": "El único puerto libre.",
+                                 "paginas-0-secret": "Lo controla el culto."})
+        place = Page.objects.get(campaign=campaign, category="lugar", title="Puerto Sal")
+        self.assertEqual((place.parent, place.revealed), (root, False))
+        self.assertEqual(Page.objects.filter(campaign=campaign, category="lugar").count(), 2)
+        # Facciones and PNJ, inside the place.
+        self.tab(campaign, 5, **{"paginas-0-title": "El culto de la marea", "paginas-0-parent": place.pk,
+                                 "paginas-0-revealed": "on"})
+        self.tab(campaign, 6, **{"paginas-0-title": "La capitana Ivo", "paginas-0-secret": "Es del culto."})
+        self.assertTrue(Page.objects.filter(campaign=campaign, category="faccion", revealed=True, parent=place).exists())
+        self.assertTrue(Page.objects.filter(campaign=campaign, category="pnj", title="La capitana Ivo").exists())
+        # Objetos e historias: each entry chooses which.
+        self.tab(campaign, 7, **{"paginas-0-title": "El ancla de hueso", "paginas-0-category": "objeto",
+                                 "paginas-1-title": "La Caída", "paginas-1-category": "historia"})
+        self.assertEqual(set(Page.objects.filter(campaign=campaign, category__in=["objeto", "historia"])
+                             .values_list("title", "category")), {("El ancla de hueso", "objeto"), ("La Caída", "historia")})
+        # Tramas: an adventure with its objectives, then a mission inside it.
+        self.tab(campaign, 8, ir="mas", **{"tramas-0-title": "La marea negra", "tramas-0-description": "El mar sube.",
+                                           "tramas-0-objectives": "Llegar a Puerto Sal\nHablar con Ivo",
+                                           "tramas-0-hidden_objectives": "Descubrir el culto"})
+        adventure = Quest.objects.get(campaign=campaign, title="La marea negra")
+        self.assertEqual([(o.text, o.hidden) for o in adventure.objectives.all()],
+                         [("Llegar a Puerto Sal", False), ("Hablar con Ivo", False), ("Descubrir el culto", True)])
+        self.tab(campaign, 8, **{"tramas-0-title": "El faro apagado", "tramas-0-parent": adventure.pk})
+        self.assertEqual(adventure.missions.get().title, "El faro apagado")
+        # Primera sesión
+        self.tab(campaign, 9, **{"sesion-title": "Naufragio", "sesion-body": "Llegan a la costa.", "sesion-published": "on"})
+        self.assertEqual(campaign.sessions.get().number, 1)
+        summary = self.client.get(reverse("campaign_setup", args=[campaign.pk]) + "?paso=10").content.decode()
+        self.assertIn("1 aventura(s), 1 misión(es)", summary)
+        self.assertIn("El Archipiélago", summary)
+        # The player sees the campaign, but not the assistant.
+        self.client.force_login(self.lucia)
+        self.assertEqual(self.client.get(reverse("home", args=[campaign.pk])).status_code, 200)
+        self.assertEqual(self.client.get(reverse("campaign_setup", args=[campaign.pk])).status_code, 403)
+
+    def test_an_empty_tab_saves_nothing_and_errors_keep_what_was_written(self):
+        campaign = self.create()
+        response = self.tab(campaign, 5)
+        self.assertRedirects(response, reverse("campaign_setup", args=[campaign.pk]) + "?paso=6", fetch_redirect_response=False)
+        self.assertFalse(Page.objects.filter(campaign=campaign).exists())
+        # A faction without a name: the tab comes back with the text and the error.
+        response = self.tab(campaign, 5, **{"paginas-0-body": "Sin nombre todavía."})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Sin nombre todavía.")
+        self.assertFalse(Page.objects.filter(campaign=campaign).exists())
+
+    def test_the_master_stays_and_nobody_is_master_and_player(self):
+        campaign = self.create()
+        response = self.tab(campaign, 1, masters=[self.carlos.pk])
+        self.assertContains(response, "Tú tienes que seguir siendo máster")
+        response = self.tab(campaign, 1, masters=[self.unai.pk], players=[self.unai.pk])
+        self.assertContains(response, "no puede ser máster y jugador a la vez")
+        self.assertTrue(campaign.is_master(self.unai))
+
+    def test_other_campaigns_are_not_reachable(self):
+        self.client.force_login(self.unai)
+        other = Campaign.objects.exclude(masters=self.unai).exclude(players=self.unai).first()
+        self.assertEqual(self.client.get(reverse("campaign_setup", args=[other.pk])).status_code, 404)

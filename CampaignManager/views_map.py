@@ -26,7 +26,10 @@ def map_context(request, campaign, is_master, map_id=None, location_id=None, dra
     max_session = sessions[-1].number if sessions else 1
     until = request.GET.get("hasta")
     until = max(1, min(int(until), max_session)) if until and until.isdigit() else max_session
-    md = map_data(current, is_master, until_session=until)
+    # The other end of the slider: the route between two sessions (from 1 by default).
+    since = request.GET.get("desde")
+    since = max(1, min(int(since), until)) if since and since.isdigit() else 1
+    md = map_data(current, is_master, until_session=until, since_session=since)
     visible = {loc.pk: loc for loc in md["locations"]}
     location_id = location_id or request.GET.get("lugar")
     selected = visible.get(int(location_id)) if str(location_id or "").isdigit() else None
@@ -51,19 +54,26 @@ def map_context(request, campaign, is_master, map_id=None, location_id=None, dra
         detail = {"location": selected, "page": page,
                   "description": (page.summary or first_sentence(page.body)) if page else "",
                   "visits": visits, "events": events, "actions": actions}
-    query_session = request.GET.get("hasta", "")
+    # Links on the map keep the chosen sessions.
+    route_query = "".join(f"&{name}={request.GET[name]}" for name in ("desde", "hasta")
+                          if request.GET.get(name, "").isdigit())
     placing = is_master and (request.GET.get("colocar") == "1" or draft is not None)
+
+    def pct(number):
+        return round((number - 1) * 100 / (max_session - 1), 2) if max_session > 1 else 0
     return {
         "maps": maps, "current_map": current, "md": md, "detail": detail, "selected": selected,
-        "max_session": max_session, "until": until,
+        "max_session": max_session, "until": until, "since": since,
         "until_session": next((s for s in sessions if s.number == until), None),
+        "since_session": next((s for s in sessions if s.number == since), None),
+        "since_pct": pct(since), "until_pct": pct(until),
         "placing": placing, "draft": draft,
         # The master shapes the way followed between stops (not while placing a location).
         "editing_route": is_master and not placing and bool(md["segments"])
                          and (editing if editing is not None else request.GET.get("recorrido") == "1"),
         "map_form": MapForm(instance=current, campaign=campaign) if is_master else None,
         "location_form": LocationForm(initial={"status": "conocido", "x": 50, "y": 50}),
-        "places": md["locations"], "query_session": query_session,
+        "places": md["locations"], "route_query": route_query,
     }
 
 

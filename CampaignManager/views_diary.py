@@ -54,9 +54,14 @@ def last_session(campaign):
 # Aventuras: each adventure with its objectives and the sessions it spans
 # ---------------------------------------------------------------------------
 
-def adventure_quests(campaign):
-    return list(Quest.objects.of(campaign).select_related("giver", "start_session", "end_session")
+def adventure_quests(campaign, user):
+    """The adventures and missions this reader may see: hidden ones only reach masters."""
+    return list(Quest.objects.visible_for(user, campaign).select_related("giver", "start_session", "end_session", "parent")
                 .prefetch_related("objectives"))
+
+
+def chronological(quest):
+    return (quest.start_session is None, quest.start_session.number if quest.start_session else 0, quest.pk)
 
 
 class AdventureListView(DiaryMixin, TemplateView):
@@ -66,20 +71,35 @@ class AdventureListView(DiaryMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         sessions = list(Session.objects.visible_for(self.request.user, self.campaign).order_by("number"))
         last_number = sessions[-1].number if sessions else 0
-        quests = adventure_quests(self.campaign)
-        # Newest first inside each group; adventures without a start session at the end.
-        quests.sort(key=lambda q: (q.start_session is None, -(q.start_session.number if q.start_session else 0), -q.pk))
+        quests = adventure_quests(self.campaign, self.request.user)
+        visible_ids = {q.pk for q in quests}
+        missions_of = {}
+        for quest in quests:
+            if quest.parent_id in visible_ids:
+                missions_of.setdefault(quest.parent_id, []).append(quest)
+        # Adventures (arcs) newest first inside each group, those without a start session at the end.
+        # Their missions go inside them, in the order they happened.
+        adventures = [q for q in quests if q.parent_id not in visible_ids]
+        adventures.sort(key=lambda q: (q.start_session is None, -(q.start_session.number if q.start_session else 0), -q.pk))
         covered, groups = set(), []
         for status, label in STATUS_GROUPS:
             items = []
-            for quest in quests:
+            for quest in adventures:
                 if quest.status != status:
                     continue
+                missions = []
+                for mission in sorted(missions_of.get(quest.pk, []), key=chronological):
+                    mine = [s for s in sessions if mission.covers(s.number, last_number)]
+                    covered.update(s.pk for s in mine)
+                    missions.append({"q": quest_card(mission, self.is_master), "sessions": mine})
+                in_missions = {s.pk for m in missions for s in m["sessions"]}
                 own = [s for s in sessions if quest.covers(s.number, last_number)]
                 covered.update(s.pk for s in own)
-                items.append({"q": quest_card(quest, self.is_master), "sessions": own})
+                # With missions, the arc's own list keeps only the sessions none of them covers.
+                items.append({"q": quest_card(quest, self.is_master), "missions": missions,
+                              "sessions": [s for s in own if s.pk not in in_missions] if missions else own})
             if items:
-                groups.append({"label": label, "items": items})
+                groups.append({"label": label, "items": items, "folded": status != Quest.Status.ACTIVA})
         context.update(groups=groups, loose=[s for s in reversed(sessions) if s.pk not in covered])
         return context
 
@@ -161,7 +181,8 @@ def timeline_context(request, campaign, is_master, selected=None):
         events = events.filter(characters__pk=int(pc_filter))
     sessions = list(Session.objects.visible_for(user, campaign).order_by("number"))
     last_number = sessions[-1].number if sessions else 0
-    quests = [q for q in adventure_quests(campaign) if q.start_session]
+    # The path of the adventures (arcs): their missions are told in «Aventuras».
+    quests = [q for q in adventure_quests(campaign, user) if q.start_session and q.parent_id is None]
     # One adventure: only its sessions and their events.
     adventure = next((q for q in quests if str(q.pk) == request.GET.get("aventura")), None)
     if adventure is not None:
@@ -184,7 +205,8 @@ def timeline_context(request, campaign, is_master, selected=None):
 
     segments, marks, spans, x = [], [], {}, 0
     groups = ([(None, "Sin sesión", "Sucesos sin sesión")] if by_session.get(None) else []) + [
-        (s.pk, f"S{s.number} · {s.title}", f"Sesión {s.number} · {s.title} · {s.played_on:%d/%m/%Y}") for s in sessions]
+        (s.pk, f"S{s.number} · {s.title}", f"Sesión {s.number} · {s.title}" + (f" · {s.played_on:%d/%m/%Y}" if s.played_on else ""))
+        for s in sessions]
     for index, (key, label, full) in enumerate(groups):
         group_events = by_session.get(key, [])
         width = max(1, len(group_events)) * SLOT
@@ -601,7 +623,9 @@ def scene_toggle(request, campaign, pk):
 # Misiones
 # ---------------------------------------------------------------------------
 
-STATUS_GROUPS = [(Quest.Status.ACTIVA, gettext_noop("En curso")), (Quest.Status.COMPLETADA, gettext_noop("Completadas")), (Quest.Status.FALLIDA, gettext_noop("Fallidas"))]
+STATUS_GROUPS = [(Quest.Status.ACTIVA, gettext_noop("En curso")), (Quest.Status.TERMINADA, gettext_noop("Terminadas")),
+                 (Quest.Status.COMPLETADA, gettext_noop("Completadas")), (Quest.Status.FALLIDA, gettext_noop("Fallidas")),
+                 (Quest.Status.SIN_DATO, gettext_noop("Sin dato"))]
 
 
 def quest_card(quest, is_master):
@@ -612,7 +636,9 @@ def quest_card(quest, is_master):
         objectives.append({"objective": objective, "locked": locked, "text": "" if locked else objective.text,
                            "secret": objective.hidden and is_master})
     done = sum(1 for o in quest.objectives.all() if o.done)
-    return {"quest": quest, "objectives": objectives, "done": done, "total": len(objectives)}
+    # Missions, and adventures that are over, are shown folded: their title is in the fold's summary.
+    return {"quest": quest, "objectives": objectives, "done": done, "total": len(objectives),
+            "folded": quest.parent_id is not None or quest.status != Quest.Status.ACTIVA}
 
 
 class QuestFormMixin:
@@ -658,7 +684,10 @@ class QuestFormMixin:
 
 
 class QuestCreateView(MasterRequiredMixin, QuestFormMixin, DiaryMixin, CreateView):
-    pass
+    def get_initial(self):
+        # «+ Nueva misión» inside an adventure: the new quest goes in it.
+        inside = self.request.GET.get("dentro", "")
+        return {"parent": inside} if inside.isdigit() else {}
 
 
 class QuestUpdateView(MasterRequiredMixin, QuestFormMixin, DiaryMixin, UpdateView):
@@ -672,7 +701,8 @@ def objective_toggle(request, campaign, pk):
     objective = get_object_or_404(QuestObjective, pk=pk, quest__campaign=campaign)
     objective.done = not objective.done
     objective.save()  # marking a hidden objective as done reveals it
-    quest = Quest.objects.select_related("giver", "start_session", "end_session").prefetch_related("objectives").get(pk=objective.quest_id)
+    quest = (Quest.objects.select_related("giver", "start_session", "end_session", "parent").prefetch_related("objectives")
+             .get(pk=objective.quest_id))
     context = {"campaign": campaign, "is_master": True, "q": quest_card(quest, True)}
     return respond(request, redirect_to=reverse("diary", args=[campaign.pk]),
                    template="partials/quest_card.html", context=context, target=f"#mision-{quest.pk}")

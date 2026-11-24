@@ -2,10 +2,10 @@
 from django import forms
 from django.forms import inlineformset_factory
 
-from . import rules
+from . import bespoke, rules
 from .models import (
-    BoardCard, Character, CharacterClass, Item, Map, MapLocation, Page, Post, Quest, QuestObjective, Race, Scene,
-    Session, Spell, Subclass, Subrace, TimelineEvent, User,
+    BoardCard, Campaign, Character, CharacterClass, Item, Map, MapLocation, Page, Post, Quest, QuestObjective, Race, Scene,
+    Session, Spell, Stat, Subclass, Subrace, TimelineEvent, User,
 )
 
 
@@ -42,8 +42,9 @@ class SessionForm(CampaignFormMixin, forms.ModelForm):
 class EventForm(CampaignFormMixin, forms.ModelForm):
     class Meta:
         model = TimelineEvent
-        fields = ["title", "kind", "hidden"]
-        labels = {"title": "Qué ha pasado", "kind": "Tipo", "hidden": "Solo para el máster"}
+        fields = ["title", "kind", "hidden", "description", "secret"]
+        labels = {"title": "Qué ha pasado", "kind": "Tipo", "hidden": "Solo para el máster",
+                  "description": "Descripción", "secret": "Secreto del máster (solo lo ves tú)"}
 
 
 class BoardCardForm(CampaignFormMixin, forms.ModelForm):
@@ -108,12 +109,16 @@ class QuestForm(CampaignFormMixin, forms.ModelForm):
 
     class Meta:
         model = Quest
-        fields = ["title", "description", "status", "start_session", "end_session", "giver"]
-        labels = {"title": "Título", "description": "Descripción", "status": "Estado", "giver": "Quién la encarga",
-                  "start_session": "Empieza en la sesión", "end_session": "Termina en la sesión"}
-        help_texts = {"end_session": "Déjalo vacío mientras está en curso. Al completarla o fallarla, la sesión en que acabó.",
-                      "start_session": ""}
-        widgets = {"description": forms.Textarea(attrs={"rows": 3})}
+        fields = ["title", "parent", "description", "status", "start_session", "end_session", "giver", "secret", "hidden"]
+        labels = {"title": "Título", "parent": "Dentro de la aventura", "description": "Descripción", "status": "Estado",
+                  "giver": "Quién la encarga",
+                  "start_session": "Empieza en la sesión", "end_session": "Termina en la sesión",
+                  "secret": "Secreto del máster (solo lo ves tú)", "hidden": "Oculta: los jugadores no la ven"}
+        help_texts = {"end_session": "Déjalo vacío mientras está en curso. Al completarla, fallarla o acabarla sin dato, la sesión en que acabó.",
+                      "start_session": "",
+                      "description": "Los jugadores la leen. Lo que no deben saber va en el secreto del máster.",
+                      "parent": "Vacío: es una aventura (un arco). Si eliges una, esta es una de sus misiones y se cuenta dentro de ella."}
+        widgets = {"description": forms.Textarea(attrs={"rows": 3}), "secret": forms.Textarea(attrs={"rows": 3})}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -124,6 +129,15 @@ class QuestForm(CampaignFormMixin, forms.ModelForm):
             self.fields[name].label_from_instance = lambda s: f"{s.number} · {s.title}"
         self.fields["end_session"].empty_label = "Todavía no ha terminado"
         self.fields["start_session"].empty_label = "Sin sesión"
+        # Only adventures (no missions) can hold missions, and an adventure with missions stays one.
+        adventures = Quest.objects.filter(campaign=self.campaign, parent__isnull=True).order_by("title")
+        if self.instance.pk:
+            adventures = adventures.exclude(pk=self.instance.pk)
+        self.fields["parent"].queryset = adventures
+        self.fields["parent"].empty_label = "Ninguna: es una aventura"
+        if self.instance.pk and self.instance.missions.exists():
+            self.fields["parent"].disabled = True
+            self.fields["parent"].help_text = "Tiene misiones dentro, así que es una aventura."
 
 
 # The adventure's checklist. One empty form: the «new objective» box. With JavaScript,
@@ -187,14 +201,30 @@ class LocationForm(forms.ModelForm):
 # ---------------------------------------------------------------------------
 
 class RaceStepForm(forms.Form):
-    race = forms.ModelChoiceField(Race.objects.order_by("name"), label="Raza", widget=forms.RadioSelect,
+    race = forms.ModelChoiceField(Race.objects.filter(bespoke=False).order_by("name"), label="Raza", widget=forms.RadioSelect,
                                   error_messages={"required": "Elige una raza."})
     subrace = forms.ModelChoiceField(Subrace.objects.order_by("name"), label="Linaje", required=False, widget=forms.RadioSelect)
+    # NPCs only: a race the master writes (an immortal, a beast...). It takes the place of the one chosen.
+    race_name = forms.CharField(label="O una raza nueva", required=False, max_length=100)
+    race_speed = forms.IntegerField(label="Velocidad (m)", required=False, min_value=0, max_value=200, initial=9)
+
+    def __init__(self, *args, npc=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        if npc:
+            self.fields["race"].queryset = Race.objects.order_by("name")  # the master's own races too
+            self.fields["race"].required = False
+        else:
+            del self.fields["race_name"], self.fields["race_speed"]
 
     def clean(self):
         cleaned = super().clean()
+        if (cleaned.get("race_name") or "").strip():
+            cleaned["race"], cleaned["subrace"] = None, None
+            return cleaned
         race, subrace = cleaned.get("race"), cleaned.get("subrace")
         if race is None:
+            if "race_name" in self.fields and not self.has_error("race"):
+                self.add_error("race", "Elige una raza o escribe una nueva.")
             return cleaned
         if subrace is not None and subrace.race_id != race.pk:
             self.add_error("subrace", f"{subrace} es un linaje de {subrace.race}, no de {race}.")
@@ -204,13 +234,35 @@ class RaceStepForm(forms.Form):
 
 
 class ClassStepForm(forms.Form):
-    char_class = forms.ModelChoiceField(CharacterClass.objects.order_by("name"), label="Clase", widget=forms.RadioSelect,
-                                        error_messages={"required": "Elige una clase."})
+    char_class = forms.ModelChoiceField(CharacterClass.objects.filter(bespoke=False).order_by("name"), label="Clase",
+                                        widget=forms.RadioSelect, error_messages={"required": "Elige una clase."})
+    # NPCs only: a class the master writes, with the magic it gives.
+    class_name = forms.CharField(label="O una clase nueva", required=False, max_length=100)
+    class_magic = forms.ChoiceField(label="Su magia", required=False, choices=CharacterClass.Magic.choices,
+                                    initial=CharacterClass.Magic.NINGUNA)
+
+    def __init__(self, *args, npc=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        if npc:
+            self.fields["char_class"].queryset = CharacterClass.objects.order_by("name")
+            self.fields["char_class"].required = False
+        else:
+            del self.fields["class_name"], self.fields["class_magic"]
+
+    def clean(self):
+        cleaned = super().clean()
+        if (cleaned.get("class_name") or "").strip():
+            cleaned["char_class"] = None
+        elif "class_name" in self.fields and cleaned.get("char_class") is None and not self.has_error("char_class"):
+            self.add_error("char_class", "Elige una clase o escribe una nueva.")
+        return cleaned
 
 
 class ScoresStepForm(forms.Form):
-    """Standard array (15, 14, 13, 12, 10, 8, one each) or point buy (27 points, 8 to 15)."""
+    """Standard array (15, 14, 13, 12, 10, 8, one each) or point buy (27 points, 8 to 15).
+    NPCs made by a master can also take any score from 1 to 30 («libre»)."""
     METHODS = [("estandar", "Valores estándar"), ("puntos", "Reparto de puntos")]
+    FREE = ("libre", "Libre")
     method = forms.ChoiceField(choices=METHODS, label="Método", widget=forms.RadioSelect, initial="puntos")
     strength = forms.IntegerField(label="Fuerza", min_value=3, max_value=20)
     dexterity = forms.IntegerField(label="Destreza", min_value=3, max_value=20)
@@ -218,6 +270,13 @@ class ScoresStepForm(forms.Form):
     intelligence = forms.IntegerField(label="Inteligencia", min_value=3, max_value=20)
     wisdom = forms.IntegerField(label="Sabiduría", min_value=3, max_value=20)
     charisma = forms.IntegerField(label="Carisma", min_value=3, max_value=20)
+
+    def __init__(self, *args, free=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        if free:
+            self.fields["method"].choices = [*self.METHODS, self.FREE]
+            for key in rules.ABILITY_KEYS:
+                self.fields[key] = forms.IntegerField(label=self.fields[key].label, min_value=1, max_value=30)
 
     def scores(self):
         return {key: self.cleaned_data[key] for key in rules.ABILITY_KEYS}
@@ -227,6 +286,8 @@ class ScoresStepForm(forms.Form):
         if any(cleaned.get(key) is None for key in rules.ABILITY_KEYS):
             return cleaned
         values = [cleaned[key] for key in rules.ABILITY_KEYS]
+        if cleaned.get("method") == "libre":
+            return cleaned  # only offered to NPCs; each field already checks 1 to 30
         if cleaned.get("method") == "estandar":
             if sorted(values, reverse=True) != rules.STANDARD_ARRAY:
                 raise forms.ValidationError("Con los valores estándar, reparte 15, 14, 13, 12, 10 y 8: uno en cada característica.")
@@ -244,22 +305,183 @@ class IdentityStepForm(forms.Form):
     portrait = forms.ImageField(label="Retrato", required=False)
     background = forms.CharField(label="Trasfondo", required=False, max_length=5000, widget=forms.Textarea(attrs={"rows": 6}))
     player = forms.ModelChoiceField(User.objects.none(), label="Jugador", required=False)
+    # NPCs only: level, hit points and armor class need not follow the rules (a bestiary entry, a boss...).
+    level = forms.IntegerField(label="Nivel", required=False, min_value=1, max_value=rules.MAX_LEVEL, initial=1)
+    hp = forms.IntegerField(label="Vida máxima", required=False, min_value=1, max_value=9999,
+                            help_text="Vacía: la de la clase (dado de golpe + Constitución a nivel 1, y la media de cada nivel más).")
+    ac = forms.IntegerField(label="Clase de armadura", required=False, min_value=0, max_value=60,
+                            help_text="Vacía: 10 + el modificador de Destreza.")
+    NPC_ONLY = ("level", "hp", "ac")
 
-    def __init__(self, *args, campaign=None, is_master=False, **kwargs):
+    def __init__(self, *args, campaign=None, is_master=False, npc=False, **kwargs):
         super().__init__(*args, **kwargs)
-        if is_master:
+        if is_master and not npc:
             self.fields["player"].queryset = campaign.players.order_by("username")
         else:
             del self.fields["player"]
+        if not npc:
+            for name in self.NPC_ONLY:
+                del self.fields[name]
 
 
-class EquipmentStepForm(forms.Form):
+class BespokeWeaponFields(forms.Form):
+    """A unique weapon written by the master. Leave the name empty for none."""
+    STATS = [("str", "Fuerza"), ("dex", "Destreza")]
+    weapon_name = forms.CharField(label="Nombre del arma única", required=False, max_length=100)
+    weapon_description = forms.CharField(label="Su historia o lo que hace", required=False, max_length=3000,
+                                         widget=forms.Textarea(attrs={"rows": 3}))
+    weapon_damage = forms.CharField(label="Dados de daño", required=False, max_length=60,
+                                    help_text="Por ejemplo «2d6» o «1d10 + 1d4». Vacío si solo hace daño fijo.")
+    weapon_extra = forms.IntegerField(label="Daño fijo", required=False, min_value=-50, max_value=200, initial=0)
+    weapon_stat_bonus = forms.ChoiceField(label="Suma al daño", required=False,
+                                          choices=[("", "Nada"), *STATS])
+    weapon_hit_bonus = forms.IntegerField(label="Bonificador de golpe", required=False, min_value=-20, max_value=40, initial=0)
+    weapon_hit_stat = forms.ChoiceField(label="Golpea con", choices=STATS, initial="str", required=False)
+    weapon_range = forms.IntegerField(label="Alcance (m)", required=False, min_value=0, max_value=1000, initial=1)
+    weapon_pierce = forms.IntegerField(label="Penetrante", required=False, min_value=0, max_value=50,
+                                       help_text="AP que ignora. 0 o vacío: nada.")
+    weapon_shred = forms.IntegerField(label="Triturante", required=False, min_value=0, max_value=50,
+                                      help_text="AP que quita después del golpe.")
+
+    def clean_weapon_damage(self):
+        text = self.cleaned_data.get("weapon_damage", "")
+        try:
+            bespoke.parse_dice(text)
+        except ValueError as error:
+            raise forms.ValidationError(f"«{error}» no son dados: escribe por ejemplo 2d6 o 1d10 + 1d4.")
+        return text
+
+    def weapon_data(self):
+        data = self.cleaned_data
+        name = (data.get("weapon_name") or "").strip()
+        if not name:
+            return None
+        return {"name": name, "description": data.get("weapon_description", ""),
+                "dice": bespoke.parse_dice(data.get("weapon_damage")), "extra": data.get("weapon_extra") or 0,
+                "stat_bonus": data.get("weapon_stat_bonus") or "", "hit_bonus": data.get("weapon_hit_bonus") or 0,
+                "hit_stat": data.get("weapon_hit_stat") or "str", "range": data.get("weapon_range"),
+                "pierce": data.get("weapon_pierce") or 0, "shred": data.get("weapon_shred") or 0}
+
+
+class BespokeArmorFields(forms.Form):
+    """An armor of the master's own: its type and how many AP it gives in total."""
+    armor_name = forms.CharField(label="Nombre de la armadura propia", required=False, max_length=100)
+    armor_type = forms.ChoiceField(label="Tipo", required=False, choices=[])
+    armor_ap = forms.IntegerField(label="AP en total", required=False, min_value=0, max_value=200, initial=0)
+    armor_magic_ap = forms.IntegerField(label="AP mágico en total", required=False, min_value=0, max_value=200, initial=0)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["armor_type"].choices = [(name, name) for name in bespoke.armor_type_names()]
+
+    def armor_data(self):
+        data = self.cleaned_data
+        name = (data.get("armor_name") or "").strip()
+        if not name:
+            return None
+        return {"name": name, "type": data.get("armor_type") or bespoke.ARMOR_TYPE_NAMES[0],
+                "ap": data.get("armor_ap") or 0, "magic_ap": data.get("armor_magic_ap") or 0}
+
+
+class EquipmentStepForm(BespokeWeaponFields, BespokeArmorFields):
     weapons = forms.ModelMultipleChoiceField(
-        Item.objects.filter(weapon__isnull=False, template__isnull=True).order_by("name"),
+        Item.objects.filter(weapon__isnull=False, template__isnull=True, bespoke=False).order_by("name"),
         label="Armas", required=False, widget=forms.CheckboxSelectMultiple)
     armor = forms.ModelChoiceField(
-        Item.objects.filter(armor__isnull=False, template__isnull=True).order_by("name"),
+        Item.objects.filter(armor__isnull=False, template__isnull=True, bespoke=False).order_by("name"),
         label="Armadura", required=False, empty_label="Sin armadura", widget=forms.RadioSelect)
+
+    def __init__(self, *args, npc=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        if npc:  # the master's own pieces made before can be chosen again
+            self.fields["weapons"].queryset = Item.objects.filter(weapon__isnull=False, template__isnull=True).order_by("name")
+            self.fields["armor"].queryset = Item.objects.filter(armor__isnull=False, template__isnull=True).order_by("name")
+        else:
+            for name in list(self.fields):
+                if name.startswith(("weapon_", "armor_")):
+                    del self.fields[name]
+
+
+class CharacterMasterForm(forms.ModelForm):
+    """Everything on a sheet, as the master wants it, whatever the rules say: level, hit
+    points, AP, scores up to 30... Only what keeps the data whole is checked (a subrace of
+    its race, a subclass of its class). A race or class can also be written anew."""
+    new_race = forms.CharField(label="O una raza nueva", required=False, max_length=100)
+    new_race_speed = forms.IntegerField(label="Su velocidad (m)", required=False, min_value=0, max_value=200)
+    new_class = forms.CharField(label="O una clase nueva", required=False, max_length=100)
+    new_class_magic = forms.ChoiceField(label="Su magia", required=False, choices=CharacterClass.Magic.choices,
+                                        initial=CharacterClass.Magic.NINGUNA)
+
+    class Meta:
+        model = Character
+        fields = ["name", "player", "status", "portrait", "background", "race", "subrace", "char_class", "subclass",
+                  "level", "xp", "hp", "temp_hp", "ac", "temp_ap", "inspiration", "magic_points", "magic_points_bonus",
+                  *rules.ABILITY_KEYS, "dead"]
+        labels = {"name": "Nombre", "player": "Jugador", "status": "Estado", "portrait": "Retrato", "background": "Trasfondo",
+                  "race": "Raza", "subrace": "Linaje", "char_class": "Clase", "subclass": "Subclase", "level": "Nivel",
+                  "xp": "XP", "hp": "Vida máxima", "temp_hp": "Vida actual", "ac": "Clase de armadura", "temp_ap": "AP actuales",
+                  "inspiration": "Inspiración", "magic_points": "Puntos de magia actuales",
+                  "magic_points_bonus": "Ajuste de puntos de magia", "dead": "Muerto",
+                  **{key: rules.ABILITY_NAMES[key] for key in rules.ABILITY_KEYS}}
+        help_texts = {"magic_points_bonus": "Se suma a lo que da la clase a su nivel (puede ser negativo).",
+                      "temp_ap": "El máximo sale de la armadura equipada: cámbialo abajo, en «Armadura equipada».",
+                      "level": "Cambiarlo aquí no aplica lo que da el nivel (subclase, mejoras): es tu decisión."}
+        widgets = {"background": forms.Textarea(attrs={"rows": 4})}
+
+    def __init__(self, *args, campaign=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["player"].queryset = campaign.players.order_by("username") if campaign else User.objects.none()
+        self.fields["player"].required = False
+        self.fields["race"].required = self.fields["char_class"].required = False
+        self.fields["race"].queryset = Race.objects.order_by("name")
+        self.fields["char_class"].queryset = CharacterClass.objects.order_by("name")
+        self.fields["subrace"].queryset = Subrace.objects.select_related("race").order_by("race__name", "name")
+        self.fields["subrace"].label_from_instance = lambda s: f"{s.race} · {s.name}"
+        self.fields["subclass"].queryset = Subclass.objects.select_related("char_class").order_by("char_class__name", "name")
+        self.fields["subclass"].label_from_instance = lambda s: f"{s.char_class} · {s.name}"
+        for key in rules.ABILITY_KEYS:
+            self.fields[key] = forms.IntegerField(label=rules.ABILITY_NAMES[key], min_value=1, max_value=30)
+        self.fields["level"] = forms.IntegerField(label="Nivel", min_value=1, max_value=rules.MAX_LEVEL,
+                                                  help_text=self.Meta.help_texts["level"])
+        if self.instance.is_npc:
+            del self.fields["player"], self.fields["status"]
+
+    def clean(self):
+        cleaned = super().clean()
+        if (cleaned.get("new_race") or "").strip():
+            cleaned["race"] = bespoke.race(cleaned["new_race"], cleaned.get("new_race_speed"))
+            cleaned["subrace"] = None
+        elif cleaned.get("race") is None:
+            self.add_error("race", "Elige una raza o escribe una nueva.")
+        if (cleaned.get("new_class") or "").strip():
+            cleaned["char_class"] = bespoke.char_class(cleaned["new_class"], cleaned.get("new_class_magic"))
+            cleaned["subclass"] = None
+        elif cleaned.get("char_class") is None:
+            self.add_error("char_class", "Elige una clase o escribe una nueva.")
+        race, subrace = cleaned.get("race"), cleaned.get("subrace")
+        if race and subrace and subrace.race_id != race.pk:
+            self.add_error("subrace", f"{subrace.name} es un linaje de {subrace.race}, no de {race}.")
+        char_class, subclass = cleaned.get("char_class"), cleaned.get("subclass")
+        if char_class and subclass and subclass.char_class_id != char_class.pk:
+            self.add_error("subclass", f"{subclass.name} es una subclase de {subclass.char_class}, no de {char_class}.")
+        if cleaned.get("magic_points") is not None and cleaned["magic_points"] < 0:
+            self.add_error("magic_points", "No pueden ser negativos.")
+        if char_class and cleaned.get("magic_points") is not None and cleaned.get("level"):
+            top = max(0, rules.class_magic_points(char_class.magic, cleaned["level"]) + (cleaned.get("magic_points_bonus") or 0))
+            if cleaned["magic_points"] > top:
+                self.add_error("magic_points", f"Con su clase, nivel y ajuste el máximo es {top}: sube el ajuste si quieres más.")
+        return cleaned
+
+
+class EquippedArmorForm(forms.Form):
+    """The armor the character wears, changed by the master: its type and its AP."""
+    worn_type = forms.ChoiceField(label="Tipo", choices=[])
+    worn_ap = forms.IntegerField(label="AP en total", min_value=0, max_value=200)
+    worn_magic_ap = forms.IntegerField(label="AP mágico en total", min_value=0, max_value=200)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["worn_type"].choices = [(name, name) for name in bespoke.armor_type_names()]
 
 
 class UniqueSkillForm(forms.Form):
@@ -386,3 +608,142 @@ class LevelUpForm(forms.Form):
                 self.add_error(None, f"{labels[key]} no puede pasar de {rules.MAX_SCORE}: "
                                      f"tiene {getattr(self.character, key)}.")
         return cleaned
+
+
+# ---------------------------------------------------------------------------
+# Asistente de campaña: one tab after another, from the basic data to the world,
+# its places, factions, NPCs, lore, plots and the first session.
+# ---------------------------------------------------------------------------
+
+class CampaignBasicsForm(forms.ModelForm):
+    """Tab 1: the least a campaign needs. Whoever creates it becomes its master."""
+
+    class Meta:
+        model = Campaign
+        fields = ["name", "description", "start_date", "ruleset", "status"]
+        labels = {"name": "Nombre de la campaña", "description": "De qué va", "start_date": "Fecha de inicio",
+                  "ruleset": "Reglamento", "status": "Estado"}
+        help_texts = {"description": "La premisa, en pocas líneas. La leen los jugadores.",
+                      "ruleset": "Aegis es nuestra variante del SRD (vida 1d4 por nivel, habilidades únicas...). Se puede cambiar luego.",
+                      "start_date": "El día en que empezó (o empezará) a jugarse."}
+        widgets = {"description": forms.Textarea(attrs={"rows": 5}), "ruleset": forms.RadioSelect, "status": forms.RadioSelect,
+                   "start_date": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")}
+
+
+class CampaignTableForm(forms.ModelForm):
+    """Tab 2: who sits at the table, and the master's notice on the home page."""
+
+    class Meta:
+        model = Campaign
+        fields = ["masters", "players", "notice"]
+        labels = {"masters": "Másters", "players": "Jugadores", "notice": "Aviso del máster"}
+        help_texts = {"masters": "Quienes dirigen: ven y cambian todo, también los secretos.",
+                      "players": "Ven lo que reveles. Cada uno creará su personaje desde «Personajes».",
+                      "notice": "Sale en la portada de la campaña: la próxima sesión, qué traer..."}
+        widgets = {"masters": forms.CheckboxSelectMultiple, "players": forms.CheckboxSelectMultiple,
+                   "notice": forms.Textarea(attrs={"rows": 3})}
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        users = User.objects.order_by("username")
+        self.fields["masters"].queryset = users
+        self.fields["players"].queryset = users
+        self.fields["players"].required = False
+
+    def clean(self):
+        cleaned = super().clean()
+        masters, players = cleaned.get("masters"), cleaned.get("players")
+        if masters is not None and self.user is not None and self.user not in masters:
+            self.add_error("masters", "Tú tienes que seguir siendo máster de la campaña.")
+        if masters is not None and players is not None:
+            both = sorted(u.username for u in set(masters) & set(players))
+            if both:
+                self.add_error("players", f"{', '.join(both)} no puede ser máster y jugador a la vez.")
+        return cleaned
+
+
+class CampaignWorldForm(forms.ModelForm):
+    """Tab 3, the campaign's part: when it is in the world, and the cover of its home page."""
+
+    class Meta:
+        model = Campaign
+        fields = ["world_year", "world_day", "cover"]
+        labels = {"world_year": "Año en el mundo", "world_day": "Día en el mundo", "cover": "Portada"}
+        help_texts = {"world_year": "Por ejemplo «2401 dk» o «año 1203».", "world_day": "Por ejemplo «Día 9 de Brumaluz».",
+                      "cover": "La imagen de la portada de la campaña."}
+
+
+class WorldPageForm(forms.Form):
+    """Tab 3, the world itself: its page in «Mundo», at the top of every place."""
+    title = forms.CharField(label="Nombre del mundo", max_length=200,
+                            help_text="El continente, el reino o el plano donde pasa todo. Los lugares irán dentro.")
+    summary = forms.CharField(label="Resumen", required=False, widget=forms.Textarea(attrs={"rows": 2}),
+                              help_text="Una frase: sale al pasar el ratón por un enlace al mundo.")
+    body = forms.CharField(label="Lo que sabe el grupo", required=False, widget=forms.Textarea(attrs={"rows": 7}),
+                           help_text="Geografía, países, idiomas, religiones, cómo se cuentan los años... Escribe [[Nombre]] para enlazar otra página.")
+    secret = forms.CharField(label="Secreto del máster", required=False, widget=forms.Textarea(attrs={"rows": 4}),
+                             help_text="La verdad del mundo, que los jugadores no ven.")
+    revealed = forms.BooleanField(label="Los jugadores ven esta página", required=False, initial=True)
+
+
+class CampaignMapForm(forms.ModelForm):
+    """Tab 4: a map with its image. Its places are put on it later, with a click."""
+
+    class Meta:
+        model = Map
+        fields = ["name", "image"]
+        labels = {"name": "Nombre del mapa", "image": "Imagen del mapa"}
+        help_texts = {"image": "JPG, PNG o WebP. Los lugares se ponen encima desde «Mapa», pulsando donde están."}
+
+
+class WorldEntryForm(forms.Form):
+    """One page of a list tab (a place, a faction, an NPC, an object or a story)."""
+    title = forms.CharField(label="Nombre", max_length=200)
+    category = forms.ChoiceField(label="Tipo", choices=[])
+    parent = forms.ModelChoiceField(Page.objects.none(), label="Dentro de", required=False,
+                                    help_text="Un lugar o una facción a la que pertenece.")
+    summary = forms.CharField(label="Resumen", required=False, max_length=500, help_text="Una frase.")
+    body = forms.CharField(label="Lo que sabe el grupo", required=False, widget=forms.Textarea(attrs={"rows": 4}))
+    secret = forms.CharField(label="Secreto del máster", required=False, widget=forms.Textarea(attrs={"rows": 2}))
+    revealed = forms.BooleanField(label="Los jugadores la ven", required=False,
+                                  help_text="Sin marcar, solo existe para ti hasta que la reveles.")
+
+    def __init__(self, *args, campaign=None, categories=(), default_parent=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["category"].choices = [(key, label) for key, label in Page.Category.choices if key in categories]
+        if len(categories) == 1:
+            self.fields["category"].initial = categories[0]
+            self.fields["category"].widget = forms.HiddenInput()
+        else:
+            self.fields["category"].initial = categories[0] if categories else None
+        self.fields["parent"].queryset = Page.objects.filter(
+            campaign=campaign, category__in=Page.PARENT_CATEGORIES).order_by("title")
+        self.fields["parent"].initial = default_parent
+
+
+WorldEntryFormSet = forms.formset_factory(WorldEntryForm, extra=3)
+
+
+class PlotForm(forms.Form):
+    """One plot of tab 9: an adventure (an arc) or one of its missions, with its objectives."""
+    title = forms.CharField(label="Título", max_length=200)
+    parent = forms.ModelChoiceField(Quest.objects.none(), label="Dentro de la aventura", required=False,
+                                    empty_label="Ninguna: es una aventura",
+                                    help_text="Elige una para que esta sea una de sus misiones.")
+    status = forms.ChoiceField(label="Estado", choices=Quest.Status.choices, initial=Quest.Status.ACTIVA)
+    description = forms.CharField(label="De qué va", required=False, widget=forms.Textarea(attrs={"rows": 3}),
+                                  help_text="Los jugadores la leen.")
+    objectives = forms.CharField(label="Objetivos", required=False, widget=forms.Textarea(attrs={"rows": 3}),
+                                 help_text="Uno por línea.")
+    hidden_objectives = forms.CharField(label="Objetivos ocultos", required=False, widget=forms.Textarea(attrs={"rows": 2}),
+                                        help_text="Uno por línea. Los jugadores ven «Objetivo oculto» hasta que lo marques cumplido.")
+    secret = forms.CharField(label="Secreto del máster", required=False, widget=forms.Textarea(attrs={"rows": 2}))
+    hidden = forms.BooleanField(label="Oculta: los jugadores no la ven", required=False)
+
+    def __init__(self, *args, campaign=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["parent"].queryset = Quest.objects.filter(campaign=campaign, parent__isnull=True).order_by("title")
+
+
+PlotFormSet = forms.formset_factory(PlotForm, extra=2)

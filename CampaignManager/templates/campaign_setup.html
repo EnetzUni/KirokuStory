@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% load i18n mesa %}
+{% block title %}{% if campaign %}{{ campaign.name }}{% else %}{% translate "Nueva campaña" %}{% endif %} · {% translate "Asistente" %}{% endblock %}
+{% block content %}
+<section class="pila" aria-labelledby="h-asistente">
+    <nav class="migas" aria-label="{% translate 'Ruta' %}">
+        {% if campaign %}<a href="{% url 'home' campaign.pk %}">{{ campaign.name }}</a> <span aria-hidden="true">›</span> <span>{% translate "Asistente de la campaña" %}</span>
+        {% else %}<span>{% translate "Nueva campaña" %}</span>{% endif %}
+    </nav>
+    <h1 id="h-asistente">{% if campaign %}{{ campaign.name }}{% else %}{% translate "Nueva campaña" %}{% endif %}</h1>
+
+    {# Enter in a field presses the form's first button: this one, so Enter moves forward. #}
+    <button type="submit" form="asistente" name="ir" value="siguiente" class="sr-only" tabindex="-1" aria-hidden="true"></button>
+    {# The tabs: moving to another one saves what this one has. Before the campaign exists only the first one works. #}
+    <ol class="pasos" aria-label="{% translate 'Pestañas del asistente' %}">
+        {% for s in steps %}
+        <li>{% if s.current %}<span aria-current="step"><b>{{ s.num }}</b>{% translate s.label %}</span>
+            {% elif campaign %}<button type="submit" form="asistente" name="ir" value="paso-{{ s.n }}"><b>{{ s.num }}</b>{% translate s.label %}</button>
+            {% else %}<span class="desactivado" aria-disabled="true"><b>{{ s.num }}</b>{% translate s.label %}</span>{% endif %}</li>
+        {% endfor %}
+    </ol>
+
+    <form id="asistente" method="post" enctype="multipart/form-data" class="tarjeta pila" novalidate
+          action="{% if campaign %}{% url 'campaign_setup' campaign.pk %}{% else %}{% url 'campaign_new' %}{% endif %}">
+        {% csrf_token %}<input type="hidden" name="paso" value="{{ step }}">
+        <div class="pila-s">
+            <h2 style="font-size:22px">{{ step|add:1 }}. {% for s in steps %}{% if s.current %}{% translate s.label %}{% endif %}{% endfor %}</h2>
+            <p class="atenuado">{% translate intro %}</p>
+        </div>
+        {% if form.non_field_errors %}<div class="aviso">{{ form.non_field_errors }}</div>{% endif %}
+
+        {% if step == 0 or step == 1 or step == 9 %}
+        <div class="pila-s">{% for field in form %}{% include "partials/field.html" %}{% endfor %}</div>
+        {% if step == 9 and existing_sessions %}
+        <p class="ayuda">{% blocktranslate count n=existing_sessions|length %}La campaña ya tiene {{ n }} sesión: esta será otra más.{% plural %}La campaña ya tiene {{ n }} sesiones: esta será otra más.{% endblocktranslate %}
+            <a href="{% url 'diary' campaign.pk %}">{% translate "Ver el diario" %}</a></p>
+        {% endif %}
+
+        {% elif step == 2 %}
+        <fieldset class="pila-s libre" style="margin:0">
+            <legend class="etiqueta">{% translate "Su página en «Mundo»" %}</legend>
+            {% for field in page_form %}{% include "partials/field.html" %}{% endfor %}
+        </fieldset>
+        <fieldset class="pila-s libre" style="margin:0">
+            <legend class="etiqueta">{% translate "El momento y la portada" %}</legend>
+            <div class="rejilla-campos">{% for field in form %}{% include "partials/field.html" %}{% endfor %}</div>
+        </fieldset>
+
+        {% elif step == 3 %}
+        {% if existing_maps %}
+        <p class="ayuda">{% translate "Ya tiene:" %} {% for m in existing_maps %}<a href="{% url 'map' campaign.pk %}?mapa={{ m.pk }}">{{ m.name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}. {% translate "Lo que escribas aquí será un mapa más." %}</p>
+        {% endif %}
+        <div class="rejilla-campos">{% for field in form %}{% include "partials/field.html" %}{% endfor %}</div>
+
+        {% elif list_step %}
+        {% if existing %}
+        <details class="pila-s" {% if existing|length <= 12 %}open{% endif %}>
+            <summary class="btn btn-texto" style="align-self:flex-start">{% blocktranslate count n=existing|length %}Ya tiene {{ n }}{% plural %}Ya tiene {{ n }}{% endblocktranslate %}</summary>
+            <ul class="lista-limpia fila-s" style="gap:6px">
+                {% for page in existing %}<li><a class="chip" href="{% url 'world_page' campaign.pk page.slug %}">{{ page.title }}{% if page.parent %} <span class="atenuado pequeno">· {{ page.parent.title }}</span>{% endif %}{% if not page.revealed %} <span class="pastilla p-morado" style="font-size:10px">{% translate "OCULTA" %}</span>{% endif %}</a></li>{% endfor %}
+            </ul>
+        </details>
+        {% endif %}
+        {{ formset.management_form }}
+        {% if formset.non_form_errors %}<div class="aviso">{{ formset.non_form_errors }}</div>{% endif %}
+        {% for entry in formset %}
+        <fieldset class="pila-s libre" style="margin:0">
+            <legend class="etiqueta">{% translate "Nueva entrada" %} {{ forloop.counter }}</legend>
+            {{ entry.category.errors }}{% if entry.category.is_hidden %}{{ entry.category }}{% endif %}
+            <div class="rejilla-campos">
+                {% include "partials/field.html" with field=entry.title %}
+                {% if not entry.category.is_hidden %}{% include "partials/field.html" with field=entry.category %}{% endif %}
+                {% include "partials/field.html" with field=entry.parent %}
+                {% include "partials/field.html" with field=entry.summary %}
+            </div>
+            {% include "partials/field.html" with field=entry.body %}
+            {% include "partials/field.html" with field=entry.secret %}
+            {% include "partials/field.html" with field=entry.revealed %}
+        </fieldset>
+        {% endfor %}
+        <p class="ayuda">{% translate "Las entradas vacías no se guardan. ¿Necesitas más? «Guardar y añadir más» guarda estas y te da otras en blanco." %}</p>
+
+        {% elif step == 8 %}
+        {% if existing_quests %}
+        <details class="pila-s" {% if existing_quests|length <= 12 %}open{% endif %}>
+            <summary class="btn btn-texto" style="align-self:flex-start">{% blocktranslate count n=existing_quests|length %}Ya tiene {{ n }} aventura{% plural %}Ya tiene {{ n }} aventuras{% endblocktranslate %}</summary>
+            <ul class="lista-limpia pila-s" style="gap:4px">
+                {% for q in existing_quests %}<li><a href="{% url 'diary' campaign.pk %}#aventura-{{ q.pk }}">{{ q.title }}</a> <span class="pequeno atenuado">· {{ q.get_status_display }}{% with n=q.missions.all|length %}{% if n %} · {% blocktranslate count n=n %}{{ n }} misión{% plural %}{{ n }} misiones{% endblocktranslate %}{% endif %}{% endwith %}</span></li>{% endfor %}
+            </ul>
+        </details>
+        {% endif %}
+        {{ formset.management_form }}
+        {% for entry in formset %}
+        <fieldset class="pila-s libre" style="margin:0">
+            <legend class="etiqueta">{% translate "Nueva trama" %} {{ forloop.counter }}</legend>
+            <div class="rejilla-campos">
+                {% include "partials/field.html" with field=entry.title %}
+                {% include "partials/field.html" with field=entry.parent %}
+                {% include "partials/field.html" with field=entry.status %}
+            </div>
+            {% include "partials/field.html" with field=entry.description %}
+            <div class="rejilla-campos">
+                {% include "partials/field.html" with field=entry.objectives %}
+                {% include "partials/field.html" with field=entry.hidden_objectives %}
+            </div>
+            {% include "partials/field.html" with field=entry.secret %}
+            {% include "partials/field.html" with field=entry.hidden %}
+        </fieldset>
+        {% endfor %}
+        <p class="ayuda">{% translate "Primero las aventuras; luego, con «Guardar y añadir más», sus misiones eligiendo «Dentro de la aventura»." %}</p>
+
+        {% else %}
+        <ul class="lista-limpia pila-s" style="gap:6px">
+            {% for label, text, n in summary %}
+            <li class="fila-s" style="justify-content:space-between;border-bottom:1px solid var(--line);padding:6px 0">
+                <span><b>{% translate label %}</b> · {{ text }}</span>
+                <button type="submit" class="btn btn-texto btn-pequeno" name="ir" value="paso-{{ n }}">{% translate "Editar" %}</button>
+            </li>
+            {% endfor %}
+        </ul>
+        <div class="fila-s">
+            <a class="btn" href="{% url 'world' campaign.pk %}">{% translate "Ver el mundo" %}</a>
+            <a class="btn" href="{% url 'diary' campaign.pk %}">{% translate "Ver el diario" %}</a>
+            <a class="btn" href="{% url 'npc_creator' campaign.pk %}">+ {% translate "Crear PNJ con ficha" %}</a>
+        </div>
+        <p class="ayuda">{% translate "Los personajes de los jugadores los crea cada uno desde «Personajes»; tú los apruebas." %}</p>
+        {% endif %}
+
+        {# «Siguiente» goes first in the HTML so that Enter moves forward; row-reverse puts it on the right. #}
+        <div class="fila-s" style="flex-direction:row-reverse;justify-content:space-between;border-top:1px solid var(--line);padding-top:14px">
+            <span class="fila-s" style="flex-direction:row-reverse">
+                {% if not campaign %}<button class="btn btn-principal" name="ir" value="siguiente">{% translate "Crear la campaña" %} →</button>
+                {% elif step < last_step %}<button class="btn btn-principal" name="ir" value="siguiente">{% translate "Guardar y seguir" %} →</button>
+                {% else %}<button class="btn btn-principal" name="ir" value="terminar">{% translate "Ir a la campaña" %}</button>{% endif %}
+                {% if list_step or step == 8 %}<button class="btn" name="ir" value="mas">{% translate "Guardar y añadir más" %}</button>{% endif %}
+                {% if campaign and step > 0 and step < last_step %}<button class="btn btn-texto" name="ir" value="saltar" formnovalidate>{% translate "Saltar sin guardar" %}</button>{% endif %}
+            </span>
+            {% if campaign and step > 0 %}<button class="btn" name="ir" value="atras">← {% translate "Atrás" %}</button>{% endif %}
+        </div>
+    </form>
+</section>
+{% endblock %}

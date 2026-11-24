@@ -499,6 +499,8 @@ class Race(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     speed = models.IntegerField(help_text="In meters")
+    # Made by a master for one character (NPC creator, sheet editor): kept out of the players' lists.
+    bespoke = models.BooleanField(default=False, help_text="Made by a master for a character: players do not see it in the catalog lists")
 
     # otorga
     abilities = models.ManyToManyField("Ability", through="RaceAbility")
@@ -533,6 +535,8 @@ class CharacterClass(models.Model):
     description = models.TextField(blank=True)
     magic = models.CharField(max_length=10, choices=Magic.choices, default=Magic.NINGUNA,
                              help_text="Gives the character's magic points at each level")
+    # Made by a master for one character (NPC creator, sheet editor): kept out of the players' lists.
+    bespoke = models.BooleanField(default=False, help_text="Made by a master for a character: players do not see it in the catalog lists")
 
     # otorga, puede lanzar
     abilities = models.ManyToManyField("Ability", through="ClassAbility")
@@ -849,6 +853,8 @@ class Item(models.Model):
     price = models.IntegerField(null=True, blank=True)
     description = models.TextField(blank=True)
     consumable = models.BooleanField(default=False)
+    # Made by a master for one character (NPC creator, sheet editor): kept out of the players' lists.
+    bespoke = models.BooleanField(default=False, help_text="Made by a master for a character: players do not see it in the catalog lists")
 
     # Item templates. A template is an item with no template: a catalog entry such
     # as "Espada larga" or "Oro". A copy is one physical piece made from a template,

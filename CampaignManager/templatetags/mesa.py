@@ -95,3 +95,9 @@ def first_paragraph(text):
     import re
     parts = [p for p in re.split(r"\n\s*\n", text or "") if p.strip()]
     return parts[0] if parts else ""
+
+
+@register.filter
+def field_named(form, name):
+    """`form[name]`, or None if the form has no such field (the editor hides some for NPCs)."""
+    return form[name] if name in form.fields else None

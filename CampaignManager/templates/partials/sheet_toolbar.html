@@ -5,6 +5,7 @@
         <button class="btn" name="vista" value="web" aria-pressed="{% if sheet_view == 'web' %}true{% else %}false{% endif %}">{% translate "Vista web" %}</button>
         <button class="btn" name="vista" value="ficha" aria-pressed="{% if sheet_view == 'ficha' %}true{% else %}false{% endif %}">{% translate "Vista ficha" %}</button>
     </form>
+    {% if is_master %}<a class="btn" href="{% url 'character_edit' campaign.pk character.pk %}">{% translate "Editar ficha" %}</a>{% endif %}
     {% if can_edit %}
     <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="fila-s">{% include "partials/sheet_hidden.html" %}
         {% translate "El descanso largo recupera la vida, el AP, los puntos de magia y todos los usos. El corto, los usos que se recargan con descanso corto." as rest_help %}

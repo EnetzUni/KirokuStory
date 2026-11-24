@@ -208,12 +208,16 @@ form.en-linea{display:inline}
 .tl-aventura span{font-size:11px;opacity:.9}
 .tl-aventura.completada{background:#2F855A;border-color:#2F855A}
 .tl-aventura.fallida{background:#C53030;border-color:#C53030}
+.tl-aventura.sin_dato{background:#6E6860;border-color:#6E6860}
+/* Hidden from players: only masters get it. */
+.tl-aventura.oculta{outline:2px dashed var(--secret-text);outline-offset:2px}
 /* Still going on: an open, dashed bar that runs into «Próxima». */
 .tl-aventura.abierta{background:var(--surface);color:#7A4A12;border-style:dashed;border-radius:13px 0 0 13px}
 .tl-aventura:hover,.tl-aventura:focus-visible{filter:brightness(1.1);outline:2px solid var(--text);outline-offset:1px}
 .tl-estado{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;background:#B7791F}
 .tl-estado.completada{background:#2F855A}
 .tl-estado.fallida{background:#C53030}
+.tl-estado.sin_dato{background:#6E6860}
 .tl-detalle{border-radius:var(--r-card);padding:16px 18px;display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--line)}
 .tl-detalle.oculto{background:var(--secret-bg);border:1px dashed var(--secret-text)}
 
@@ -277,6 +281,67 @@ form:has(input[data-tipo-nota][value="pista"]:checked) [data-solo-persona]{displ
 .arbol a[aria-current="page"]{background:var(--accent-soft);color:var(--accent-soft-text);font-weight:700}
 .arbol .grupo{color:var(--muted);font-size:12px;font-weight:700}
 .arbol .categoria{font-size:13px;font-weight:700;min-height:40px}
+/* The map's session slider: two handles on one track (--desde and --hasta, in % of the track). */
+.doble-rango{position:relative;height:44px;--pulgar:26px}
+.doble-rango::before{content:"";position:absolute;left:calc(var(--pulgar) / 2);right:calc(var(--pulgar) / 2);top:50%;height:6px;margin-top:-3px;border-radius:3px;
+  background:linear-gradient(to right,var(--line) var(--desde),var(--accent) var(--desde),var(--accent) var(--hasta),var(--line) var(--hasta))}
+.doble-rango input[type=range]{position:absolute;inset:0;width:100%;height:44px;margin:0;background:none;pointer-events:none;-webkit-appearance:none;appearance:none}
+.doble-rango input[type=range]::-webkit-slider-runnable-track{height:6px;background:none;border:0}
+.doble-rango input[type=range]::-moz-range-track{height:6px;background:none;border:0}
+.doble-rango input[type=range]::-webkit-slider-thumb{pointer-events:auto;-webkit-appearance:none;appearance:none;width:var(--pulgar);height:var(--pulgar);
+  margin-top:calc((6px - var(--pulgar)) / 2);border-radius:50%;background:var(--accent);border:3px solid var(--surface);box-shadow:0 0 0 1px var(--accent);cursor:grab}
+.doble-rango input[type=range]::-moz-range-thumb{pointer-events:auto;width:var(--pulgar);height:var(--pulgar);border-radius:50%;background:var(--accent);
+  border:3px solid var(--surface);box-shadow:0 0 0 1px var(--accent);cursor:grab}
+.doble-rango input[type=range]:focus-visible{outline:none}
+.doble-rango input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 3px var(--text)}
+.doble-rango input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 3px var(--text)}
+.doble-rango input.encima{z-index:2}
+/* Adventures that are over, two by two and folded to their title (Diario › Aventuras). */
+.rejilla-aventuras{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
+@media (max-width:760px){.rejilla-aventuras{grid-template-columns:minmax(0,1fr)}}
+.aventura-plegada>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:44px}
+.aventura-plegada>summary::-webkit-details-marker{display:none}
+.aventura-plegada>summary:focus-visible{outline:2px solid var(--text);outline-offset:3px;border-radius:var(--r-ctl)}
+.aventura-plegada .flecha{display:inline-block;width:12px;font-weight:700;transition:transform .15s}
+.aventura-plegada[open] .flecha{transform:rotate(90deg)}
+.aventura-plegada.oculta{border:1px dashed var(--secret-text)}
+.tl-aventura.terminada{background:#2C5282;border-color:#2C5282}
+.tl-estado.terminada{background:#2C5282}
+/* Missions inside an adventure, folded one under the other. */
+.misiones{gap:6px;border-top:1px solid var(--line);padding-top:8px}
+.mision{border:1px solid var(--line);border-radius:var(--r-ctl);padding:2px 10px;background:var(--surface)}
+.mision.oculta{border-style:dashed;border-color:var(--secret-text)}
+.mision>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:44px}
+.mision>summary::-webkit-details-marker{display:none}
+.mision>summary:focus-visible{outline:2px solid var(--text);outline-offset:2px;border-radius:var(--r-ctl)}
+.mision .flecha{display:inline-block;width:12px;font-weight:700;transition:transform .15s}
+.mision[open]>summary .flecha{transform:rotate(90deg)}
+@media (prefers-reduced-motion:reduce){.mision .flecha{transition:none}}
+@media (prefers-reduced-motion:reduce){.aventura-plegada .flecha{transition:none}}
+/* Branches inside a section of the world menu: each level indented, folded by its arrow. */
+.arbol .rama-lista{gap:0;padding-left:10px}
+.arbol .seccion-arbol>.rama-lista{padding-left:4px}
+.arbol .rama-lista>li>a{padding-left:22px}
+.rama>summary{list-style:none;display:flex;align-items:center;gap:2px;border-radius:var(--r-ctl);cursor:pointer;padding-right:8px}
+.rama>summary::-webkit-details-marker{display:none}
+.rama>summary:hover{background:var(--surface2)}
+.rama>summary:focus-visible{outline:2px solid var(--text);outline-offset:1px}
+.rama>summary .flecha{flex:0 0 22px;height:36px;display:flex;align-items:center;justify-content:center;font-weight:700;transition:transform .15s}
+.rama[open]>summary .flecha{transform:rotate(90deg)}
+.rama>summary .rama-titulo{flex:1 1 auto;min-width:0;padding-right:0}
+.rama>summary .rama-titulo:hover{background:none;text-decoration:underline}
+.rama>summary .grupo{min-height:36px}
+@media (prefers-reduced-motion:reduce){.rama>summary .flecha{transition:none}}
+/* Foldable sections of the world menu. */
+.seccion-arbol>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:6px;
+  padding:0 8px;border-radius:var(--r-ctl);color:var(--text)}
+.seccion-arbol>summary::-webkit-details-marker{display:none}
+.seccion-arbol>summary:hover{background:var(--surface2)}
+.seccion-arbol>summary:focus-visible{outline:2px solid var(--text);outline-offset:1px}
+.seccion-arbol .flecha{display:inline-block;width:12px;transition:transform .15s}
+.seccion-arbol[open] .flecha{transform:rotate(90deg)}
+.seccion-arbol .ver-todo{min-height:0;min-width:28px;justify-content:center;padding:4px 6px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.seccion-arbol .flecha{transition:none}}
 .migas{display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:14px;color:var(--muted)}
 .migas a{color:var(--muted)}
 .ficha-pagina{height:96px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;color:rgba(255,255,255,.92);font-size:40px;font-weight:700}
@@ -392,10 +457,15 @@ html.pantalla-abierta,html.pantalla-abierta body{overflow:hidden}
 
 /* Creador */
 .pasos{list-style:none;display:flex;flex-wrap:wrap;gap:6px}
-.pasos a,.pasos span{min-height:var(--tap);padding:0 14px 0 6px;border-radius:var(--r-ctl);border:1px solid var(--line);display:flex;align-items:center;gap:8px;font-size:14px;text-decoration:none;color:var(--text);background:var(--surface)}
+.pasos a,.pasos span,.pasos button{font:inherit;cursor:pointer;min-height:var(--tap);padding:0 14px 0 6px;border-radius:var(--r-ctl);border:1px solid var(--line);display:flex;align-items:center;gap:8px;font-size:14px;text-decoration:none;color:var(--text);background:var(--surface)}
 .pasos b{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;background:var(--neutral-bg);color:var(--neutral-text)}
 .pasos [aria-current="step"]{background:var(--accent-soft);border-color:var(--accent);font-weight:700}
 .pasos [aria-current="step"] b{background:var(--accent);color:var(--on-accent)}
+.pasos button:hover{background:var(--surface2)}
+.pasos .desactivado{opacity:.55;cursor:not-allowed}
+/* The NPC creator's free choices, apart from the catalog ones. */
+.libre{border:1px dashed var(--line);border-radius:var(--r-card);padding:12px 14px}
+.rejilla-campos{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(180px,100%),1fr));gap:4px 12px;align-items:start}
 .eleccion{min-height:64px;text-align:left;padding:10px 12px;border-radius:var(--r-card);border:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;gap:2px;position:relative;cursor:pointer}
 .eleccion input{position:absolute;opacity:0;width:1px;height:1px}
 .eleccion:has(input:checked){background:var(--accent-soft);border-color:var(--accent)}
@@ -437,6 +507,9 @@ html.pantalla-abierta,html.pantalla-abierta body{overflow:hidden}
 .hoja-vista{--tinta:#283618;--oliva:#606C38;--cobre:#BC6C25;--tinte:#F1EDD3;--raya:#E4DCB8;display:flex;flex-direction:column;gap:24px}
 .hoja{background:#FFFFFF;color:var(--tinta);border:1px solid var(--raya);border-radius:8px;padding:28px 26px;display:flex;flex-direction:column;gap:14px;width:100%}
 .hoja-cabecera{display:flex;flex-direction:column;gap:6px}
+.hoja-identidad{display:flex;gap:14px;align-items:center}
+.hoja-identidad .hoja-campos{flex:1 1 auto;min-width:0}
+.hoja-retrato{flex:0 0 auto}
 .hoja-titulo{margin:0;text-align:center;font-size:30px;letter-spacing:.3em;text-transform:uppercase;font-weight:700;color:var(--tinta)}
 .hoja-regla{display:flex;align-items:center;justify-content:center;gap:10px}
 .hoja-regla::before,.hoja-regla::after{content:"";width:min(190px,32%);height:1px;background:var(--cobre)}

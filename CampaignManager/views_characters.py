@@ -19,14 +19,14 @@ from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView
 from django.utils.translation import gettext_noop
 
-from . import rules
+from . import bespoke, rules
 from .ajax import is_ajax, respond
 from .forms import (
-    ClassStepForm, EquipmentStepForm, IdentityStepForm, LevelUpForm, RaceStepForm, ScoresStepForm, UniqueSkillForm,
-    UniqueSkillStepForm,
+    BespokeArmorFields, BespokeWeaponFields, CharacterMasterForm, ClassStepForm, EquipmentStepForm, EquippedArmorForm,
+    IdentityStepForm, LevelUpForm, RaceStepForm, ScoresStepForm, UniqueSkillForm, UniqueSkillStepForm,
 )
 from .models import (
-    Ability, ActiveEffect, Armor, ArmorDamage, Character, CharacterAbility, CharacterClass, ClassAbility, Combatant, Effect, Inventory,
+    Ability, ActiveEffect, Armor, ArmorDamage, ArmorType, Character, CharacterAbility, CharacterClass, ClassAbility, Combatant, Effect, Inventory,
     Item, Race, RaceAbility, Spell, SubclassAbility, Subrace, SubraceAbility, UniqueSkill, User, Weapon,
     unique_ability_conflicts,
 )
@@ -383,7 +383,9 @@ def sheet_context(request, campaign, character):
         "can_propose_skill": campaign.is_aegis and can_edit and (skill is None or skill.status != UniqueSkill.Status.APROBADA),
         "weapons": weapons, "spell_groups": sorted(spell_groups.items()), "max_slot": max_slot,
         "inventory": rows, "gold": gold.quantity if gold else 0,
-        "catalog": Item.objects.filter(template__isnull=True).order_by("name") if can_edit else [],
+        # The master's own pieces (bespoke) are not offered to players.
+        "catalog": (Item.objects.filter(template__isnull=True, **({} if is_master else {"bespoke": False})).order_by("name")
+                    if can_edit else []),
         "granted": granted,
         "history": history.select_related("session").order_by("session__number", "id"),
         "my_turn": bool(actor and actor.character_id == character.pk), "encounter": encounter,
@@ -828,8 +830,64 @@ def _portrait(request, campaign, character):
 
 
 # ---------------------------------------------------------------------------
+# Editar ficha (máster): anything on a sheet, with or without the rules
+# ---------------------------------------------------------------------------
+
+@campaign_member
+def character_edit(request, campaign, pk):
+    """The master changes whatever they want on a character or NPC sheet: identity, race and
+    class (or new ones), level, XP, hit points, AC, AP, magic, scores, the armor worn; and can
+    give it a unique weapon or an armor of their own. Only data that would break is refused."""
+    master_only(request)
+    character = character_in_campaign(campaign, pk, request.user)
+    worn = character.equipped_armor
+    data = (request.POST, request.FILES) if request.method == "POST" else ()
+    form = CharacterMasterForm(*data, instance=character, campaign=campaign)
+    weapon_form = BespokeWeaponFields(*data[:1])
+    armor_form = BespokeArmorFields(*data[:1])
+    worn_form = None
+    if worn:
+        worn_form = EquippedArmorForm(*data[:1], initial={
+            "worn_type": worn.armor_type.type, "worn_ap": worn.ap + worn.armor_type.ap,
+            "worn_magic_ap": worn.magic_ap + worn.armor_type.magic_ap})
+    forms_ = [f for f in (form, weapon_form, armor_form, worn_form) if f is not None]
+    if request.method == "POST" and all(f.is_valid() for f in forms_):
+        with transaction.atomic():
+            character = form.save()
+            if worn_form is not None:
+                armor_type, _ = ArmorType.objects.get_or_create(type=worn_form.cleaned_data["worn_type"],
+                                                                defaults={"ap": 0, "magic_ap": 0})
+                worn.armor_type = armor_type
+                worn.ap = worn_form.cleaned_data["worn_ap"] - armor_type.ap
+                worn.magic_ap = worn_form.cleaned_data["worn_magic_ap"] - armor_type.magic_ap
+                worn.save(update_fields=["armor_type", "ap", "magic_ap"])
+            given = []
+            if weapon_form.weapon_data():
+                given.append(bespoke.give(character, bespoke.weapon(weapon_form.weapon_data())).name)
+            if armor_form.armor_data():
+                given.append(bespoke.give(character, bespoke.armor(armor_form.armor_data())).name)
+        msg = f"Ficha de {character.name} guardada."
+        if given:
+            msg += " Lleva ahora " + names_text(given) + "."
+        messages.success(request, msg)
+        return redirect("sheet", campaign_id=campaign.pk, pk=character.pk)
+    return render(request, "character_edit.html", {
+        "campaign": campaign, "is_master": True, "character": character, "form": form, "weapon_form": weapon_form,
+        "armor_form": armor_form, "worn_form": worn_form, "worn": worn,
+        "groups": [
+            ("Identidad", ["name", "player", "status", "portrait", "background", "dead"]),
+            ("Raza y clase", ["race", "new_race", "new_race_speed", "subrace", "char_class", "new_class", "new_class_magic", "subclass"]),
+            ("Nivel y números", ["level", "xp", "hp", "temp_hp", "ac", "temp_ap", "inspiration", "magic_points", "magic_points_bonus"]),
+            ("Características", list(rules.ABILITY_KEYS)),
+        ],
+    })
+
+
+# ---------------------------------------------------------------------------
 # Creador de personajes: 6 steps with a Django form each; the draft is kept in
 # the session. A player's character is «pendiente» until the master approves it.
+# Masters also make NPCs with it (`npc`): same steps, no player, free scores and
+# their own hit points if they want; the NPC is a template of the campaign.
 # ---------------------------------------------------------------------------
 
 STEPS = [gettext_noop("Raza y linaje"), gettext_noop("Clase"), gettext_noop("Características"), gettext_noop("Nombre, retrato y trasfondo"), gettext_noop("Equipo inicial"), gettext_noop("Habilidad única"), gettext_noop("Resumen")]
@@ -850,52 +908,85 @@ def first_level_hp(char_class, constitution):
     return max(1, die + rules.ability_modifier(constitution)) if die else None
 
 
-def _new_draft():
-    return {"method": "puntos", "scores": {key: 8 for key in rules.ABILITY_KEYS}, "weapons": [], "armor": None}
+def npc_hp(char_class, constitution, level, aegis):
+    """An NPC's hit points when the master leaves them empty: the class at level 1 (a d8 if the
+    class does not say its die) and the average of each level above, at least 1 per level."""
+    die = hit_die(char_class) or 8
+    con = rules.ability_modifier(constitution)
+    per_level = (rules.LEVEL_UP_HIT_DIE // 2 + 1) if aegis else (die // 2 + 1)
+    return max(1, die + con) + (level - 1) * max(1, per_level + con)
+
+
+WEAPON_FIELDS = [name for name in EquipmentStepForm.base_fields if name.startswith("weapon_")]
+ARMOR_FIELDS = [name for name in EquipmentStepForm.base_fields if name.startswith("armor_")]
+
+
+def _new_draft(npc=False):
+    return {"method": "libre" if npc else "puntos", "scores": {key: 10 if npc else 8 for key in rules.ABILITY_KEYS},
+            "weapons": [], "armor": None}
 
 
 def _initial(draft, step):
     if step == 0:
-        return {"race": draft.get("race"), "subrace": draft.get("subrace")}
+        return {"race": draft.get("race"), "subrace": draft.get("subrace"), **(draft.get("race_custom") or {})}
     if step == 1:
-        return {"char_class": draft.get("char_class")}
+        return {"char_class": draft.get("char_class"), **(draft.get("class_custom") or {})}
     if step == 2:
         return {"method": draft.get("method", "puntos"), **draft.get("scores", {})}
     if step == 3:
-        return {"name": draft.get("name", ""), "background": draft.get("background", ""), "player": draft.get("player")}
+        return {"name": draft.get("name", ""), "background": draft.get("background", ""), "player": draft.get("player"),
+                "hp": draft.get("hp"), "level": draft.get("level") or 1, "ac": draft.get("ac")}
     if step == 4:
-        return {"weapons": draft.get("weapons", []), "armor": draft.get("armor")}
+        return {"weapons": draft.get("weapons", []), "armor": draft.get("armor"),
+                **(draft.get("weapon_fields") or {}), **(draft.get("armor_fields") or {})}
     return {"name": draft.get("skill_name", ""), "description": draft.get("skill_description", "")}
+
+
+def _keep_portrait(draft, form):
+    """Save an uploaded portrait into the draft. Called even when another field of the step
+    is wrong: the browser empties the file box, so the image would be lost otherwise."""
+    upload = (getattr(form, "cleaned_data", None) or {}).get("portrait")
+    if upload:
+        draft["portrait"] = default_storage.save(f"retratos/{get_valid_filename(upload.name)}", upload)
 
 
 def _store(draft, step, form):
     data = form.cleaned_data
     if step == 0:
-        draft["race"] = data["race"].pk
+        draft["race"] = data["race"].pk if data.get("race") else None
         draft["subrace"] = data["subrace"].pk if data.get("subrace") else None
+        name = (data.get("race_name") or "").strip()
+        draft["race_custom"] = {"race_name": name, "race_speed": data.get("race_speed")} if name else None
     elif step == 1:
-        draft["char_class"] = data["char_class"].pk
+        draft["char_class"] = data["char_class"].pk if data.get("char_class") else None
+        name = (data.get("class_name") or "").strip()
+        draft["class_custom"] = {"class_name": name, "class_magic": data.get("class_magic")} if name else None
     elif step == 2:
         draft["method"], draft["scores"] = data["method"], form.scores()
     elif step == 3:
         draft["name"], draft["background"] = data["name"].strip(), data["background"]
         if "player" in form.fields:
             draft["player"] = data["player"].pk if data.get("player") else None
-        upload = data.get("portrait")
-        if upload:
-            draft["portrait"] = default_storage.save(f"retratos/{get_valid_filename(upload.name)}", upload)
+        for name in IdentityStepForm.NPC_ONLY:
+            if name in form.fields:
+                draft[name] = data.get(name)
+        _keep_portrait(draft, form)
     elif step == 4:
         draft["weapons"] = [item.pk for item in data["weapons"]]
         draft["armor"] = data["armor"].pk if data.get("armor") else None
+        if "weapon_name" in form.fields:
+            draft["weapon_fields"] = {name: data.get(name) for name in WEAPON_FIELDS}
+            draft["armor_fields"] = {name: data.get(name) for name in ARMOR_FIELDS}
+            draft["bespoke_weapon"], draft["bespoke_armor"] = form.weapon_data(), form.armor_data()
     elif step == 5:
         draft["skill_name"], draft["skill_description"] = data["name"].strip(), data["description"].strip()
 
 
-def draft_problems(draft):
+def draft_problems(draft, npc=False):
     """What is still missing before the character can be sent, as (step, message)."""
     problems = []
-    for step, form in [(0, RaceStepForm(_initial(draft, 0))), (1, ClassStepForm(_initial(draft, 1))),
-                       (2, ScoresStepForm(_initial(draft, 2)))]:
+    for step, form in [(0, RaceStepForm(_initial(draft, 0), npc=npc)), (1, ClassStepForm(_initial(draft, 1), npc=npc)),
+                       (2, ScoresStepForm(_initial(draft, 2), free=npc))]:
         if not form.is_valid():
             problems += [(step, message) for errors in form.errors.values() for message in errors]
     if not draft.get("name"):
@@ -903,64 +994,100 @@ def draft_problems(draft):
     return problems
 
 
-def _step_url(campaign, step):
-    return reverse("creator", args=[campaign.pk]) + f"?paso={rules.clamp(step, 0, LAST_STEP)}"
+def _step_url(campaign, step, npc=False):
+    return reverse("npc_creator" if npc else "creator", args=[campaign.pk]) + f"?paso={rules.clamp(step, 0, LAST_STEP)}"
+
+
+def _form_kwargs(form_class, campaign, is_master, npc):
+    if form_class is IdentityStepForm:
+        return {"campaign": campaign, "is_master": is_master, "npc": npc}
+    if form_class is ScoresStepForm:
+        return {"free": npc}
+    if form_class in (RaceStepForm, ClassStepForm, EquipmentStepForm):
+        return {"npc": npc}
+    return {}
+
+
+def _target_step(going, step, skipped):
+    """Where a button sends: «siguiente», «atras» or a step of the list on top («paso-3»)."""
+    if going and going.startswith("paso-") and going[5:].isdigit():
+        target = rules.clamp(int(going[5:]), 0, LAST_STEP)
+        return target + 1 if target in skipped else target
+    target = step - 1 if going == "atras" else step + 1
+    if target in skipped:
+        target += -1 if going == "atras" else 1
+    return target
 
 
 @campaign_member
 def creator(request, campaign):
-    key = f"creador:{campaign.pk}"
-    draft = request.session.get(key) or _new_draft()
+    return _creator(request, campaign, npc=False)
+
+
+@campaign_member
+def npc_creator(request, campaign):
+    """The same creator, for a master's NPC."""
+    master_only(request)
+    return _creator(request, campaign, npc=True)
+
+
+def _creator(request, campaign, npc):
+    key = ("creador-pnj:" if npc else "creador:") + str(campaign.pk)
+    draft = request.session.get(key) or _new_draft(npc)
     try:
         step = rules.clamp(int(request.POST.get("paso", request.GET.get("paso", 0))), 0, LAST_STEP)
     except ValueError:
         step = 0
     is_master = campaign.is_master(request.user)
     going = request.POST.get("ir")
+    jumping = bool(going and going.startswith("paso-"))
     form = None
     skipped = set() if campaign.is_aegis else {UNIQUE_SKILL_STEP}  # an Aegis rule
     if step in skipped:
-        return redirect(_step_url(campaign, step + 1))
+        return redirect(_step_url(campaign, step + 1, npc))
     if request.method == "POST" and going == "empezar":
-        request.session[key] = _new_draft()
-        return redirect(_step_url(campaign, 0))
+        request.session[key] = _new_draft(npc)
+        return redirect(_step_url(campaign, 0, npc))
     if step < LAST_STEP:
         form_class = STEP_FORMS[step]
-        kwargs = {"campaign": campaign, "is_master": is_master} if form_class is IdentityStepForm else {}
+        kwargs = _form_kwargs(form_class, campaign, is_master, npc)
         if request.method == "POST":
             form = form_class(request.POST, request.FILES, **kwargs)
             if form.is_valid():
                 _store(draft, step, form)
-            if form.is_valid() or going == "atras":
+            elif step == 3:
+                _keep_portrait(draft, form)
+            # Going back or jumping to another step keeps what is valid and leaves the rest.
+            if form.is_valid() or going == "atras" or jumping:
                 request.session[key] = draft
-                target = step - 1 if going == "atras" else step + 1
-                if target in skipped:
-                    target += -1 if going == "atras" else 1
-                return redirect(_step_url(campaign, target))
+                return redirect(_step_url(campaign, _target_step(going, step, skipped), npc))
         else:
             form = form_class(initial=_initial(draft, step), **kwargs)
     elif request.method == "POST":
-        if going == "atras":
-            return redirect(_step_url(campaign, step - 2 if step - 1 in skipped else step - 1))
-        if not draft_problems(draft):
-            character = _create_character(request, campaign, draft)
+        if going == "atras" or jumping:
+            return redirect(_step_url(campaign, _target_step(going, step, skipped), npc))
+        if not draft_problems(draft, npc):
+            character = _create_character(request, campaign, draft, npc)
             request.session.pop(key, None)
-            if character.status == Character.Status.PENDIENTE:
+            if npc:
+                messages.success(request, f"PNJ creado: {character.name}. Está en los PNJ de la campaña y en las plantillas, "
+                                          "para copiarlo las veces que quieras.")
+            elif character.status == Character.Status.PENDIENTE:
                 messages.success(request, f"{character.name} está pendiente: el máster lo aprobará o lo rechazará.")
             else:
                 messages.success(request, f"{character.name} se ha unido al grupo.")
             return redirect("characters", campaign_id=campaign.pk)
     request.session[key] = draft
-    return render(request, "creator.html", _creator_context(request, campaign, draft, step, form, is_master))
+    return render(request, "creator.html", _creator_context(request, campaign, draft, step, form, is_master, npc))
 
 
-def _creator_context(request, campaign, draft, step, form, is_master):
+def _creator_context(request, campaign, draft, step, form, is_master, npc=False):
     bound = form is not None and form.is_bound
     race = Race.objects.filter(pk=draft.get("race")).first()
     subrace = Subrace.objects.filter(pk=draft.get("subrace")).first()
     char_class = CharacterClass.objects.filter(pk=draft.get("char_class")).first()
     scores = {**{key: 8 for key in rules.ABILITY_KEYS}, **(draft.get("scores") or {})}
-    method = draft.get("method", "puntos")
+    method = draft.get("method", "libre" if npc else "puntos")
     if bound and step == 2:
         # Show what was typed, even if it was not valid.
         method = form.data.get("method", method)
@@ -974,58 +1101,86 @@ def _creator_context(request, campaign, draft, step, form, is_master):
     chosen_armor = str(form.data.get("armor", "")) if bound and step == 4 else str(draft.get("armor") or "")
     armor = Item.objects.filter(pk=draft.get("armor")).select_related("armor__armor_type").first()
     spent = rules.point_buy_spent(v for v in scores.values() if v in rules.POINT_BUY_COST)
+    # Players never see the pieces, races and classes a master made by hand.
+    catalog = {} if npc else {"bespoke": False}
     weapon_choices = []
-    for item in (Item.objects.filter(weapon__isnull=False, template__isnull=True)
+    for item in (Item.objects.filter(weapon__isnull=False, template__isnull=True, **catalog)
                  .select_related("weapon").prefetch_related("weapon__attacks__dice").order_by("name")):
         damage = ", ".join(" + ".join(f"{d.amount}d{d.sides}" for d in a.dice.all() if not d.per_extra_level) or str(a.extra)
                            for a in item.weapon.attacks.all())
         weapon_choices.append({"item": item, "damage": damage, "checked": str(item.pk) in chosen_weapons})
+    level = (draft.get("level") or 1) if npc else 1
+    bespoke_armor = draft.get("bespoke_armor") if npc else None
+    if bespoke_armor:
+        max_ap = bespoke_armor["ap"]
+    else:
+        max_ap = (armor.armor.ap + armor.armor.armor_type.ap) if armor else 0
+    if npc:
+        hp = draft.get("hp") or npc_hp(char_class, scores["constitution"], level, campaign.is_aegis)
+    else:
+        hp = first_level_hp(char_class, scores["constitution"])
     return {
-        "campaign": campaign, "is_master": is_master, "step": step, "form": form, "draft": draft,
+        "campaign": campaign, "is_master": is_master, "step": step, "form": form, "draft": draft, "npc": npc,
         "steps": [{"n": i, "num": num, "label": label, "current": i == step} for num, (i, label) in enumerate(
             ((i, label) for i, label in enumerate(STEPS) if campaign.is_aegis or i != UNIQUE_SKILL_STEP), start=1)],
         "last_step": LAST_STEP,
         "races": [{"race": r, "checked": str(r.pk) == chosen_race, "subraces": [
             {"subrace": s, "checked": str(s.pk) == chosen_subrace} for s in r.subraces.all()]}
-            for r in Race.objects.prefetch_related("subraces").order_by("name")],
+            for r in Race.objects.filter(**catalog).prefetch_related("subraces").order_by("name")],
         "race": race, "subrace": subrace,
+        "race_custom": (draft.get("race_custom") or {}).get("race_name", "") if npc else "",
         "race_traits": RaceAbility.objects.filter(race=race, level_required__lte=1).select_related("ability") if race else [],
         "subrace_traits": SubraceAbility.objects.filter(subrace=subrace, level_required__lte=1).select_related("ability") if subrace else [],
         "classes": [{"c": c, "die": hit_die(c), "checked": str(c.pk) == chosen_class}
-                    for c in CharacterClass.objects.order_by("name")],
+                    for c in CharacterClass.objects.filter(**catalog).order_by("name")],
         "char_class": char_class, "hit_die": hit_die(char_class),
+        "class_custom": (draft.get("class_custom") or {}).get("class_name", "") if npc else "",
         "class_traits": ClassAbility.objects.filter(char_class=char_class, level_required__lte=1).select_related("ability") if char_class else [],
         "method": method,
         "stats": [{"key": key, "abbr": rules.ABILITY_ABBR[key], "label": ScoresStepForm.base_fields[key].label,
                    "value": scores[key], "mod": rules.ability_modifier(scores[key])} for key in rules.ABILITY_KEYS],
+        "score_min": 1 if npc else 3, "score_max": 30 if npc else 20,
         "points_left": rules.POINT_BUY_TOTAL - spent, "points_total": rules.POINT_BUY_TOTAL,
         "standard": rules.STANDARD_ARRAY, "point_costs": sorted(rules.POINT_BUY_COST.items()),
         "weapon_choices": weapon_choices,
         "armor_choices": [{"item": i, "checked": str(i.pk) == chosen_armor}
-                          for i in Item.objects.filter(armor__isnull=False, template__isnull=True)
+                          for i in Item.objects.filter(armor__isnull=False, template__isnull=True, **catalog)
                           .select_related("armor__armor_type").order_by("name")],
         "no_armor": not chosen_armor,
         "weapons": Item.objects.filter(pk__in=draft.get("weapons", [])).order_by("name"), "armor": armor,
-        "max_ap": (armor.armor.ap + armor.armor.armor_type.ap) if armor else 0,
-        "hp": first_level_hp(char_class, scores["constitution"]),
-        "ac": 10 + rules.ability_modifier(scores["dexterity"]),
-        "player": User.objects.filter(pk=draft.get("player")).first() if is_master else request.user,
-        "problems": draft_problems(draft) if step == LAST_STEP else [],
+        "bespoke_weapon": draft.get("bespoke_weapon") if npc else None, "bespoke_armor": bespoke_armor,
+        "level": level, "max_ap": max_ap, "hp": hp,
+        "ac": (draft.get("ac") if npc else None) or 10 + rules.ability_modifier(scores["dexterity"]),
+        "player": None if npc else (User.objects.filter(pk=draft.get("player")).first() if is_master else request.user),
+        "problems": draft_problems(draft, npc) if step == LAST_STEP else [],
         "portrait_url": default_storage.url(draft["portrait"]) if draft.get("portrait") else "",
     }
 
 
 @transaction.atomic
-def _create_character(request, campaign, draft):
+def _create_character(request, campaign, draft, npc=False):
     is_master = campaign.is_master(request.user)
-    char_class = CharacterClass.objects.get(pk=draft["char_class"])
+    race_custom = (draft.get("race_custom") or {}) if npc else {}
+    class_custom = (draft.get("class_custom") or {}) if npc else {}
+    race = (bespoke.race(race_custom["race_name"], race_custom.get("race_speed")) if race_custom
+            else Race.objects.get(pk=draft["race"]))
+    char_class = (bespoke.char_class(class_custom["class_name"], class_custom.get("class_magic")) if class_custom
+                  else CharacterClass.objects.get(pk=draft["char_class"]))
     scores = draft["scores"]
-    hp = first_level_hp(char_class, scores["constitution"]) or 1
+    level = (draft.get("level") or 1) if npc else 1
+    if npc:
+        player = None  # an NPC template of the campaign
+        hp = draft.get("hp") or npc_hp(char_class, scores["constitution"], level, campaign.is_aegis)
+        ac = draft.get("ac") or 10 + rules.ability_modifier(scores["dexterity"])
+    else:
+        player = User.objects.filter(pk=draft.get("player")).first() if is_master else request.user
+        hp = first_level_hp(char_class, scores["constitution"]) or 1
+        ac = 10 + rules.ability_modifier(scores["dexterity"])
     character = Character.objects.create(
-        name=draft["name"], race_id=draft["race"], subrace_id=draft.get("subrace"), char_class=char_class,
-        player=User.objects.filter(pk=draft.get("player")).first() if is_master else request.user,
+        name=draft["name"], race=race, subrace_id=None if race_custom else draft.get("subrace"), char_class=char_class,
+        player=player, is_npc=npc, level=level, xp=rules.XP_THRESHOLDS[level - 1],
         status=Character.Status.APROBADO if is_master else Character.Status.PENDIENTE,
-        xp=0, hp=hp, temp_hp=hp, ac=10 + rules.ability_modifier(scores["dexterity"]),
+        hp=hp, temp_hp=hp, ac=ac,
         background=draft.get("background", ""), portrait=draft.get("portrait", ""), **scores,
     )
     character.campaigns.add(campaign)
@@ -1039,14 +1194,15 @@ def _create_character(request, campaign, draft):
             skill.save()
     for pk in draft.get("weapons", []) + ([draft["armor"]] if draft.get("armor") else []):
         template = Item.objects.filter(pk=pk, template__isnull=True).first()
-        if template is None:
+        if template is None or (template.bespoke and not npc):
             continue
-        copy = template.make_copy()
-        Inventory.objects.create(character=character, item=copy, quantity=1)
-        Weapon.objects.filter(item=copy).update(equipped=True)
-        Armor.objects.filter(item=copy).update(equipped=True)
+        bespoke.give(character, template)
+    if npc and draft.get("bespoke_weapon"):
+        bespoke.give(character, bespoke.weapon(draft["bespoke_weapon"]))
+    if npc and draft.get("bespoke_armor"):
+        bespoke.give(character, bespoke.armor(draft["bespoke_armor"]))  # worn instead of a catalog armor
     character.temp_ap = character.max_ap
-    character.magic_points = character.magic_points_max  # what the class gives at level 1, full
+    character.magic_points = character.magic_points_max  # what the class gives at its level, full
     character.save(update_fields=["temp_ap", "magic_points"])
     return character
 

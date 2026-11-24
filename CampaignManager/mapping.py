@@ -54,13 +54,19 @@ def route_segments(moves):
     return segments
 
 
-def map_data(map_, is_master, until_session=None):
+def map_data(map_, is_master, until_session=None, since_session=None):
+    """Locations and the route. With `since_session`, only the way from where the party was
+    when that session began (its last stop before it) to the end of `until_session`."""
     locations = list(map_.locations.all())
     if not is_master:
         locations = [loc for loc in locations if loc.status != MapLocation.Status.OCULTO]
     moves = list(map_.moves.select_related("location", "session"))
     if until_session is not None:
         moves = [m for m in moves if m.session is None or m.session.number <= until_session]
+    if since_session is not None and since_session > 1:
+        before = [m for m in moves if m.session is not None and m.session.number < since_session]
+        start = [before[-1]] if before else []
+        moves = start + [m for m in moves if m.session is None or m.session.number >= since_session]
     return {
         "map": map_,
         "locations": locations,

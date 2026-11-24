@@ -1,0 +1,25 @@
+{% load i18n %}{% comment %}
+One level of the world menu. A page with pages inside it is a foldable branch (<details>): its arrow folds it,
+its name opens the page. The branch of the page being read opens by itself; the browser remembers the rest.
+{% endcomment %}<ul class="lista-limpia rama-lista">
+    {% for node in nodes %}
+    {% if node.children %}
+    <li>
+        <details class="rama" {% if node.here %}open data-aqui{% endif %}
+                 data-recordar="mundo-{{ campaign.pk }}-{% if node.header %}{{ key }}-{{ node.header.pk }}{% else %}{{ node.page.pk }}{% endif %}">
+            <summary>
+                <span class="flecha" aria-hidden="true">›</span>
+                {% if node.header %}<span class="rama-titulo grupo">{{ node.header.title }}</span>
+                {% else %}<a class="rama-titulo" href="{% url 'world_page' campaign.pk node.page.slug %}" {% if current_page and current_page.pk == node.page.pk %}aria-current="page"{% endif %}>
+                    <span>{{ node.page.title }}</span>{% if not node.page.revealed %}<span class="pastilla p-morado" style="font-size:10px">{% translate "OCULTO" %}</span>{% endif %}</a>{% endif %}
+                <span class="atenuado pequeno">{{ node.count }}</span>
+            </summary>
+            {% include "partials/world_tree.html" with nodes=node.children %}
+        </details>
+    </li>
+    {% else %}
+    <li><a href="{% url 'world_page' campaign.pk node.page.slug %}" {% if current_page and current_page.pk == node.page.pk %}aria-current="page"{% endif %}>
+        <span>{{ node.page.title }}</span>{% if not node.page.revealed %}<span class="pastilla p-morado" style="font-size:10px">{% translate "OCULTO" %}</span>{% endif %}</a></li>
+    {% endif %}
+    {% endfor %}
+</ul>

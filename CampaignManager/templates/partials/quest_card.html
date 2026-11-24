@@ -1,10 +1,15 @@
 {% load i18n mesa %}
-<article id="mision-{{ q.quest.pk }}" class="tarjeta compacta">
+<article id="mision-{{ q.quest.pk }}" class="pila-s">
+    {% if not q.folded %}
     <div class="fila-s" style="justify-content:space-between;align-items:flex-start">
         <h3>{{ q.quest.title }}</h3>
-        <span class="pastilla {% if q.quest.status == 'activa' %}p-ambar{% elif q.quest.status == 'completada' %}p-verde{% else %}p-coral{% endif %}">{{ q.quest.get_status_display }}</span>
+        <span class="fila-s" style="gap:6px">
+            {% if q.quest.hidden %}<span class="pastilla p-morado">{% translate "OCULTA · solo la ves tú" %}</span>{% endif %}
+            <span class="pastilla {% if q.quest.status == 'activa' %}p-ambar{% elif q.quest.status == 'completada' %}p-verde{% elif q.quest.status == 'fallida' %}p-coral{% elif q.quest.status == 'terminada' %}p-acento{% endif %}">{{ q.quest.get_status_display }}</span>
+        </span>
     </div>
-    {% if q.quest.start_session %}<span class="pequeno atenuado">{% translate "Sesión" %} {{ q.quest.start_session.number }}{% if q.quest.end_session %} → {{ q.quest.end_session.number }}{% elif q.quest.status == "activa" %} → {% translate "en curso" %}{% endif %}</span>{% endif %}
+    {% endif %}
+    {% if q.quest.start_session and not q.folded %}<span class="pequeno atenuado">{% translate "Sesión" %} {{ q.quest.start_session.number }}{% if q.quest.end_session %} → {{ q.quest.end_session.number }}{% elif q.quest.status == "activa" %} → {% translate "en curso" %}{% endif %}</span>{% endif %}
     {% if q.quest.giver %}<span class="pequeno">{% translate "Encargo de" %} {% if q.quest.giver.revealed or is_master %}<a href="{% url 'world_page' campaign.pk q.quest.giver.slug %}">{{ q.quest.giver.title }}</a>{% else %}{% translate "alguien" %}{% endif %}</span>{% endif %}
     {% if q.quest.description %}<p class="pequeno" style="color:var(--text2)">{{ q.quest.description }}</p>{% endif %}
     <ul class="lista-limpia" style="gap:2px">
@@ -27,5 +32,6 @@
     {% if q.total %}
     <div class="medidor" aria-label="{% translate 'Progreso' %}"><span>{% translate "Progreso" %}</span><span class="barra"><span style="width:{% pct q.done q.total %}%"></span></span><b>{{ q.done }} / {{ q.total }}</b></div>
     {% endif %}
+    {% if is_master and q.quest.secret %}<div class="secreto"><span class="rotulo">{% translate "Secreto del máster · solo lo ves tú" %}</span><span class="lectura-p" style="white-space:pre-line">{{ q.quest.secret }}</span></div>{% endif %}
     {% if is_master %}<a class="btn btn-pequeno" style="align-self:flex-start" href="{% url 'diary_quest_edit' campaign.pk q.quest.pk %}">{% translate "Editar aventura" %}</a>{% endif %}
 </article>

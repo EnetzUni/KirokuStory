@@ -7,18 +7,30 @@
         <div class="fila-s" style="align-items:center">
             {% if editing_route %}
             <p class="mensaje" style="color:var(--link);flex:1 1 280px;margin:0">{% translate "Arrastra los puntos para trazar el camino que siguió el grupo. Pulsa o arrastra un «+» para añadir un punto; doble clic o Supr sobre un punto lo quita. Se guarda solo." %}</p>
-            <a class="btn btn-principal" href="?mapa={{ current_map.pk }}{% if query_session %}&amp;hasta={{ query_session }}{% endif %}" data-ajax-link>{% translate "Terminar" %}</a>
+            <a class="btn btn-principal" href="?mapa={{ current_map.pk }}{{ route_query }}" data-ajax-link>{% translate "Terminar" %}</a>
             {% else %}
-            <a class="btn" href="?mapa={{ current_map.pk }}&amp;recorrido=1{% if query_session %}&amp;hasta={{ query_session }}{% endif %}" data-ajax-link>{% translate "Editar el camino" %}</a>
+            <a class="btn" href="?mapa={{ current_map.pk }}&amp;recorrido=1{{ route_query }}" data-ajax-link>{% translate "Editar el camino" %}</a>
             {% endif %}
         </div>
         {% endif %}
         {% if md.moves %}
+        {# Two handles on one track: the route between session «desde» and session «hasta». #}
         <form method="get" class="tarjeta compacta" data-ajax-get data-target="#mapa-seccion" style="gap:4px">
             <input type="hidden" name="mapa" value="{{ current_map.pk }}">
             {% if editing_route %}<input type="hidden" name="recorrido" value="1">{% endif %}
-            <label for="mapa-sesion">{% translate "Recorrido hasta la sesión" %} <strong>{{ until }}</strong>{% if until_session %} <span class="atenuado">· {{ until_session.title }}</span>{% endif %}</label>
-            <input id="mapa-sesion" type="range" name="hasta" min="1" max="{{ max_session }}" step="1" value="{{ until }}" style="width:100%;min-height:40px;accent-color:var(--accent)">
+            <p style="margin:0">{% translate "Recorrido de la sesión" %} <strong data-rango-desde>{{ since }}</strong> {% translate "a la" %} <strong data-rango-hasta>{{ until }}</strong>
+                {% if since_session and until_session %}<span class="pequeno atenuado">· {{ since_session.title }}{% if since != until %} → {{ until_session.title }}{% endif %}</span>{% endif %}</p>
+            {% localize off %}
+            <div class="doble-rango" data-doble-rango style="--desde:{{ since_pct }}%;--hasta:{{ until_pct }}%">
+                <label class="sr-only" for="mapa-desde">{% translate "Desde la sesión" %}</label>
+                <input id="mapa-desde" type="range" name="desde" min="1" max="{{ max_session }}" step="1" value="{{ since }}" data-extremo="desde">
+                <label class="sr-only" for="mapa-sesion">{% translate "Hasta la sesión" %}</label>
+                <input id="mapa-sesion" type="range" name="hasta" min="1" max="{{ max_session }}" step="1" value="{{ until }}" data-extremo="hasta">
+            </div>
+            {% endlocalize %}
+            <div class="fila-s pequeno atenuado" style="justify-content:space-between"><span>{% translate "Sesión" %} 1</span>
+                {% if since > 1 or until < max_session %}<a href="?mapa={{ current_map.pk }}{% if editing_route %}&amp;recorrido=1{% endif %}" data-ajax-link>{% translate "Ver todo el recorrido" %}</a>{% endif %}
+                <span>{% translate "Sesión" %} {{ max_session }}</span></div>
             <noscript><button type="submit" class="btn">{% translate "Ver" %}</button></noscript>
         </form>
         {% endif %}
@@ -89,7 +101,7 @@
         <div class="tarjeta compacta" style="gap:2px">
             <span class="rotulo" style="padding:4px 6px">{% translate "Lugares de" %} {{ current_map.name }}</span>
             {% for loc in places %}
-            <a class="lugar-fila" href="?mapa={{ current_map.pk }}&amp;lugar={{ loc.pk }}{% if query_session %}&amp;hasta={{ query_session }}{% endif %}" data-ajax-link {% if selected == loc %}aria-current="true"{% endif %}>
+            <a class="lugar-fila" href="?mapa={{ current_map.pk }}&amp;lugar={{ loc.pk }}{{ route_query }}" data-ajax-link {% if selected == loc %}aria-current="true"{% endif %}>
                 <span class="pin {{ loc.status }}" style="position:static;transform:none;width:auto;height:auto"><i style="width:12px;height:12px"></i></span>
                 <span style="flex:1">{{ loc.name }}</span><span class="pequeno atenuado">{{ loc.get_status_display }}</span></a>
             {% empty %}<p class="pequeno atenuado">{% translate "Todavía no hay lugares." %}</p>{% endfor %}

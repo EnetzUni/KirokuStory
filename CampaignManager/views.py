@@ -19,6 +19,17 @@ def index(request):
     return render(request, "index.html")
 
 
+class HideBespokeMixin:
+    """Races, classes and items a master made by hand for one character are not shown to
+    players (they would give away an NPC); masters see them."""
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if not self.request.user.dm_campaigns.exists():
+            queryset = queryset.filter(bespoke=False)
+        return queryset
+
+
 class CatalogDetailView(LoginRequiredMixin, DetailView):
     """Detail page that lists the characters linked to the object, filtered to the visible ones."""
     character_filter = None
@@ -89,13 +100,13 @@ class CharacterDetailView(LoginRequiredMixin, DetailView):
 
 # Races
 
-class RaceListView(LoginRequiredMixin, ListView):
+class RaceListView(LoginRequiredMixin, HideBespokeMixin, ListView):
     queryset = Race.objects.order_by("name")
     context_object_name = "races"
     template_name = "race_list.html"
 
 
-class RaceDetailView(CatalogDetailView):
+class RaceDetailView(HideBespokeMixin, CatalogDetailView):
     model = Race
     context_object_name = "race"
     template_name = "race_detail.html"
@@ -119,13 +130,13 @@ class SubraceDetailView(CatalogDetailView):
 
 # Character classes
 
-class CharacterClassListView(LoginRequiredMixin, ListView):
+class CharacterClassListView(LoginRequiredMixin, HideBespokeMixin, ListView):
     queryset = CharacterClass.objects.order_by("name")
     context_object_name = "character_classes"
     template_name = "character_class_list.html"
 
 
-class CharacterClassDetailView(CatalogDetailView):
+class CharacterClassDetailView(HideBespokeMixin, CatalogDetailView):
     model = CharacterClass
     context_object_name = "character_class"
     template_name = "character_class_detail.html"
@@ -165,7 +176,7 @@ class SpellDetailView(CatalogDetailView):
 # Items: the catalog lists the templates. A copy (a character's own weapon or
 # armor) can be opened only when one of the visible characters carries it.
 
-class ItemListView(LoginRequiredMixin, ListView):
+class ItemListView(LoginRequiredMixin, HideBespokeMixin, ListView):
     queryset = Item.objects.filter(template__isnull=True).select_related("weapon", "armor").order_by("name")
     context_object_name = "items"
     template_name = "item_list.html"
@@ -180,6 +191,9 @@ class ItemDetailView(LoginRequiredMixin, DetailView):
         item = super().get_object(queryset)
         if item.template_id and not Inventory.objects.filter(item=item, character__in=visible_characters(self.request.user)).exists():
             raise Http404("Ese objeto no es de ninguno de tus personajes.")
+        # A master's own piece: only its copies carried by the reader's characters can be opened.
+        if item.template_id is None and item.bespoke and not self.request.user.dm_campaigns.exists():
+            raise Http404("Ese objeto no está en el catálogo.")
         return item
 
     def get_context_data(self, **kwargs):

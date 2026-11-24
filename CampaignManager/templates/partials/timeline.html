@@ -21,6 +21,13 @@
         <div class="fila-s" role="group" aria-label="{% translate 'Tipo de suceso' %}">
             {% for value, label in event_form.fields.kind.choices %}<label class="chip"><input type="radio" name="kind" value="{{ value }}" {% if forloop.first %}checked{% endif %}>{{ label }}</label>{% endfor %}
         </div>
+        <details class="pila-s">
+            <summary class="btn btn-texto" style="align-self:flex-start">{% translate "Descripción y secreto" %}</summary>
+            <div class="campo"><label for="ev-descripcion">{% translate "Descripción" %}</label>
+                <textarea id="ev-descripcion" class="entrada" name="description" rows="3"></textarea></div>
+            <div class="campo"><label for="ev-secreto">{% translate "Secreto del máster (solo lo ves tú)" %}</label>
+                <textarea id="ev-secreto" class="entrada" name="secret" rows="2"></textarea></div>
+        </details>
         <div class="fila-s">
             <button type="submit" class="btn btn-principal" {% if not add_session %}disabled{% endif %}>{% if add_session %}{% translate "Añadir a la sesión" %} {{ add_session.number }}{% else %}{% translate "Escribe antes una sesión" %}{% endif %}</button>
             <label class="casilla"><input type="checkbox" name="hidden"> {% translate "Solo para el máster" %}</label>
@@ -51,7 +58,7 @@
             {# The general path: one bar per adventure, from the session it starts in to the one it ends in. #}
             <span class="tl-carril-titulo" style="top:{{ bars.0.top|add:-20 }}px">{% translate "Aventuras" %}</span>
             {% for b in bars %}
-            <a class="tl-aventura {{ b.quest.status }}{% if b.open %} abierta{% endif %}" href="{% url 'diary' campaign.pk %}#aventura-{{ b.quest.pk }}"
+            <a class="tl-aventura {{ b.quest.status }}{% if b.open %} abierta{% endif %}{% if b.quest.hidden %} oculta{% endif %}" href="{% url 'diary' campaign.pk %}#aventura-{{ b.quest.pk }}"
                style="left:{{ b.left }}px;top:{{ b.top }}px;width:{{ b.width }}px"
                title="{{ b.quest.title }} · {{ b.quest.get_status_display }} · S{{ b.first }}{% if b.last %}–S{{ b.last }}{% elif b.open %} →{% endif %}">
                 <b>{{ b.quest.title }}</b> <span>{{ b.quest.get_status_display }}</span></a>
@@ -69,7 +76,8 @@
             <span class="pequeno atenuado">{% if m.event.session %}{% translate "Sesión" %} {{ m.event.session.number }} · {% endif %}{{ m.event.world_day }}</span>
             {% if m.event.hidden %}<span class="pastilla p-morado">{% translate "OCULTO" %}</span>{% endif %}</div>
         <h2 style="font-size:22px">{{ m.event.title }}</h2>
-        {% if m.event.description %}<p>{{ m.event.description }}</p>{% endif %}
+        {% if m.event.description %}<p style="white-space:pre-line">{{ m.event.description }}</p>{% endif %}
+        {% if is_master and m.event.secret %}<div class="secreto"><span class="rotulo">{% translate "Secreto del máster · solo lo ves tú" %}</span><span style="white-space:pre-line">{{ m.event.secret }}</span></div>{% endif %}
         <div class="fila-s">
             {% for c in m.event.characters.all %}<span class="pastilla">{{ c.name }}</span>{% endfor %}
             {% if m.event.location and m.event.location.status != "oculto" or m.event.location and is_master %}

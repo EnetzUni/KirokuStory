@@ -1,0 +1,12 @@
+{% load i18n %}{% comment %}The folded line of an adventure or a mission: title, sessions and status.{% endcomment %}
+<summary>
+    <span class="flecha" aria-hidden="true">›</span>
+    <span class="pila-s" style="gap:2px;flex:1 1 auto;min-width:0">
+        <b>{{ quest.title }}</b>
+        {% if quest.start_session %}<span class="pequeno atenuado">{% translate "Sesión" %} {{ quest.start_session.number }}{% if quest.end_session %} → {{ quest.end_session.number }}{% elif quest.status == "activa" %} → {% translate "en curso" %}{% endif %}</span>{% endif %}
+    </span>
+    <span class="fila-s" style="gap:6px;justify-content:flex-end">
+        {% if quest.hidden %}<span class="pastilla p-morado">{% translate "OCULTA" %}</span>{% endif %}
+        <span class="pastilla {% if quest.status == 'activa' %}p-ambar{% elif quest.status == 'completada' %}p-verde{% elif quest.status == 'fallida' %}p-coral{% elif quest.status == 'terminada' %}p-acento{% endif %}">{{ quest.get_status_display }}</span>
+    </span>
+</summary>
