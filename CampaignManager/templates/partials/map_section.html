@@ -1,9 +1,19 @@
 {% load i18n l10n %}
 <div id="mapa-seccion" class="fila">
     <div class="ancho pila-s" style="gap:12px">
-        {% include "partials/map_canvas.html" with link_pins=True ajax_pins=True zoom=True %}
+        {% if current_map.image %}
+        <div class="fila-s">
+            <a class="chip" href="?mapa={{ current_map.pk }}{% if not weather_on %}&amp;tiempo=1{% endif %}" data-tiempo="{% url 'map_weather' campaign.pk current_map.pk %}" aria-pressed="{% if weather_on or editing_weather %}true{% else %}false{% endif %}"><span aria-hidden="true">🌦</span>&nbsp;{% translate "Tiempo real" %}</a>
+            {% if is_master %}{% if editing_weather %}<a class="btn btn-principal" href="?mapa={{ current_map.pk }}&amp;tiempo=1" data-ajax-link>{% translate "Terminar" %}</a>
+            {% else %}<a class="btn btn-discreto" href="?mapa={{ current_map.pk }}&amp;tiempo=editar" data-ajax-link>{% translate "Regiones del tiempo" %}</a>{% endif %}{% endif %}
+        </div>
+        {% endif %}
+        {% if editing_weather %}{% include "partials/map_canvas.html" with zoom=True %}
+        {% else %}{% include "partials/map_canvas.html" with link_pins=True ajax_pins=True zoom=True %}{% endif %}
+        <div data-tiempo-pie>{% if weather %}{% include "partials/weather_caption.html" %}{% endif %}</div>
+        {% if editing_weather %}<p class="mensaje" style="color:var(--link)">{% translate "Para dibujar una región, pulsa en el mapa sus esquinas, una tras otra. O elige un lugar del mapa en el formulario." %}</p>{% endif %}
         {% if placing %}<p class="mensaje" style="color:var(--link)">{% translate "Pulsa en el mapa donde quieras poner el lugar." %}</p>{% endif %}
-        {% if is_master and md.segments and not placing %}
+        {% if is_master and md.segments and not placing and not editing_weather %}
         <div class="fila-s" style="align-items:center">
             {% if editing_route %}
             <p class="mensaje" style="color:var(--link);flex:1 1 280px;margin:0">{% translate "Arrastra los puntos para trazar el camino que siguió el grupo. Pulsa o arrastra un «+» para añadir un punto; doble clic o Supr sobre un punto lo quita. Se guarda solo." %}</p>
@@ -37,7 +47,42 @@
     </div>
     <aside class="lateral pila">
         <div class="tarjeta compacta">
-            {% if placing %}
+            {% if editing_weather %}
+            <h2 style="font-size:22px">{% translate "Regiones del tiempo" %}</h2>
+            <p class="ayuda">{% translate "Enlaza cada región del mapa con un lugar real: la capa del tiempo mostrará su tiempo en directo, y la sombreará cuando allí sea de noche. Los jugadores solo ven la capa." %}</p>
+            <ul class="lista-limpia pila-s" style="gap:6px">
+                {% for r in current_map.weather_regions.all %}
+                <li class="fila-s" style="justify-content:space-between;flex-wrap:nowrap">
+                    <span class="pequeno"><b>{{ r.name }}</b>{% if r.location %} <span class="atenuado">· {{ r.location.name }}</span>{% endif %}<br><span class="atenuado">→ {{ r.place_name }}</span></span>
+                    <form method="post" action="{% url 'map_weather_delete' campaign.pk r.pk %}" data-ajax data-target="#mapa-seccion" class="en-linea">{% csrf_token %}
+                        <button type="submit" class="btn btn-texto btn-pequeno" style="color:var(--danger-text)" data-confirmar="{% blocktranslate with name=r.name place=r.place_name %}¿Desenlazar {{ name }} de {{ place }}?{% endblocktranslate %}">{% translate "Quitar" %}</button>
+                    </form>
+                </li>
+                {% empty %}<li class="pequeno atenuado">{% translate "Todavía no hay regiones." %}</li>{% endfor %}
+            </ul>
+            <form id="form-region" method="post" action="{% url 'map_weather_add' campaign.pk current_map.pk %}" class="pila-s" data-ajax data-target="#mapa-seccion" style="border-top:1px solid var(--line);padding-top:10px">
+                {% csrf_token %}
+                <h3 style="font-size:18px">{% translate "Nueva región" %}</h3>
+                <div class="campo"><label for="region-nombre">{% translate "Nombre" %}</label><input id="region-nombre" class="entrada" type="text" name="name" required maxlength="100" placeholder="{% translate 'Por ejemplo «Las Marismas»' %}"></div>
+                <div class="campo"><label for="region-lugar">{% translate "Zona" %}</label>
+                    <select id="region-lugar" name="location" class="entrada">
+                        <option value="">{% translate "— Dibujarla en el mapa —" %}</option>
+                        {% for loc in weather_form.fields.location.queryset %}<option value="{{ loc.pk }}">{% translate "Alrededor de" %} {{ loc.name }}</option>{% endfor %}
+                    </select></div>
+                <input type="hidden" name="points" value="">
+                <div class="fila-s" data-dibujo-controles>
+                    <span class="pequeno atenuado" data-dibujo-cuenta>{% translate "Sin puntos todavía." %}</span>
+                    <button type="button" class="btn btn-pequeno" data-dibujo-deshacer>{% translate "Deshacer punto" %}</button>
+                    <button type="button" class="btn btn-pequeno btn-texto" data-dibujo-borrar>{% translate "Borrar dibujo" %}</button>
+                </div>
+                <div class="campo"><label for="region-real">{% translate "Lugar real" %}</label>
+                    <input id="region-real" class="entrada" type="text" name="place" required maxlength="200" autocomplete="off" data-buscar-lugar="{% url 'map_weather_search' campaign.pk %}" placeholder="{% translate 'Bilbao, España · Japón · 43.26, -2.93' %}">
+                    <span class="ayuda">{% translate "Un país, una ciudad o unas coordenadas. Elige uno de la lista para afinar." %}</span>
+                    <ul class="lista-limpia sugerencias" data-sugerencias aria-live="polite"></ul></div>
+                <input type="hidden" name="latitude" value=""><input type="hidden" name="longitude" value="">
+                <div class="fila-s"><button type="submit" class="btn btn-principal">{% translate "Enlazar" %}</button></div>
+            </form>
+            {% elif placing %}
             <form id="form-nuevo-lugar" method="post" action="{% url 'map_location_add' campaign.pk current_map.pk %}" class="pila-s" data-ajax data-target="#mapa-seccion">
                 {% csrf_token %}
                 <h2 style="font-size:22px">{% translate "Nuevo lugar" %}</h2>

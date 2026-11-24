@@ -11,12 +11,13 @@ SECTIONS = [
     ("home", gettext_noop("Inicio"), "home"),
     ("diary", gettext_noop("Diario"), "diary"),
     ("world", gettext_noop("Mundo"), "world"),
+    ("rumours", gettext_noop("Rumores"), "rumours"),
     ("map", gettext_noop("Mapa"), "map"),
     ("characters", gettext_noop("Personajes"), "characters"),
     ("turns", gettext_noop("Turnos"), "turns"),
 ]
 # url_name prefix -> section
-SECTION_OF = {"home": "home", "diary": "diary", "world": "world", "map": "map",
+SECTION_OF = {"home": "home", "diary": "diary", "world": "world", "rumours": "rumours", "map": "map",
               "characters": "characters", "sheet": "characters", "creator": "characters", "level": "characters",
               "turns": "turns"}
 STATUS_TEXT = {"activa": gettext_noop("Campaña activa"), "pausada": gettext_noop("Campaña en pausa"), "terminada": gettext_noop("Campaña terminada")}

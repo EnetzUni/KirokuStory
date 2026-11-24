@@ -152,6 +152,7 @@
   "notice": "Traed la ficha al día: la sesión 7 empieza subiendo a nivel 5.",
   "world_day": "Día 9 de Brumaluz",
   "world_year": "año 1203",
+  "time_zone": "Europe/Madrid",
   "masters": [
    [
     "carlos"
@@ -185,6 +186,7 @@
   "notice": "En pausa hasta enero.",
   "world_day": "Festival de las linternas",
   "world_year": "año del Tigre",
+  "time_zone": "Asia/Tokyo",
   "masters": [
    [
     "carlos"
@@ -215,6 +217,7 @@
   "notice": "",
   "world_day": "Último día de otoño",
   "world_year": "año 1202",
+  "time_zone": "Europe/Madrid",
   "masters": [
    [
     "carlos"
@@ -3795,6 +3798,303 @@
   "master_note": "",
   "ability": null,
   "updated_at": "2026-11-16T10:30:00Z"
+ }
+},
+{
+ "model": "CampaignManager.rumourcategory",
+ "pk": 1,
+ "fields": {
+  "campaign": 1,
+  "name": "Rumor",
+  "color": "#6B6B5E",
+  "order": 0
+ }
+},
+{
+ "model": "CampaignManager.rumourcategory",
+ "pk": 2,
+ "fields": {
+  "campaign": 1,
+  "name": "Comunicado oficial",
+  "color": "#9A6B00",
+  "order": 1
+ }
+},
+{
+ "model": "CampaignManager.rumourcategory",
+ "pk": 3,
+ "fields": {
+  "campaign": 1,
+  "name": "Noticia",
+  "color": "#1F4E89",
+  "order": 2
+ }
+},
+{
+ "model": "CampaignManager.rumourcategory",
+ "pk": 4,
+ "fields": {
+  "campaign": 1,
+  "name": "Leyenda",
+  "color": "#5B3E96",
+  "order": 3
+ }
+},
+{
+ "model": "CampaignManager.rumourcategory",
+ "pk": 5,
+ "fields": {
+  "campaign": 2,
+  "name": "Rumor",
+  "color": "#6B6B5E",
+  "order": 0
+ }
+},
+{
+ "model": "CampaignManager.rumourcategory",
+ "pk": 6,
+ "fields": {
+  "campaign": 2,
+  "name": "Comunicado oficial",
+  "color": "#9A6B00",
+  "order": 1
+ }
+},
+{
+ "model": "CampaignManager.rumourcategory",
+ "pk": 7,
+ "fields": {
+  "campaign": 2,
+  "name": "Noticia",
+  "color": "#1F4E89",
+  "order": 2
+ }
+},
+{
+ "model": "CampaignManager.rumourcategory",
+ "pk": 8,
+ "fields": {
+  "campaign": 2,
+  "name": "Leyenda",
+  "color": "#5B3E96",
+  "order": 3
+ }
+},
+{
+ "model": "CampaignManager.rumourcategory",
+ "pk": 9,
+ "fields": {
+  "campaign": 3,
+  "name": "Rumor",
+  "color": "#6B6B5E",
+  "order": 0
+ }
+},
+{
+ "model": "CampaignManager.rumourcategory",
+ "pk": 10,
+ "fields": {
+  "campaign": 3,
+  "name": "Comunicado oficial",
+  "color": "#9A6B00",
+  "order": 1
+ }
+},
+{
+ "model": "CampaignManager.rumourcategory",
+ "pk": 11,
+ "fields": {
+  "campaign": 3,
+  "name": "Noticia",
+  "color": "#1F4E89",
+  "order": 2
+ }
+},
+{
+ "model": "CampaignManager.rumourcategory",
+ "pk": 12,
+ "fields": {
+  "campaign": 3,
+  "name": "Leyenda",
+  "color": "#5B3E96",
+  "order": 3
+ }
+},
+{
+ "model": "CampaignManager.rumour",
+ "pk": 1,
+ "fields": {
+  "campaign": 1,
+  "category": 1,
+  "text": "Dicen que Lady Morwen paga en oro antiguo a quien le lleve fragmentos de la [[La Corona de Ceniza]].",
+  "source": "",
+  "source_page": 9,
+  "place": 3,
+  "session": 5,
+  "truth": "medias",
+  "published": true,
+  "created_at": "2026-11-10T20:00:00Z"
+ }
+},
+{
+ "model": "CampaignManager.rumour",
+ "pk": 2,
+ "fields": {
+  "campaign": 1,
+  "category": 2,
+  "text": "Por orden del alcalde: queda prohibido salir de Puerto Gris por el Camino del Faro después del anochecer.",
+  "source": "",
+  "source_page": 11,
+  "place": 2,
+  "session": 6,
+  "truth": "verdad",
+  "published": true,
+  "created_at": "2026-11-11T20:00:00Z"
+ }
+},
+{
+ "model": "CampaignManager.rumour",
+ "pk": 3,
+ "fields": {
+  "campaign": 1,
+  "category": 4,
+  "text": "En el Bosque de Ceniza los árboles susurran el nombre de quien los quemó.",
+  "source": "Una anciana de Robleda",
+  "source_page": null,
+  "place": 4,
+  "session": 3,
+  "truth": "sin_decidir",
+  "published": true,
+  "created_at": "2026-11-08T20:00:00Z"
+ }
+},
+{
+ "model": "CampaignManager.rumour",
+ "pk": 4,
+ "fields": {
+  "campaign": 1,
+  "category": 3,
+  "text": "Han visto a los saqueadores orcos acampados junto al Paso del Cuervo.",
+  "source": "Un pregonero",
+  "source_page": null,
+  "place": 2,
+  "session": 6,
+  "truth": "verdad",
+  "published": true,
+  "created_at": "2026-11-11T20:00:00Z"
+ }
+},
+{
+ "model": "CampaignManager.rumour",
+ "pk": 5,
+ "fields": {
+  "campaign": 1,
+  "category": 1,
+  "text": "El santuario hundido guarda la otra mitad de la corona, y solo se abre con la marea más baja del año.",
+  "source": "",
+  "source_page": 12,
+  "place": 8,
+  "session": 6,
+  "truth": "mentira",
+  "published": false,
+  "created_at": "2026-11-11T20:00:00Z"
+ }
+},
+{
+ "model": "CampaignManager.rumour",
+ "pk": 6,
+ "fields": {
+  "campaign": 2,
+  "category": 8,
+  "text": "Las linternas del puente se encienden solas la noche de luna nueva.",
+  "source": "Un barquero",
+  "source_page": null,
+  "place": 26,
+  "session": 7,
+  "truth": "sin_decidir",
+  "published": true,
+  "created_at": "2026-11-06T20:00:00Z"
+ }
+},
+{
+ "model": "CampaignManager.weatherregion",
+ "pk": 1,
+ "fields": {
+  "map": 1,
+  "name": "Costa de Puerto Gris",
+  "location": 1,
+  "points": [],
+  "place_name": "Bilbao, País Vasco, España",
+  "latitude": 43.2627,
+  "longitude": -2.9253,
+  "weather": null,
+  "weather_at": null
+ }
+},
+{
+ "model": "CampaignManager.weatherregion",
+ "pk": 2,
+ "fields": {
+  "map": 1,
+  "name": "Bosque de Ceniza",
+  "location": null,
+  "points": [
+   [
+    48,
+    34
+   ],
+   [
+    64,
+    30
+   ],
+   [
+    68,
+    48
+   ],
+   [
+    52,
+    56
+   ],
+   [
+    44,
+    48
+   ]
+  ],
+  "place_name": "Oslo, Noruega",
+  "latitude": 59.9127,
+  "longitude": 10.7461,
+  "weather": null,
+  "weather_at": null
+ }
+},
+{
+ "model": "CampaignManager.weatherregion",
+ "pk": 3,
+ "fields": {
+  "map": 1,
+  "name": "Torre de Morwen",
+  "location": 6,
+  "points": [],
+  "place_name": "Kioto, Japón",
+  "latitude": 35.0211,
+  "longitude": 135.7538,
+  "weather": null,
+  "weather_at": null
+ }
+},
+{
+ "model": "CampaignManager.weatherregion",
+ "pk": 4,
+ "fields": {
+  "map": 1,
+  "name": "Santuario hundido",
+  "location": 8,
+  "points": [],
+  "place_name": "Reikiavik, Islandia",
+  "latitude": 64.1355,
+  "longitude": -21.8954,
+  "weather": null,
+  "weather_at": null
  }
 }
 ]

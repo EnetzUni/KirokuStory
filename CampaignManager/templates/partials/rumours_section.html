@@ -1,0 +1,70 @@
+{% load i18n mesa %}{% url 'rumours' campaign.pk as here %}
+<div id="rumores" class="fila">
+    <div class="ancho pila-s" style="gap:12px">
+        {% if total or is_master %}
+        <nav class="fila-s" aria-label="{% translate 'Categorías de rumores' %}">
+            <a class="chip{% if not current_category %} on{% endif %}" href="{{ here }}" data-ajax-link{% if not current_category %} aria-current="true"{% endif %}>{% translate "Todos" %} <span class="pequeno atenuado">&nbsp;{{ total }}</span></a>
+            {% for f in filters %}
+            <a class="chip chip-rumor{% if current_category == f.category.pk|stringformat:'s' %} on{% endif %}" href="{{ here }}?cat={{ f.category.pk }}" data-ajax-link style="--cat:{{ f.category.color }}"{% if current_category == f.category.pk|stringformat:'s' %} aria-current="true"{% endif %}><i aria-hidden="true"></i>{{ f.category.name }} <span class="pequeno atenuado">&nbsp;{{ f.count }}</span></a>
+            {% endfor %}
+            {% if uncategorized %}<a class="chip{% if current_category == 'sin' %} on{% endif %}" href="{{ here }}?cat=sin" data-ajax-link>{% translate "Sin categoría" %} <span class="pequeno atenuado">&nbsp;{{ uncategorized }}</span></a>{% endif %}
+        </nav>
+        {% endif %}
+
+        {% for it in items %}{% with r=it.rumour %}
+        <article id="rumor-{{ r.pk }}" class="tarjeta compacta rumor{% if not r.published %} oculto{% endif %}" style="--cat:{{ it.category.color|default:'var(--line)' }}">
+            <div class="fila-s" style="justify-content:space-between">
+                <span class="fila-s" style="gap:6px">
+                    {% if it.category %}<span class="pastilla" style="background:{{ it.category.color }};color:{{ it.category.text_color }}">{{ it.category.name }}</span>{% endif %}
+                    {% if is_master and not r.published %}<span class="pastilla p-morado">{% translate "Oculto" %}</span>{% endif %}
+                </span>
+                {% if is_master %}<span class="pastilla {{ it.truth_pill }}" title="{% translate 'Solo lo ves tú' %}">{{ r.get_truth_display }}</span>{% endif %}
+            </div>
+            <div class="rumor-texto">{% wiki r.text %}</div>
+            {% if r.source or it.source_page or it.place or it.session %}
+            <p class="pequeno atenuado">
+                {% if it.source_page %}— <a href="{% url 'world_page' campaign.pk it.source_page.slug %}">{{ it.source_page.title }}</a>{% elif r.source %}— {{ r.source }}{% endif %}
+                {% if it.place %}· {% translate "en" %} <a href="{% url 'world_page' campaign.pk it.place.slug %}">{{ it.place.title }}</a>{% endif %}
+                {% if it.session %}· {% translate "Sesión" %} {{ it.session.number }}{% endif %}
+            </p>
+            {% endif %}
+            {% if is_master %}
+            <form method="post" action="{% url 'rumours_action' campaign.pk r.pk %}" data-ajax data-target="#rumores" class="fila-s">{% csrf_token %}
+                <input type="hidden" name="cat" value="{{ current_category }}">
+                <button class="btn btn-pequeno{% if not r.published %} btn-principal{% endif %}" name="accion" value="publicar">{% if r.published %}{% translate "Ocultar" %}{% else %}{% translate "Publicar" %}{% endif %}</button>
+                <a class="btn btn-pequeno" href="{% url 'rumours_edit' campaign.pk r.pk %}">{% translate "Editar" %}</a>
+                <button class="btn btn-pequeno btn-texto" style="color:var(--danger-text)" name="accion" value="borrar" data-confirmar="{% translate '¿Borrar este rumor?' %}">{% translate "Borrar" %}</button>
+            </form>
+            {% endif %}
+        </article>
+        {% endwith %}{% empty %}
+        <p class="atenuado">{% if is_master %}{% translate "No hay rumores aquí. Añade uno con «Nuevo rumor»." %}{% else %}{% translate "Todavía no ha llegado ningún rumor." %}{% endif %}</p>
+        {% endfor %}
+    </div>
+
+    {% if is_master %}
+    <aside class="lateral pila">
+        <div class="tarjeta compacta">
+            <h2 class="rotulo">{% translate "Categorías" %}</h2>
+            <p class="ayuda">{% translate "Cada rumor lleva el color de su categoría: un comunicado oficial, una leyenda... Los jugadores ven el nombre y el color, no la verdad." %}</p>
+            {% for c, form in category_forms %}
+            <form method="post" action="{% url 'rumours_category' campaign.pk %}" data-ajax data-target="#rumores" class="fila-s categoria-rumor">{% csrf_token %}
+                <input type="hidden" name="cat" value="{{ current_category }}">
+                <label class="sr-only" for="{{ form.color.id_for_label }}">{% translate "Color" %}</label>{{ form.color }}
+                <label class="sr-only" for="{{ form.name.id_for_label }}">{% translate "Nombre" %}</label>
+                <input type="text" name="{{ form.name.html_name }}" id="{{ form.name.id_for_label }}" value="{{ c.name }}" maxlength="60" class="entrada" required>
+                <button class="btn btn-pequeno" name="accion" value="guardar:{{ c.pk }}">{% translate "Guardar" %}</button>
+                <button class="btn btn-pequeno btn-texto" style="color:var(--danger-text)" name="accion" value="borrar:{{ c.pk }}" data-confirmar="{% blocktranslate with name=c.name %}¿Borrar la categoría «{{ name }}»? Sus rumores quedan sin categoría.{% endblocktranslate %}" aria-label="{% blocktranslate with name=c.name %}Borrar {{ name }}{% endblocktranslate %}">✕</button>
+            </form>
+            {% endfor %}
+            <form method="post" action="{% url 'rumours_category' campaign.pk %}" data-ajax data-target="#rumores" class="fila-s categoria-rumor" style="border-top:1px solid var(--line);padding-top:10px">{% csrf_token %}
+                <input type="hidden" name="cat" value="{{ current_category }}">
+                <label class="sr-only" for="{{ new_category_form.color.id_for_label }}">{% translate "Color" %}</label>{{ new_category_form.color }}
+                <label class="sr-only" for="{{ new_category_form.name.id_for_label }}">{% translate "Nueva categoría" %}</label>
+                <input type="text" name="{{ new_category_form.name.html_name }}" id="{{ new_category_form.name.id_for_label }}" maxlength="60" class="entrada" placeholder="{% translate 'Nueva categoría' %}" required>
+                <button class="btn btn-pequeno btn-principal" name="accion" value="crear">{% translate "Añadir" %}</button>
+            </form>
+        </div>
+    </aside>
+    {% endif %}
+</div>

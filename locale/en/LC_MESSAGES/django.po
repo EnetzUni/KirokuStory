@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: KirokuStory E4\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-24 15:22+0100\n"
+"POT-Creation-Date: 2026-11-24 16:03+0100\n"
 "PO-Revision-Date: 2026-11-17 13:30+0100\n"
 "Last-Translator: KirokuStory\n"
 "Language-Team: English\n"
@@ -33,11 +33,17 @@ msgid "Mundo"
 msgstr "World"
 
 #: CampaignManager/context_processors.py:14
+#: CampaignManager/templates/rumour_form.html:6
+#: CampaignManager/templates/rumours.html:3
+msgid "Rumores"
+msgstr "Rumours"
+
+#: CampaignManager/context_processors.py:15
 #: CampaignManager/templates/map.html:6
 msgid "Mapa"
 msgstr "Map"
 
-#: CampaignManager/context_processors.py:15
+#: CampaignManager/context_processors.py:16
 #: CampaignManager/templates/campaign_detail.html:16
 #: CampaignManager/templates/character_class_detail.html:33
 #: CampaignManager/templates/character_detail.html:6
@@ -58,36 +64,36 @@ msgstr "Map"
 msgid "Personajes"
 msgstr "Characters"
 
-#: CampaignManager/context_processors.py:16
+#: CampaignManager/context_processors.py:17
 #: CampaignManager/templates/turns.html:3
 msgid "Turnos"
 msgstr "Turns"
 
-#: CampaignManager/context_processors.py:22
+#: CampaignManager/context_processors.py:23
 msgid "Campaña activa"
 msgstr "Active campaign"
 
-#: CampaignManager/context_processors.py:22
+#: CampaignManager/context_processors.py:23
 msgid "Campaña en pausa"
 msgstr "Paused campaign"
 
-#: CampaignManager/context_processors.py:22
+#: CampaignManager/context_processors.py:23
 msgid "Campaña terminada"
 msgstr "Finished campaign"
 
-#: CampaignManager/context_processors.py:42
+#: CampaignManager/context_processors.py:43
 msgid "Diriges"
 msgstr "You run it"
 
-#: CampaignManager/context_processors.py:42
+#: CampaignManager/context_processors.py:43
 msgid "con"
 msgstr "with"
 
-#: CampaignManager/context_processors.py:44
+#: CampaignManager/context_processors.py:45
 msgid "Máster"
 msgstr "Master"
 
-#: CampaignManager/context_processors.py:65
+#: CampaignManager/context_processors.py:66
 #: CampaignManager/templates/partials/sheet_panel.html:12
 #: CampaignManager/templates/partials/turns_list.html:16
 msgid "Te toca"
@@ -346,6 +352,7 @@ msgstr "Change"
 #: CampaignManager/templates/level_up.html:6
 #: CampaignManager/templates/race_detail.html:6
 #: CampaignManager/templates/race_list.html:6
+#: CampaignManager/templates/rumour_form.html:6
 #: CampaignManager/templates/sheet.html:5
 #: CampaignManager/templates/spell_detail.html:6
 #: CampaignManager/templates/spell_list.html:6
@@ -396,7 +403,9 @@ msgstr "This campaign has no characters yet."
 #: CampaignManager/templates/character_list.html:10
 #: CampaignManager/templates/item_list.html:11
 #: CampaignManager/templates/map.html:15
-#: CampaignManager/templates/partials/map_section.html:44
+#: CampaignManager/templates/partials/map_section.html:66
+#: CampaignManager/templates/partials/map_section.html:89
+#: CampaignManager/templates/partials/rumours_section.html:54
 #: CampaignManager/templates/partials/sheet_paper.html:17
 #: CampaignManager/templates/partials/sheet_paper.html:165
 #: CampaignManager/templates/partials/sheet_paper.html:207
@@ -508,6 +517,7 @@ msgstr ""
 #: CampaignManager/templates/campaign_setup.html:117
 #: CampaignManager/templates/characters.html:54
 #: CampaignManager/templates/characters.html:99
+#: CampaignManager/templates/partials/rumours_section.html:35
 msgid "Editar"
 msgstr "Edit"
 
@@ -673,7 +683,7 @@ msgstr "Race"
 #: CampaignManager/templates/creator.html:67
 #: CampaignManager/templates/subclass_detail.html:9
 #: CampaignManager/templates/subclass_list.html:10
-#: CampaignManager/views_characters.py:893
+#: CampaignManager/views_characters.py:895
 msgid "Clase"
 msgstr "Class"
 
@@ -862,10 +872,12 @@ msgstr ""
 #: CampaignManager/templates/diary_session_form.html:10
 #: CampaignManager/templates/home.html:112
 #: CampaignManager/templates/partials/board.html:114
-#: CampaignManager/templates/partials/map_section.html:55
+#: CampaignManager/templates/partials/map_section.html:100
+#: CampaignManager/templates/partials/rumours_section.html:56
 #: CampaignManager/templates/partials/sheet_panel.html:131
 #: CampaignManager/templates/partials/sheet_panel.html:403
 #: CampaignManager/templates/partials/turns_list.html:33
+#: CampaignManager/templates/rumour_form.html:13
 #: CampaignManager/templates/world_edit.html:10
 msgid "Guardar"
 msgstr "Save"
@@ -875,7 +887,8 @@ msgstr "Save"
 #: CampaignManager/templates/diary_scene_form.html:10
 #: CampaignManager/templates/diary_session_form.html:11
 #: CampaignManager/templates/partials/board.html:6
-#: CampaignManager/templates/partials/map_section.html:56
+#: CampaignManager/templates/partials/map_section.html:101
+#: CampaignManager/templates/rumour_form.html:14
 #: CampaignManager/templates/world_edit.html:11
 msgid "Cancelar"
 msgstr "Cancel"
@@ -1258,7 +1271,7 @@ msgstr ""
 #: CampaignManager/templates/creator.html:215
 #: CampaignManager/templates/partials/sheet_panel.html:328
 #: CampaignManager/templates/partials/sheet_paper.html:228
-#: CampaignManager/views_characters.py:893
+#: CampaignManager/views_characters.py:895
 msgid "Habilidad única"
 msgstr "Unique skill"
 
@@ -1498,12 +1511,13 @@ msgstr "Latest"
 
 #: CampaignManager/templates/home.html:34
 #: CampaignManager/templates/home.html:58
-#: CampaignManager/templates/partials/map_section.html:31
-#: CampaignManager/templates/partials/map_section.html:33
-#: CampaignManager/templates/partials/map_section.html:64
-#: CampaignManager/templates/partials/map_section.html:80
+#: CampaignManager/templates/partials/map_section.html:41
+#: CampaignManager/templates/partials/map_section.html:43
+#: CampaignManager/templates/partials/map_section.html:109
+#: CampaignManager/templates/partials/map_section.html:125
 #: CampaignManager/templates/partials/quest_card.html:12
 #: CampaignManager/templates/partials/quest_summary.html:7
+#: CampaignManager/templates/partials/rumours_section.html:28
 #: CampaignManager/templates/partials/session_article.html:2
 #: CampaignManager/templates/partials/sheet_panel.html:415
 #: CampaignManager/templates/partials/timeline.html:76
@@ -2078,7 +2092,7 @@ msgid "hilos"
 msgstr "threads"
 
 #: CampaignManager/templates/partials/board.html:59
-#: CampaignManager/templates/partials/map_section.html:76
+#: CampaignManager/templates/partials/map_section.html:121
 msgid "Abrir su página"
 msgstr "Open its page"
 
@@ -2208,15 +2222,37 @@ msgstr "This map has no image yet. Upload it with “Upload image”."
 msgid "El máster todavía no ha subido la imagen de este mapa."
 msgstr "The master has not uploaded this map's image yet."
 
-#: CampaignManager/templates/partials/map_canvas.html:25
+#: CampaignManager/templates/partials/map_canvas.html:27
 msgid "Ver el mapa entero"
 msgstr "Show the whole map"
 
-#: CampaignManager/templates/partials/map_section.html:5
+#: CampaignManager/templates/partials/map_section.html:6
+msgid "Tiempo real"
+msgstr "Live weather"
+
+#: CampaignManager/templates/partials/map_section.html:7
+#: CampaignManager/templates/partials/map_section.html:20
+msgid "Terminar"
+msgstr "Done"
+
+#: CampaignManager/templates/partials/map_section.html:8
+#: CampaignManager/templates/partials/map_section.html:51
+msgid "Regiones del tiempo"
+msgstr "Weather regions"
+
+#: CampaignManager/templates/partials/map_section.html:14
+msgid ""
+"Para dibujar una región, pulsa en el mapa sus esquinas, una tras otra. O "
+"elige un lugar del mapa en el formulario."
+msgstr ""
+"To draw a region, tap its corners on the map, one after another. Or choose a "
+"location of the map in the form."
+
+#: CampaignManager/templates/partials/map_section.html:15
 msgid "Pulsa en el mapa donde quieras poner el lugar."
 msgstr "Tap the map where you want to put the place."
 
-#: CampaignManager/templates/partials/map_section.html:9
+#: CampaignManager/templates/partials/map_section.html:19
 msgid ""
 "Arrastra los puntos para trazar el camino que siguió el grupo. Pulsa o "
 "arrastra un «+» para añadir un punto; doble clic o Supr sobre un punto lo "
@@ -2226,68 +2262,51 @@ msgstr ""
 " point; double-click or Delete on a point removes it. Changes save "
 "automatically."
 
-#: CampaignManager/templates/partials/map_section.html:10
-msgid "Terminar"
-msgstr "Done"
-
-#: CampaignManager/templates/partials/map_section.html:12
+#: CampaignManager/templates/partials/map_section.html:22
 msgid "Editar el camino"
 msgstr "Edit the route"
 
-#: CampaignManager/templates/partials/map_section.html:21
+#: CampaignManager/templates/partials/map_section.html:31
 msgid "Recorrido de la sesión"
 msgstr "Route from session"
 
-#: CampaignManager/templates/partials/map_section.html:21
+#: CampaignManager/templates/partials/map_section.html:31
 msgid "a la"
 msgstr "to"
 
-#: CampaignManager/templates/partials/map_section.html:25
+#: CampaignManager/templates/partials/map_section.html:35
 msgid "Desde la sesión"
 msgstr "From session"
 
-#: CampaignManager/templates/partials/map_section.html:27
+#: CampaignManager/templates/partials/map_section.html:37
 msgid "Hasta la sesión"
 msgstr "To session"
 
-#: CampaignManager/templates/partials/map_section.html:32
+#: CampaignManager/templates/partials/map_section.html:42
 msgid "Ver todo el recorrido"
 msgstr "See the whole route"
 
-#: CampaignManager/templates/partials/map_section.html:34
+#: CampaignManager/templates/partials/map_section.html:44
 msgid "Ver"
 msgstr "View"
 
-#: CampaignManager/templates/partials/map_section.html:43
-msgid "Nuevo lugar"
-msgstr "New place"
-
-#: CampaignManager/templates/partials/map_section.html:51
-msgid "Estado del lugar"
-msgstr "Place status"
-
-#: CampaignManager/templates/partials/map_section.html:54
-msgid "Se crea también su página en el Mundo."
-msgstr "Its World page is created too."
-
-#: CampaignManager/templates/partials/map_section.html:59
-msgid "Tramos del camino"
-msgstr "Route stretches"
-
-#: CampaignManager/templates/partials/map_section.html:60
+#: CampaignManager/templates/partials/map_section.html:52
 msgid ""
-"Quita un tramo añadido por error: el camino irá directo de la parada anterior"
-" a la siguiente."
+"Enlaza cada región del mapa con un lugar real: la capa del tiempo mostrará su"
+" tiempo en directo, y la sombreará cuando allí sea de noche. Los jugadores "
+"solo ven la capa."
 msgstr ""
-"Remove a stretch added by mistake: the route will go straight from the stop "
-"before to the next one."
+"Link each region of the map to a real place: the weather layer will show its "
+"live weather, and shade it when it is night there. Players only see the "
+"layer."
 
-#: CampaignManager/templates/partials/map_section.html:66
+#: CampaignManager/templates/partials/map_section.html:58
 #, python-format
-msgid "¿Quitar el tramo %(a)s → %(b)s?"
-msgstr "Remove the stretch %(a)s → %(b)s?"
+msgid "¿Desenlazar %(name)s de %(place)s?"
+msgstr "Unlink %(name)s from %(place)s?"
 
-#: CampaignManager/templates/partials/map_section.html:66
+#: CampaignManager/templates/partials/map_section.html:58
+#: CampaignManager/templates/partials/map_section.html:111
 #: CampaignManager/templates/partials/objective_row.html:10
 #: CampaignManager/templates/partials/sheet_panel.html:93
 #: CampaignManager/templates/partials/sheet_panel.html:164
@@ -2295,23 +2314,106 @@ msgstr "Remove the stretch %(a)s → %(b)s?"
 msgid "Quitar"
 msgstr "Remove"
 
-#: CampaignManager/templates/partials/map_section.html:72
+#: CampaignManager/templates/partials/map_section.html:61
+msgid "Todavía no hay regiones."
+msgstr "There are no regions yet."
+
+#: CampaignManager/templates/partials/map_section.html:65
+msgid "Nueva región"
+msgstr "New region"
+
+#: CampaignManager/templates/partials/map_section.html:66
+msgid "Por ejemplo «Las Marismas»"
+msgstr "For example “The Marshes”"
+
+#: CampaignManager/templates/partials/map_section.html:67
+msgid "Zona"
+msgstr "Area"
+
+#: CampaignManager/templates/partials/map_section.html:69
+msgid "— Dibujarla en el mapa —"
+msgstr "— Draw it on the map —"
+
+#: CampaignManager/templates/partials/map_section.html:70
+msgid "Alrededor de"
+msgstr "Around"
+
+#: CampaignManager/templates/partials/map_section.html:74
+msgid "Sin puntos todavía."
+msgstr "No points yet."
+
+#: CampaignManager/templates/partials/map_section.html:75
+msgid "Deshacer punto"
+msgstr "Undo point"
+
+#: CampaignManager/templates/partials/map_section.html:76
+msgid "Borrar dibujo"
+msgstr "Clear drawing"
+
+#: CampaignManager/templates/partials/map_section.html:78
+msgid "Lugar real"
+msgstr "Real place"
+
+#: CampaignManager/templates/partials/map_section.html:79
+msgid "Bilbao, España · Japón · 43.26, -2.93"
+msgstr "Bilbao, Spain · Japan · 43.26, -2.93"
+
+#: CampaignManager/templates/partials/map_section.html:80
+msgid ""
+"Un país, una ciudad o unas coordenadas. Elige uno de la lista para afinar."
+msgstr ""
+"A country, a city or coordinates. Choose one from the list to be precise."
+
+#: CampaignManager/templates/partials/map_section.html:83
+msgid "Enlazar"
+msgstr "Link"
+
+#: CampaignManager/templates/partials/map_section.html:88
+msgid "Nuevo lugar"
+msgstr "New place"
+
+#: CampaignManager/templates/partials/map_section.html:96
+msgid "Estado del lugar"
+msgstr "Place status"
+
+#: CampaignManager/templates/partials/map_section.html:99
+msgid "Se crea también su página en el Mundo."
+msgstr "Its World page is created too."
+
+#: CampaignManager/templates/partials/map_section.html:104
+msgid "Tramos del camino"
+msgstr "Route stretches"
+
+#: CampaignManager/templates/partials/map_section.html:105
+msgid ""
+"Quita un tramo añadido por error: el camino irá directo de la parada anterior"
+" a la siguiente."
+msgstr ""
+"Remove a stretch added by mistake: the route will go straight from the stop "
+"before to the next one."
+
+#: CampaignManager/templates/partials/map_section.html:111
+#, python-format
+msgid "¿Quitar el tramo %(a)s → %(b)s?"
+msgstr "Remove the stretch %(a)s → %(b)s?"
+
+#: CampaignManager/templates/partials/map_section.html:117
 msgid "solo máster"
 msgstr "master only"
 
-#: CampaignManager/templates/partials/map_section.html:75
+#: CampaignManager/templates/partials/map_section.html:120
 msgid "El grupo pasó por aquí en la sesión"
 msgstr "The party came through here in session"
 
-#: CampaignManager/templates/partials/map_section.html:79
+#: CampaignManager/templates/partials/map_section.html:124
 msgid "Pasó aquí"
 msgstr "Happened here"
 
-#: CampaignManager/templates/partials/map_section.html:85
+#: CampaignManager/templates/partials/map_section.html:130
 msgid "Solo máster"
 msgstr "Master only"
 
-#: CampaignManager/templates/partials/map_section.html:94
+#: CampaignManager/templates/partials/map_section.html:139
 #, python-format
 msgid ""
 "¿Borrar %(name)s del mapa? También se quitan los tramos del camino que llegan"
@@ -2320,19 +2422,19 @@ msgstr ""
 "Delete %(name)s from the map? The route stretches leading there are removed "
 "too. Its World page is kept."
 
-#: CampaignManager/templates/partials/map_section.html:94
+#: CampaignManager/templates/partials/map_section.html:139
 msgid "Borrar este lugar"
 msgstr "Delete this place"
 
-#: CampaignManager/templates/partials/map_section.html:98
+#: CampaignManager/templates/partials/map_section.html:143
 msgid "Pulsa un lugar del mapa."
 msgstr "Tap a place on the map."
 
-#: CampaignManager/templates/partials/map_section.html:102
+#: CampaignManager/templates/partials/map_section.html:147
 msgid "Lugares de"
 msgstr "Places of"
 
-#: CampaignManager/templates/partials/map_section.html:107
+#: CampaignManager/templates/partials/map_section.html:152
 msgid "Todavía no hay lugares."
 msgstr "There are no places yet."
 
@@ -2345,6 +2447,7 @@ msgid "Cumplido"
 msgstr "Done"
 
 #: CampaignManager/templates/partials/objective_row.html:9
+#: CampaignManager/templates/partials/rumours_section.html:19
 msgid "Oculto"
 msgstr "Hidden"
 
@@ -2377,6 +2480,93 @@ msgstr "HIDDEN · revealed when ticked"
 #: CampaignManager/templates/partials/timeline.html:80
 msgid "Secreto del máster · solo lo ves tú"
 msgstr "Master's secret · only you see it"
+
+#: CampaignManager/templates/partials/rumours_section.html:5
+msgid "Categorías de rumores"
+msgstr "Rumour categories"
+
+#: CampaignManager/templates/partials/rumours_section.html:6
+#: CampaignManager/templates/partials/timeline.html:11
+msgid "Todos"
+msgstr "All"
+
+#: CampaignManager/templates/partials/rumours_section.html:10
+msgid "Sin categoría"
+msgstr "No category"
+
+#: CampaignManager/templates/partials/rumours_section.html:21
+msgid "Solo lo ves tú"
+msgstr "Only you see it"
+
+#: CampaignManager/templates/partials/rumours_section.html:27
+msgid "en"
+msgstr "in"
+
+#: CampaignManager/templates/partials/rumours_section.html:34
+#: CampaignManager/templates/partials/timeline.html:87
+msgid "Ocultar"
+msgstr "Hide"
+
+#: CampaignManager/templates/partials/rumours_section.html:34
+#: CampaignManager/templates/partials/scene_thread.html:41
+msgid "Publicar"
+msgstr "Post"
+
+#: CampaignManager/templates/partials/rumours_section.html:36
+msgid "¿Borrar este rumor?"
+msgstr "Delete this rumour?"
+
+#: CampaignManager/templates/partials/rumours_section.html:36
+msgid "Borrar"
+msgstr "Delete"
+
+#: CampaignManager/templates/partials/rumours_section.html:41
+msgid "No hay rumores aquí. Añade uno con «Nuevo rumor»."
+msgstr "There are no rumours here. Add one with “New rumour”."
+
+#: CampaignManager/templates/partials/rumours_section.html:41
+msgid "Todavía no ha llegado ningún rumor."
+msgstr "No rumour has arrived yet."
+
+#: CampaignManager/templates/partials/rumours_section.html:48
+msgid "Categorías"
+msgstr "Categories"
+
+#: CampaignManager/templates/partials/rumours_section.html:49
+msgid ""
+"Cada rumor lleva el color de su categoría: un comunicado oficial, una "
+"leyenda... Los jugadores ven el nombre y el color, no la verdad."
+msgstr ""
+"Each rumour carries its category's colour: an official notice, a legend... "
+"Players see the name and the colour, not the truth."
+
+#: CampaignManager/templates/partials/rumours_section.html:53
+#: CampaignManager/templates/partials/rumours_section.html:62
+msgid "Color"
+msgstr "Colour"
+
+#: CampaignManager/templates/partials/rumours_section.html:57
+#, python-format
+msgid "¿Borrar la categoría «%(name)s»? Sus rumores quedan sin categoría."
+msgstr ""
+"Delete the “%(name)s” category? Its rumours are left without a category."
+
+#: CampaignManager/templates/partials/rumours_section.html:57
+#, python-format
+msgid "Borrar %(name)s"
+msgstr "Delete %(name)s"
+
+#: CampaignManager/templates/partials/rumours_section.html:63
+#: CampaignManager/templates/partials/rumours_section.html:64
+msgid "Nueva categoría"
+msgstr "New category"
+
+#: CampaignManager/templates/partials/rumours_section.html:65
+#: CampaignManager/templates/partials/sheet_panel.html:175
+#: CampaignManager/templates/partials/sheet_panel.html:315
+#: CampaignManager/templates/partials/turns_list.html:90
+msgid "Añadir"
+msgstr "Add"
 
 #: CampaignManager/templates/partials/scene_thread.html:6
 msgid "Cerrada · está en la línea del tiempo"
@@ -2422,10 +2612,6 @@ msgstr "Nobody: the whole table sees it"
 #: CampaignManager/templates/partials/scene_thread.html:39
 msgid "Susurro al máster"
 msgstr "Whisper to the master"
-
-#: CampaignManager/templates/partials/scene_thread.html:41
-msgid "Publicar"
-msgstr "Post"
 
 #: CampaignManager/templates/partials/scene_thread.html:45
 msgid "Escena cerrada. Está en la línea del tiempo."
@@ -2643,7 +2829,7 @@ msgstr "Sheet sections"
 
 #: CampaignManager/templates/partials/sheet_panel.html:143
 #: CampaignManager/views_characters.py:39
-#: CampaignManager/views_characters.py:893 CampaignManager/views_setup.py:29
+#: CampaignManager/views_characters.py:895 CampaignManager/views_setup.py:29
 msgid "Resumen"
 msgstr "Summary"
 
@@ -2667,12 +2853,6 @@ msgstr "One more round"
 #: CampaignManager/templates/partials/sheet_panel.html:173
 msgid "Rondas"
 msgstr "Rounds"
-
-#: CampaignManager/templates/partials/sheet_panel.html:175
-#: CampaignManager/templates/partials/sheet_panel.html:315
-#: CampaignManager/templates/partials/turns_list.html:90
-msgid "Añadir"
-msgstr "Add"
 
 #: CampaignManager/templates/partials/sheet_panel.html:183
 #: CampaignManager/views_characters.py:39
@@ -3222,10 +3402,6 @@ msgstr "Filter by adventure"
 msgid "Aventuras"
 msgstr "Adventures"
 
-#: CampaignManager/templates/partials/timeline.html:11
-msgid "Todos"
-msgstr "All"
-
 #: CampaignManager/templates/partials/timeline.html:13
 msgid "Mostrar sucesos ocultos"
 msgstr "Show hidden events"
@@ -3273,10 +3449,6 @@ msgstr "HIDDEN"
 #: CampaignManager/templates/partials/timeline.html:84
 msgid "mapa"
 msgstr "map"
-
-#: CampaignManager/templates/partials/timeline.html:87
-msgid "Ocultar"
-msgstr "Hide"
 
 #: CampaignManager/templates/partials/turns_list.html:5
 msgid "No hay ningún combate en marcha."
@@ -3347,6 +3519,54 @@ msgstr "Add enemy"
 msgid "Terminar combate"
 msgstr "End combat"
 
+#: CampaignManager/templates/partials/weather_caption.html:3
+msgid "Hora de la campaña"
+msgstr "Campaign time"
+
+#: CampaignManager/templates/partials/weather_caption.html:4
+msgid ""
+"El servicio del tiempo no responde: se muestran los últimos datos guardados."
+msgstr "The weather service is not answering: the last saved data are shown."
+
+#: CampaignManager/templates/partials/weather_caption.html:9
+msgid "de noche"
+msgstr "at night"
+
+#: CampaignManager/templates/partials/weather_caption.html:9
+msgid "de día"
+msgstr "by day"
+
+#: CampaignManager/templates/partials/weather_caption.html:9
+#, python-format
+msgid "viento de %(w)s km/h"
+msgstr "wind of %(w)s km/h"
+
+#: CampaignManager/templates/partials/weather_caption.html:9
+#, python-format
+msgid "%(p)s mm de lluvia"
+msgstr "%(p)s mm of rain"
+
+#: CampaignManager/templates/partials/weather_caption.html:9
+#, python-format
+msgid "datos de hace %(m)s min"
+msgstr "data from %(m)s min ago"
+
+#: CampaignManager/templates/partials/weather_caption.html:10
+msgid "sin datos todavía"
+msgstr "no data yet"
+
+#: CampaignManager/templates/partials/weather_caption.html:13
+msgid "Todavía no hay regiones: enlázalas con «Regiones del tiempo»."
+msgstr "There are no regions yet: link them with “Weather regions”."
+
+#: CampaignManager/templates/partials/weather_caption.html:14
+msgid "El máster todavía no ha puesto el tiempo en este mapa."
+msgstr "The master has not set up the weather on this map yet."
+
+#: CampaignManager/templates/partials/weather_caption.html:15
+msgid "Datos del tiempo: Open-Meteo.com"
+msgstr "Weather data: Open-Meteo.com"
+
 #: CampaignManager/templates/partials/zoom_buttons.html:1
 msgid "Zoom"
 msgstr "Zoom"
@@ -3410,6 +3630,40 @@ msgstr "Username"
 #: CampaignManager/templates/registration/login.html:16
 msgid "Contraseña"
 msgstr "Password"
+
+#: CampaignManager/templates/rumour_form.html:3
+#: CampaignManager/templates/rumour_form.html:6
+#: CampaignManager/templates/rumour_form.html:9
+msgid "Editar rumor"
+msgstr "Edit rumour"
+
+#: CampaignManager/templates/rumour_form.html:3
+#: CampaignManager/templates/rumour_form.html:6
+#: CampaignManager/templates/rumour_form.html:9
+#: CampaignManager/templates/rumours.html:11
+msgid "Nuevo rumor"
+msgstr "New rumour"
+
+#: CampaignManager/templates/rumours.html:8
+#, python-format
+msgid "Rumores de %(name)s"
+msgstr "Rumours of %(name)s"
+
+#: CampaignManager/templates/rumours.html:9
+msgid ""
+"Lo que dicen los PNJ, los bandos oficiales, las noticias y las leyendas. Los "
+"jugadores solo ven los que publiques."
+msgstr ""
+"What NPCs say, official proclamations, news and legends. Players only see the"
+" ones you publish."
+
+#: CampaignManager/templates/rumours.html:9
+msgid ""
+"Lo que se dice por ahí: rumores, comunicados oficiales, noticias y leyendas. "
+"No todo tiene por qué ser verdad."
+msgstr ""
+"What people are saying: rumours, official notices, news and legends. Not all "
+"of it has to be true."
 
 #: CampaignManager/templates/spell_detail.html:10
 #: CampaignManager/templates/spell_list.html:10
@@ -3555,19 +3809,19 @@ msgstr "Hide from the party"
 msgid "Revelar al grupo"
 msgstr "Reveal to the party"
 
-#: CampaignManager/views_characters.py:893
+#: CampaignManager/views_characters.py:895
 msgid "Raza y linaje"
 msgstr "Race and lineage"
 
-#: CampaignManager/views_characters.py:893
+#: CampaignManager/views_characters.py:895
 msgid "Características"
 msgstr "Abilities"
 
-#: CampaignManager/views_characters.py:893
+#: CampaignManager/views_characters.py:895
 msgid "Nombre, retrato y trasfondo"
 msgstr "Name, portrait and background"
 
-#: CampaignManager/views_characters.py:893
+#: CampaignManager/views_characters.py:895
 msgid "Equipo inicial"
 msgstr "Starting equipment"
 
@@ -3765,6 +4019,50 @@ msgstr "Player characters"
 #: CampaignManager/views_world.py:21
 msgid "El grupo. Abre la ficha de cada uno."
 msgstr "The party. Open each one's sheet."
+
+#: CampaignManager/weather.py:35
+msgid "Despejado"
+msgstr "Clear"
+
+#: CampaignManager/weather.py:36
+msgid "Algunas nubes"
+msgstr "Partly cloudy"
+
+#: CampaignManager/weather.py:37
+msgid "Nublado"
+msgstr "Overcast"
+
+#: CampaignManager/weather.py:38
+msgid "Niebla"
+msgstr "Fog"
+
+#: CampaignManager/weather.py:39
+msgid "Llovizna"
+msgstr "Drizzle"
+
+#: CampaignManager/weather.py:40
+msgid "Lluvia"
+msgstr "Rain"
+
+#: CampaignManager/weather.py:41
+msgid "Nieve"
+msgstr "Snow"
+
+#: CampaignManager/weather.py:42
+msgid "Chubascos"
+msgstr "Showers"
+
+#: CampaignManager/weather.py:43
+msgid "Chubascos de nieve"
+msgstr "Snow showers"
+
+#: CampaignManager/weather.py:44
+msgid "Tormenta"
+msgstr "Thunderstorm"
+
+#: CampaignManager/weather.py:72
+msgid "Sin datos"
+msgstr "No data"
 
 #: KirokuStory/settings.py:95
 msgid "Español"

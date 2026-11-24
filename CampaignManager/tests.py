@@ -7,13 +7,18 @@ import datetime
 import json
 import re
 import tempfile
+from unittest import mock
+
+from django.core.cache import cache
+from django.utils import timezone
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from . import rules
+from . import rules, weather
 from .models import (
+    Rumour, RumourCategory, WeatherRegion,
     Ability, Armor, ArmorDamage, ArmorType, BoardCard, Campaign, Character, CharacterAbility, CharacterClass,
     ClassAbility, Combatant, Encounter, Inventory, Item, Map, MapLocation, Page, PartyMove, Post, Quest, QuestObjective, Race, Session,
     Spell, Subclass, Subrace, TimelineEvent, UniqueSkill, User, Weapon,
@@ -629,6 +634,7 @@ class HiddenContentTests(DemoData):
             texts += [quest.title, quest.description, *quest.objectives.values_list("text", flat=True)]
         texts += Session.objects.filter(campaign=corona).exclude(master_notes="").values_list("master_notes", flat=True)
         texts += Session.objects.filter(campaign=corona, published=False).exclude(body="").values_list("body", flat=True)
+        texts += Rumour.objects.filter(campaign=corona, published=False).values_list("text", flat=True)
         texts += (Post.objects.filter(scene__campaign=corona, whisper_to__isnull=False)
                   .exclude(author=self.lucia).exclude(whisper_to__player=self.lucia).values_list("text", flat=True))
         # Unique skills not approved yet of other players' characters, and the master's notes on them.
@@ -641,7 +647,7 @@ class HiddenContentTests(DemoData):
     def pages(self):
         corona = self.corona
         urls = [self.url(name) for name in ("home", "diary", "diary_timeline", "diary_board", "diary_scenes",
-                                            "world", "map", "characters", "turns")]
+                                            "world", "rumours", "map", "characters", "turns")]
         urls += [self.url("diary_timeline") + f"?aventura={quest.pk}" for quest in corona.quests.all()]
         urls += [self.url("world") + f"?cat={category}" for category in ("lugar", "pnj", "faccion", "objeto", "historia")]
         urls += [self.url("diary_scene", scene.pk) for scene in corona.scenes.all()]
@@ -1780,3 +1786,201 @@ class CampaignSetupTests(DemoData):
         self.client.force_login(self.unai)
         other = Campaign.objects.exclude(masters=self.unai).exclude(players=self.unai).first()
         self.assertEqual(self.client.get(reverse("campaign_setup", args=[other.pk])).status_code, 404)
+
+
+class RumourTests(DemoData):
+    """«Rumores»: the master writes them in categories with a colour; players see the
+    published ones, never their truth, nor who said them if that page is hidden."""
+
+    def rumour(self, text):
+        return Rumour.objects.get(campaign=self.corona, text__startswith=text)
+
+    def test_players_see_the_published_ones_without_their_truth(self):
+        page = self.player().get(self.url("rumours")).content.decode()
+        self.assertIn("Dicen que Lady Morwen paga en oro antiguo", page)
+        self.assertNotIn("otra mitad de la corona", page)  # hidden
+        self.assertNotIn("Verdad a medias", page)  # the truth is only for masters
+        self.assertIn("Comunicado oficial", page)
+        self.client.force_login(self.carlos)
+        page = self.client.get(self.url("rumours")).content.decode()
+        self.assertIn("otra mitad de la corona", page)
+        self.assertIn("Verdad a medias", page)
+
+    def test_the_category_filter(self):
+        official = RumourCategory.objects.get(campaign=self.corona, name="Comunicado oficial")
+        html = self.player().get(self.url("rumours") + f"?cat={official.pk}", **AJAX).json()["html"]
+        self.assertIn("Puerto Gris por el Camino del Faro", html)
+        self.assertNotIn("Lady Morwen paga", html)
+
+    def test_who_said_it_is_not_linked_if_that_page_is_hidden(self):
+        ithra = Page.objects.get(campaign=self.corona, title="Ithra")
+        rumour = self.rumour("El santuario hundido")
+        rumour.published = True
+        rumour.save()
+        page = self.player().get(self.url("rumours")).content.decode()
+        self.assertIn("El santuario hundido guarda", page)
+        self.assertNotIn(reverse("world_page", args=[self.corona.pk, ithra.slug]), page)
+
+    def test_the_master_writes_publishes_and_deletes(self):
+        rumour_category = RumourCategory.objects.get(campaign=self.corona, name="Noticia")
+        self.client.force_login(self.carlos)
+        self.client.post(self.url("rumours_new"), {"category": rumour_category.pk, "text": "El faro lleva tres noches apagado.",
+                                                   "source": "Un pescador", "truth": "verdad"})
+        rumour = self.rumour("El faro lleva")
+        self.assertFalse(rumour.published)
+        self.assertNotContains(self.player().get(self.url("rumours")), "El faro lleva")
+        self.client.force_login(self.carlos)
+        self.client.post(self.url("rumours_action", rumour.pk), {"accion": "publicar"}, **AJAX)
+        self.assertContains(self.player().get(self.url("rumours")), "El faro lleva")
+        self.client.force_login(self.carlos)
+        self.client.post(self.url("rumours_action", rumour.pk), {"accion": "borrar"}, **AJAX)
+        self.assertFalse(Rumour.objects.filter(pk=rumour.pk).exists())
+
+    def test_only_masters_manage_rumours(self):
+        rumour = self.rumour("Dicen que Lady Morwen")
+        client = self.player()
+        self.assertEqual(client.post(self.url("rumours_action", rumour.pk), {"accion": "borrar"}, **AJAX).status_code, 403)
+        self.assertEqual(client.get(self.url("rumours_new")).status_code, 403)
+        self.assertEqual(client.post(self.url("rumours_category"), {"accion": "crear", "nueva-name": "X", "nueva-color": "#000000"}).status_code, 403)
+
+    def test_the_master_defines_the_categories(self):
+        self.client.force_login(self.carlos)
+        url = self.url("rumours_category")
+        self.client.post(url, {"accion": "crear", "nueva-name": "Bando del rey", "nueva-color": "#B22222"}, **AJAX)
+        royal = RumourCategory.objects.get(campaign=self.corona, name="Bando del rey")
+        self.assertEqual(royal.color, "#B22222")
+        response = self.client.post(url, {"accion": "crear", "nueva-name": "bando del rey", "nueva-color": "#000000"}, **AJAX)
+        self.assertTrue(response.json()["error"])  # the same name
+        self.client.post(url, {"accion": f"guardar:{royal.pk}", f"cat{royal.pk}-name": "Edicto real", f"cat{royal.pk}-color": "#DAA520"}, **AJAX)
+        royal.refresh_from_db()
+        self.assertEqual((royal.name, royal.color), ("Edicto real", "#DAA520"))
+        legend = RumourCategory.objects.get(campaign=self.corona, name="Leyenda")
+        self.client.post(url, {"accion": f"borrar:{legend.pk}"}, **AJAX)
+        self.assertIsNone(self.rumour("En el Bosque de Ceniza").category)  # the rumour stays
+
+    def test_a_new_campaign_gets_the_default_categories(self):
+        campaign = Campaign.objects.create(name="Nueva", start_date=datetime.date(2026, 1, 1))
+        self.assertEqual(list(campaign.rumour_categories.values_list("name", flat=True)),
+                         ["Rumor", "Comunicado oficial", "Noticia", "Leyenda"])
+
+
+def fake_open_meteo(day_and_night=True):
+    """Stands in for Open-Meteo: one answer per place, day and night alternating."""
+    calls = []
+
+    def answer(url, params):
+        calls.append(params)
+        if "geocoding" in url:
+            return {"results": [
+                {"name": "Bilbao", "admin1": "País Vasco", "country": "España", "latitude": 43.26, "longitude": -2.93},
+                {"name": "Bilbao", "admin1": "Madrid", "country": "España", "latitude": 40.43, "longitude": -3.70},
+                {"name": "Bilbao", "admin1": "Tolima", "country": "Colombia", "latitude": 4.15, "longitude": -74.9},
+            ]}
+        count = len(params["latitude"].split(","))
+        return [{"current": {"time": "2026-11-24T15:00", "temperature_2m": 14.6 + i, "is_day": (i + 1) % 2 if day_and_night else 1,
+                             "weather_code": 61, "wind_speed_10m": 31.0, "precipitation": 1.2}} for i in range(count)]
+    return answer, calls
+
+
+@override_settings(CACHES={"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}})
+class WeatherTests(DemoData):
+    """The map's weather layer: live weather of real places (weather.py, mocked here)."""
+
+    def setUp(self):
+        cache.clear()
+        self.valcendra = self.corona.maps.get(name="Valcendra")
+
+    def layer(self, user):
+        self.client.force_login(user)
+        return self.client.get(self.url("map_weather", self.valcendra.pk), **AJAX).json()
+
+    def test_one_request_for_the_map_then_the_cache(self):
+        answer, calls = fake_open_meteo()
+        with mock.patch("CampaignManager.weather._get_json", side_effect=answer):
+            data = self.layer(self.carlos)
+            self.layer(self.carlos)
+        self.assertEqual(len(calls), 1)  # four regions, one request; the second page uses the stored values
+        self.assertEqual(len(calls[0]["latitude"].split(",")), 4)
+        self.assertIn("tiempo-insignia", data["layer"])
+        self.assertIn("15°", data["layer"])
+        self.assertIn("💨31", data["layer"])  # windy: shown
+        self.assertIn("💧1.2", data["layer"])  # raining: shown
+
+    def test_day_and_night_follow_each_real_place(self):
+        answer, _ = fake_open_meteo()
+        with mock.patch("CampaignManager.weather._get_json", side_effect=answer):
+            data = self.layer(self.carlos)
+        self.assertIn('class="region-tiempo noche"', data["layer"])
+        self.assertIn('class="region-tiempo"', data["layer"])
+        self.assertIn("🌙", data["layer"])
+        self.assertIn("☀️", data["layer"])
+        self.assertIn("de noche", data["caption"])
+        self.assertIn("de día", data["caption"])
+
+    def test_one_clock_the_campaigns(self):
+        self.corona.time_zone = "Asia/Tokyo"
+        self.corona.save()
+        answer, _ = fake_open_meteo()
+        with mock.patch("CampaignManager.weather._get_json", side_effect=answer):
+            caption = self.layer(self.lucia)["caption"]
+        tokyo = timezone.localtime(timezone.now(), timezone.get_fixed_timezone(9 * 60)).strftime("%H:%M")
+        self.assertIn("Asia/Tokyo", caption)
+        self.assertIn(tokyo, caption)
+
+    def test_api_down_shows_the_last_values_or_nothing(self):
+        broken = mock.patch("CampaignManager.weather._get_json", side_effect=weather.WeatherUnavailable("down"))
+        with broken:
+            data = self.layer(self.carlos)  # never fetched: nothing to show, but the page works
+        self.assertNotIn("tiempo-insignia", data["layer"])
+        self.assertIn("no responde", data["caption"])
+        cache.clear()
+        answer, _ = fake_open_meteo()
+        with mock.patch("CampaignManager.weather._get_json", side_effect=answer):
+            self.layer(self.carlos)
+        WeatherRegion.objects.update(weather_at=timezone.now() - datetime.timedelta(hours=2))
+        with broken as down:
+            data = self.layer(self.carlos)
+            self.layer(self.carlos)
+        self.assertEqual(down.call_count, 1)  # after failing, it waits before calling again
+        self.assertIn("tiempo-insignia", data["layer"])  # the last values
+        self.assertIn("datos de hace 120 min", data["caption"])
+
+    def test_players_see_the_layer_but_not_hidden_regions_nor_real_places(self):
+        answer, _ = fake_open_meteo()
+        with mock.patch("CampaignManager.weather._get_json", side_effect=answer):
+            data = self.layer(self.lucia)
+        self.assertIn("Costa de Puerto Gris", data["caption"])
+        self.assertNotIn("Santuario hundido", data["caption"] + data["layer"])  # its location is hidden
+        self.assertNotIn("Bilbao", data["caption"])  # the real place is the master's business
+        self.assertEqual(data["layer"].count("<ellipse") + data["layer"].count("<polygon"), 3)
+
+    def test_only_the_master_links_and_unlinks(self):
+        add, region = self.url("map_weather_add", self.valcendra.pk), WeatherRegion.objects.first()
+        client = self.player()
+        self.assertEqual(client.post(add, {"name": "X", "place": "43, -2", "location": ""}).status_code, 403)
+        self.assertEqual(client.post(self.url("map_weather_delete", region.pk)).status_code, 403)
+        self.assertEqual(client.get(self.url("map_weather_search") + "?q=Bilbao").status_code, 403)
+        self.assertEqual(WeatherRegion.objects.count(), 4)
+
+    def test_the_master_links_a_location_or_a_drawn_region(self):
+        add = self.url("map_weather_add", self.valcendra.pk)
+        robleda = self.valcendra.locations.get(name="Robleda")
+        answer, _ = fake_open_meteo()
+        self.client.force_login(self.carlos)
+        with mock.patch("CampaignManager.weather._get_json", side_effect=answer):
+            # A location, with the place written as «City, Country»: the country narrows the search.
+            self.client.post(add, {"name": "Robleda", "location": robleda.pk, "place": "Bilbao, Colombia"}, **AJAX)
+            # A drawn region, with coordinates.
+            self.client.post(add, {"name": "Las Marismas", "location": "", "points": "10,80 30,80 20,95", "place": "52.37, 4.89"}, **AJAX)
+            # Neither a location nor 3 points.
+            response = self.client.post(add, {"name": "Nada", "location": "", "points": "10,10 20,20", "place": "1, 1"}, **AJAX)
+            found = self.client.get(self.url("map_weather_search") + "?q=Bilbao, Madrid").json()["results"]
+        self.assertTrue(response.json()["error"])
+        linked = WeatherRegion.objects.get(name="Robleda")
+        self.assertEqual((linked.location, linked.place_name, linked.latitude), (robleda, "Bilbao, Tolima, Colombia", 4.15))
+        drawn = WeatherRegion.objects.get(name="Las Marismas")
+        self.assertEqual((drawn.points, drawn.latitude, drawn.longitude), ([[10, 80], [30, 80], [20, 95]], 52.37, 4.89))
+        self.assertEqual([p["name"] for p in found], ["Bilbao, Madrid, España"])
+        self.client.post(self.url("map_weather_delete", drawn.pk), **AJAX)
+        self.assertFalse(WeatherRegion.objects.filter(pk=drawn.pk).exists())
+

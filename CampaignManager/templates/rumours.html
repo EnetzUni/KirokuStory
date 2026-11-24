@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Rumores" %} · {{ campaign.name }}{% endblock %}
+{% block content %}
+<section class="pila" aria-labelledby="h-rumores">
+    <div class="cabeza-seccion">
+        <div class="pila-s" style="gap:4px">
+            <h1 id="h-rumores">{% blocktranslate with name=campaign.name %}Rumores de {{ name }}{% endblocktranslate %}</h1>
+            <p class="atenuado">{% if is_master %}{% translate "Lo que dicen los PNJ, los bandos oficiales, las noticias y las leyendas. Los jugadores solo ven los que publiques." %}{% else %}{% translate "Lo que se dice por ahí: rumores, comunicados oficiales, noticias y leyendas. No todo tiene por qué ser verdad." %}{% endif %}</p>
+        </div>
+        {% if is_master %}<a class="btn btn-principal" href="{% url 'rumours_new' campaign.pk %}{% if current_category and current_category != 'sin' %}?cat={{ current_category }}{% endif %}">+ {% translate "Nuevo rumor" %}</a>{% endif %}
+    </div>
+    <p id="mensaje-ajax" class="mensaje flotante" role="status" hidden></p>
+    {% include "partials/rumours_section.html" %}
+</section>
+{% endblock %}

@@ -1,4 +1,5 @@
 import re
+import zoneinfo
 
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
@@ -25,6 +26,19 @@ class User(AbstractUser):
     sheet_view = models.CharField(max_length=5, choices=SheetView.choices, default=SheetView.WEB)
 
 
+def time_zone_choices():
+    """The system's IANA time zones, for forms. Not stored in the model (nor its migration):
+    the list depends on the machine's time zone data."""
+    return [(name, name.replace("_", " ")) for name in sorted(zoneinfo.available_timezones())]
+
+
+def validate_time_zone(value):
+    try:
+        zoneinfo.ZoneInfo(value)
+    except (zoneinfo.ZoneInfoNotFoundError, ValueError):
+        raise ValidationError(f"«{value}» is not a time zone, e.g. Europe/Madrid.")
+
+
 class Campaign(models.Model):
     class Ruleset(models.TextChoices):
         AEGIS = rules.AEGIS, "Aegis"
@@ -46,6 +60,9 @@ class Campaign(models.Model):
     notice = models.TextField(blank=True, help_text="«Aviso del máster» on the home page")
     world_day = models.CharField(max_length=100, blank=True, help_text="Day in the world, e.g. «3 de Brumario»")
     world_year = models.CharField(max_length=100, blank=True)
+    # The one clock everybody in the campaign shares (the map's weather layer shows it).
+    time_zone = models.CharField(max_length=64, default="Europe/Madrid", validators=[validate_time_zone],
+                                 help_text="IANA name, e.g. Europe/Madrid")
 
     # dirige / juega en
     masters = models.ManyToManyField(User, related_name="dm_campaigns")
@@ -1259,5 +1276,5 @@ def check_unique_abilities_on_gain(sender, instance, action, reverse, pk_set, **
 # At the end because they refer to the models above.
 from .campaign_models import (  # noqa: E402,F401
     BoardCard, BoardLink, Combatant, Encounter, Map, MapLocation, Page, PartyMove,
-    Post, Quest, QuestObjective, Scene, Session, TimelineEvent,
+    Post, Quest, QuestObjective, Rumour, RumourCategory, Scene, Session, TimelineEvent, WeatherRegion,
 )

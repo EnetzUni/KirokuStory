@@ -860,6 +860,108 @@
     else { $form.trigger("mesa:colocado"); $form.find("input[type=text]").first().trigger("focus"); }
   });
 
+  // ---- Mapa: capa del tiempo ----
+  // «Tiempo real» loads the layer by AJAX (the server caches Open-Meteo for 20 min) and
+  // draws it on the map; the browser remembers whether it was on. Without JavaScript the
+  // link opens the map with ?tiempo=1 and the server draws it.
+  var weatherTimer = null;
+  function weatherWanted() {
+    try { return window.localStorage.getItem("tiempo:" + window.location.pathname) === "1"; } catch (e) { return false; }
+  }
+  function rememberWeather(on) {
+    try { window.localStorage.setItem("tiempo:" + window.location.pathname, on ? "1" : "0"); } catch (e) { /* not kept */ }
+  }
+  function loadWeather($toggle) {
+    $.get($toggle.data("tiempo")).done(function (data) {
+      var $lienzo = $(".mapa .mapa-lienzo").first();
+      $lienzo.find(".capa-tiempo").remove();
+      $lienzo.children("img, .vacio").first().after(data.layer);
+      $("[data-tiempo-pie]").html(data.caption);
+    });
+  }
+  function showWeather($toggle, on) {
+    $toggle.attr("aria-pressed", on ? "true" : "false");
+    clearInterval(weatherTimer);
+    if (on) {
+      loadWeather($toggle);
+      weatherTimer = setInterval(function () { loadWeather($toggle); }, 10 * 60 * 1000);
+    } else {
+      $(".mapa .capa-tiempo").remove();
+      $("[data-tiempo-pie]").empty();
+    }
+  }
+  $(document).on("click", "[data-tiempo]", function (event) {
+    event.preventDefault();
+    var on = $(this).attr("aria-pressed") !== "true";
+    rememberWeather(on);
+    showWeather($(this), on);
+  });
+  function restoreWeather() {
+    var $toggle = $("[data-tiempo]");
+    // Already drawn by the server (?tiempo=1, or the master editing regions): only keep it fresh.
+    if ($toggle.length && weatherWanted() && !$(".mapa .capa-tiempo").length) { showWeather($toggle, true); }
+  }
+  restoreWeather();
+  $(document).on("mesa:actualizado", restoreWeather);
+
+  // The master draws a region: each click on the map adds a corner (x,y in % of the image).
+  function drawingPoints($form) {
+    var value = $.trim($form.find("[name=points]").val());
+    return value ? value.split(/\s+/) : [];
+  }
+  function showDrawing($form, points) {
+    $form.find("[name=points]").val(points.join(" "));
+    $(".mapa [data-dibujo]").attr("points", points.join(" "));
+    var text = $form.find("[data-dibujo-cuenta]");
+    text.text(points.length ? points.length + (points.length === 1 ? " punto" : " puntos") + (points.length < 3 ? " (mínimo 3)" : "") : "Sin puntos todavía.");
+  }
+  $(document).on("click", "[data-dibujar]", function (event) {
+    var $form = $($(this).data("dibujar"));
+    if (!$form.length || $(event.target).closest("a, button").length || $form.find("[name=location]").val()) { return; }
+    var rect = $(this).children(".mapa-lienzo")[0].getBoundingClientRect();
+    var x = Math.round(Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100)) * 10) / 10;
+    var y = Math.round(Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100)) * 10) / 10;
+    var points = drawingPoints($form);
+    points.push(x + "," + y);
+    showDrawing($form, points);
+  });
+  $(document).on("click", "[data-dibujo-deshacer]", function () {
+    var $form = $(this).closest("form"), points = drawingPoints($form);
+    points.pop();
+    showDrawing($form, points);
+  });
+  $(document).on("click", "[data-dibujo-borrar]", function () { showDrawing($(this).closest("form"), []); });
+  $(document).on("change", "#form-region [name=location]", function () {
+    $(this).closest("form").find("[data-dibujo-controles]").toggle(!$(this).val());
+  });
+
+  // The real place: suggestions from Open-Meteo's geocoding while the master types.
+  var placeTimer = null;
+  $(document).on("input", "[data-buscar-lugar]", function () {
+    var $input = $(this), $form = $input.closest("form"), $list = $form.find("[data-sugerencias]");
+    $form.find("[name=latitude], [name=longitude]").val("");  // typed again: the chosen place no longer applies
+    clearTimeout(placeTimer);
+    var text = $.trim($input.val());
+    if (text.length < 3) { $list.empty(); return; }
+    placeTimer = setTimeout(function () {
+      $.get($input.data("buscar-lugar"), { q: text }).done(function (data) {
+        $list.empty();
+        if (data.error) { $("<li class='pequeno error'>").text(data.error).appendTo($list); return; }
+        $.each(data.results, function (i, place) {
+          $("<button type='button' class='btn btn-texto btn-pequeno'>").text(place.name).data("lugar", place)
+            .appendTo($("<li>").appendTo($list));
+        });
+      });
+    }, 400);
+  });
+  $(document).on("click", "[data-sugerencias] button", function () {
+    var place = $(this).data("lugar"), $form = $(this).closest("form");
+    $form.find("[data-buscar-lugar]").val(place.name);
+    $form.find("[name=latitude]").val(place.latitude);
+    $form.find("[name=longitude]").val(place.longitude);
+    $(this).closest("[data-sugerencias]").empty();
+  });
+
   // ---- Creador de personajes ----
   // Only the lineages of the chosen race (without JS, all are shown and the server checks them).
   function showLineages() {

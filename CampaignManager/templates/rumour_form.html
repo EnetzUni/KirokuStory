@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% if object %}{% translate "Editar rumor" %}{% else %}{% translate "Nuevo rumor" %}{% endif %} · {{ campaign.name }}{% endblock %}
+{% block content %}
+<section class="pila lectura" aria-labelledby="h-rumor">
+    <nav class="migas" aria-label="{% translate 'Ruta' %}"><a href="{% url 'rumours' campaign.pk %}">{% translate "Rumores" %}</a> <span aria-hidden="true">›</span> <span>{% if object %}{% translate "Editar rumor" %}{% else %}{% translate "Nuevo rumor" %}{% endif %}</span></nav>
+    <form method="post" class="tarjeta">
+        {% csrf_token %}
+        <h1 id="h-rumor" style="font-size:26px">{% if object %}{% translate "Editar rumor" %}{% else %}{% translate "Nuevo rumor" %}{% endif %}</h1>
+        {{ form.non_field_errors }}
+        {% for field in form %}{% include "partials/field.html" %}{% endfor %}
+        <div class="fila-s">
+            <button type="submit" class="btn btn-principal">{% translate "Guardar" %}</button>
+            <a class="btn" href="{% url 'rumours' campaign.pk %}">{% translate "Cancelar" %}</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

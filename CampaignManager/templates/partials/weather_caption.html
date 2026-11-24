@@ -1,0 +1,16 @@
+{% load i18n %}
+<div class="tiempo-pie pila-s">
+    <p class="pequeno" style="margin:0"><span aria-hidden="true">🕒</span> {% translate "Hora de la campaña" %}: <b>{{ weather.clock }}</b> <span class="atenuado">({{ weather.time_zone }})</span></p>
+    {% if not weather.api_ok %}<p class="pequeno error" style="margin:0">{% translate "El servicio del tiempo no responde: se muestran los últimos datos guardados." %}</p>{% endif %}
+    {% if weather.regions %}
+    <ul class="lista-limpia pila-s" style="gap:2px">
+        {% for it in weather.regions %}
+        <li class="pequeno"><b>{{ it.region.name }}</b>{% if is_master %} <span class="atenuado">({{ it.region.place_name }})</span>{% endif %}:
+            {% if it.info %}{{ it.info.icon }} {% translate it.info.label %}, {{ it.info.temperature }} °C, {% if it.night %}{% translate "de noche" %}{% else %}{% translate "de día" %}{% endif %}{% if it.info.wind %}, {% blocktranslate with w=it.info.wind %}viento de {{ w }} km/h{% endblocktranslate %}{% endif %}{% if it.info.precipitation %}, {% blocktranslate with p=it.info.precipitation %}{{ p }} mm de lluvia{% endblocktranslate %}{% endif %}{% if it.info.old_minutes %} <span class="atenuado">({% blocktranslate with m=it.info.old_minutes %}datos de hace {{ m }} min{% endblocktranslate %})</span>{% endif %}
+            {% else %}<span class="atenuado">{% translate "sin datos todavía" %}</span>{% endif %}</li>
+        {% endfor %}
+    </ul>
+    {% elif is_master %}<p class="pequeno atenuado" style="margin:0">{% translate "Todavía no hay regiones: enlázalas con «Regiones del tiempo»." %}</p>
+    {% else %}<p class="pequeno atenuado" style="margin:0">{% translate "El máster todavía no ha puesto el tiempo en este mapa." %}</p>{% endif %}
+    <p class="pequeno atenuado" style="margin:0"><a href="https://open-meteo.com/" rel="noopener" target="_blank">{% translate "Datos del tiempo: Open-Meteo.com" %}</a></p>
+</div>

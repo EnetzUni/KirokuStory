@@ -6,8 +6,10 @@ Anything hidden from players is filtered here, in the `visible_for(user,
 campaign)` querysets, never by hiding it in the template.
 """
 from django.core.exceptions import ValidationError
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.text import slugify
 
@@ -517,6 +519,132 @@ class PartyMove(models.Model):
     def clean(self):
         if self.location_id and self.map_id and self.location.map_id != self.map_id:
             raise ValidationError({"location": "The location is on another map."})
+
+
+class WeatherRegion(models.Model):
+    """A region of a fictional map linked to a real place: the map's weather layer shows
+    that place's live weather there, and shades it when it is night there.
+
+    The region is a map location (a circle around its pin) or a polygon the master
+    draws. Only masters link and unlink regions. `weather` keeps the last values
+    fetched from Open-Meteo (weather.py), shown again if the API is down."""
+
+    map = models.ForeignKey(Map, on_delete=models.CASCADE, related_name="weather_regions")
+    name = models.CharField(max_length=100)
+    location = models.ForeignKey(MapLocation, on_delete=models.CASCADE, null=True, blank=True,
+                                 related_name="weather_regions", help_text="The region around this location's pin")
+    # Or a polygon: [[x, y], ...] in % of the image, at least 3 points.
+    points = models.JSONField(default=list, blank=True)
+    place_name = models.CharField(max_length=200, help_text="The real place, e.g. «Bilbao, País Vasco, España»")
+    latitude = models.FloatField(validators=[MinValueValidator(-90), MaxValueValidator(90)])
+    longitude = models.FloatField(validators=[MinValueValidator(-180), MaxValueValidator(180)])
+    weather = models.JSONField(null=True, blank=True, help_text="Last weather fetched (weather.py)")
+    weather_at = models.DateTimeField(null=True, blank=True, help_text="When it was fetched")
+
+    class Meta:
+        ordering = ["map", "name"]
+
+    def __str__(self):
+        return f"{self.name} → {self.place_name}"
+
+    def clean(self):
+        if self.location_id and self.map_id and self.location.map_id != self.map_id:
+            raise ValidationError({"location": "The location is on another map."})
+        if not self.location_id and len(self.points or []) < 3:
+            raise ValidationError("Choose a location of the map or draw a region of at least 3 points.")
+
+
+# ---------------------------------------------------------------------------
+# Rumours
+# ---------------------------------------------------------------------------
+
+DEFAULT_RUMOUR_CATEGORIES = [("Rumor", "#6B6B5E"), ("Comunicado oficial", "#9A6B00"), ("Noticia", "#1F4E89"), ("Leyenda", "#5B3E96")]
+validate_color = RegexValidator(r"^#[0-9A-Fa-f]{6}$", "Write a colour as #RRGGBB.")
+
+
+class RumourCategory(models.Model):
+    """A kind of rumour with its colour («Comunicado oficial», gold). Each campaign has its
+    own list, which the master edits; a new campaign starts with DEFAULT_RUMOUR_CATEGORIES."""
+
+    campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, related_name="rumour_categories")
+    name = models.CharField(max_length=60)
+    color = models.CharField(max_length=7, default="#6B6B5E", validators=[validate_color])
+    order = models.PositiveIntegerField(default=0)
+
+    objects = CampaignQuerySet.as_manager()
+
+    class Meta:
+        ordering = ["campaign", "order", "name"]
+        verbose_name_plural = "rumour categories"
+        constraints = [models.UniqueConstraint(fields=["campaign", "name"], name="unique_rumour_category")]
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def text_color(self):
+        """Black or white, whichever reads better on the category's colour."""
+        r, g, b = (int(self.color[i:i + 2], 16) for i in (1, 3, 5))
+        return "#1A1A1A" if (0.299 * r + 0.587 * g + 0.114 * b) > 150 else "#FFFFFF"
+
+
+@receiver(post_save, sender=Campaign)
+def default_rumour_categories(sender, instance, created, raw=False, **kwargs):
+    """A new campaign starts with a few categories its master can rename or recolour.
+    Not when loading a fixture (raw): the fixture brings its own."""
+    if created and not raw:
+        RumourCategory.objects.bulk_create(
+            RumourCategory(campaign=instance, name=name, color=color, order=order)
+            for order, (name, color) in enumerate(DEFAULT_RUMOUR_CATEGORIES))
+
+
+class RumourQuerySet(CampaignQuerySet):
+    def hide_from_players(self, qs):
+        return qs.filter(published=True)
+
+
+class Rumour(models.Model):
+    """«Rumores de <campaign>»: what NPCs say, official notices... The master writes them;
+    players see the published ones. The truth is only for masters."""
+
+    class Truth(models.TextChoices):
+        SIN_DECIDIR = "sin_decidir", "Sin decidir"
+        VERDAD = "verdad", "Verdad"
+        MEDIAS = "medias", "Verdad a medias"
+        MENTIRA = "mentira", "Mentira"
+
+    campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, related_name="rumours")
+    category = models.ForeignKey(RumourCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name="rumours")
+    text = models.TextField(help_text="[[Name]] links to a world page")
+    source = models.CharField(max_length=150, blank=True, help_text="Who said it, if it is not a page of the world")
+    source_page = models.ForeignKey(Page, on_delete=models.SET_NULL, null=True, blank=True, related_name="rumours_told",
+                                    help_text="Who said it: an NPC or faction of the world")
+    place = models.ForeignKey(Page, on_delete=models.SET_NULL, null=True, blank=True, related_name="rumours_heard",
+                              help_text="Where the party heard it: a place of the world")
+    session = models.ForeignKey(Session, on_delete=models.SET_NULL, null=True, blank=True, related_name="rumours")
+    truth = models.CharField(max_length=12, choices=Truth.choices, default=Truth.SIN_DECIDIR, help_text="Only masters see it")
+    published = models.BooleanField(default=False, help_text="Players see it")
+    created_at = models.DateTimeField(default=timezone.now)
+
+    objects = RumourQuerySet.as_manager()
+
+    class Meta:
+        ordering = ["campaign", "-created_at", "-id"]
+        indexes = [models.Index(fields=["campaign", "published"])]
+
+    def __str__(self):
+        return self.text[:60]
+
+    def clean(self):
+        errors = {}
+        if self.category_id and self.category.campaign_id != self.campaign_id:
+            errors["category"] = "The category belongs to another campaign."
+        for field in ("source_page", "place", "session"):
+            related = getattr(self, field)
+            if related is not None and related.campaign_id != self.campaign_id:
+                errors[field] = "It belongs to another campaign."
+        if errors:
+            raise ValidationError(errors)
 
 
 # ---------------------------------------------------------------------------

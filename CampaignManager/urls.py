@@ -1,7 +1,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 
-from . import views, views_characters, views_diary, views_home, views_map, views_setup, views_turns, views_world
+from . import views, views_characters, views_diary, views_home, views_map, views_rumours, views_setup, views_turns, views_world
 
 campaign = "c/<int:campaign_id>/"
 
@@ -47,6 +47,13 @@ urlpatterns = [
     path(campaign + "mundo/<slug:slug>/visibilidad/", views_world.page_toggle, name="world_toggle"),
     path(campaign + "mundo/<slug:slug>/resumen/", views_world.page_preview, name="world_preview"),
 
+    # Rumores
+    path(campaign + "rumores/", views_rumours.RumourListView.as_view(), name="rumours"),
+    path(campaign + "rumores/nuevo/", views_rumours.RumourCreateView.as_view(), name="rumours_new"),
+    path(campaign + "rumores/<int:pk>/editar/", views_rumours.RumourUpdateView.as_view(), name="rumours_edit"),
+    path(campaign + "rumores/<int:pk>/accion/", views_rumours.rumour_action, name="rumours_action"),
+    path(campaign + "rumores/categorias/", views_rumours.rumour_category, name="rumours_category"),
+
     # Mapa
     path(campaign + "mapa/", views_map.MapView.as_view(), name="map"),
     path(campaign + "mapa/nuevo/", views_map.map_new, name="map_new"),
@@ -55,6 +62,10 @@ urlpatterns = [
     path(campaign + "mapa/lugar/<int:pk>/", views_map.location_action, name="map_location_action"),
     path(campaign + "mapa/tramo/<int:pk>/", views_map.move_path, name="map_move_path"),
     path(campaign + "mapa/tramo/<int:pk>/quitar/", views_map.move_delete, name="map_move_delete"),
+    path(campaign + "mapa/<int:map_id>/tiempo/", views_map.map_weather, name="map_weather"),
+    path(campaign + "mapa/<int:map_id>/tiempo/region/", views_map.weather_region_add, name="map_weather_add"),
+    path(campaign + "mapa/tiempo/region/<int:pk>/quitar/", views_map.weather_region_delete, name="map_weather_delete"),
+    path(campaign + "mapa/tiempo/buscar/", views_map.weather_place_search, name="map_weather_search"),
 
     # Personajes
     path(campaign + "personajes/", views_characters.CharacterListView.as_view(), name="characters"),

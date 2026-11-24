@@ -19,7 +19,7 @@ Text version of the entity-relationship diagram (`ER.drawio`), written as contex
 | Spells and combat | Spell, Component, Attack, DiceRoll, ArmorDamage |
 | Effects | Effect, ActiveEffect |
 | Items and equipment | Item, ItemEffect, Inventory, Weapon, Armor, ArmorType |
-| Campaign contents (E4) | Session, TimelineEvent, Page, Quest, QuestObjective, BoardCard, BoardLink, Scene, Post, Map, MapLocation, PartyMove, Encounter, Combatant |
+| Campaign contents (E4) | Session, TimelineEvent, Page, Quest, QuestObjective, BoardCard, BoardLink, Scene, Post, Map, MapLocation, PartyMove, WeatherRegion, RumourCategory, Rumour, Encounter, Combatant |
 
 CharacterAbility, RaceAbility, SubraceAbility, ClassAbility, SubclassAbility, ItemEffect, Inventory and ActiveEffect are **link tables** (yellow in the diagram): they join two models and carry extra data of their own.
 
@@ -48,6 +48,7 @@ Use Django's authentication system: a custom user model `class User(AbstractUser
 | notice | text | **Optional.** «Aviso del máster», shown on the home page |
 | world_day | string | **Optional.** The day in the world, e.g. «Día 9 de Brumaluz» |
 | world_year | string | **Optional.** The year in the world |
+| time_zone | string | IANA name, default `Europe/Madrid`. The one clock everybody in the campaign shares (rule 20). Checked by a validator, not stored as choices: the list depends on the machine |
 
 - Has many Masters and many players (both are Users, see above).
 - Contains (*contiene*) many Characters. A Character can belong to many Campaigns, or to none. Deleting a campaign only removes the link: its characters are kept, and those left without any campaign are shown apart.
@@ -551,6 +552,45 @@ BoardLink joins two notes with red thread (`card_a`, `card_b`, both `CASCADE`). 
 
 PartyMove is one step of the party's route: `map`, `location` (both `CASCADE`), `session` (optional, `SET_NULL`) and `order`. Moving the party marks the location as `visitado`. The map's session slider shows the route up to a session.
 
+### WeatherRegion (the map's weather layer)
+
+A region of a map linked to a real place, whose live weather the map shows (rule 20).
+
+| Field | Type | Notes |
+|---|---|---|
+| map_id | FK → Map | `CASCADE` |
+| name | string | |
+| location_id | FK → MapLocation | **Optional.** `CASCADE`. The region is a circle around this location's pin… |
+| points | JSON | …or a polygon drawn by the master: `[[x, y], ...]` in % of the image, at least 3 points (checked in `clean()`) |
+| place_name | string | The real place, e.g. «Bilbao, País Vasco, España» |
+| latitude, longitude | float | −90..90 and −180..180 |
+| weather | JSON | **Optional.** The last weather fetched: temperature, is_day, WMO code, wind, precipitation |
+| weather_at | datetime | **Optional.** When it was fetched |
+
+### RumourCategory and Rumour («Rumores»)
+
+| RumourCategory field | Type | Notes |
+|---|---|---|
+| campaign_id | FK → Campaign | |
+| name | string | Unique in its campaign |
+| color | string | `#RRGGBB` (validator) |
+| order | int | |
+
+| Rumour field | Type | Notes |
+|---|---|---|
+| campaign_id | FK → Campaign | |
+| category_id | FK → RumourCategory | **Optional.** `SET_NULL`: deleting a category leaves its rumours without one |
+| text | text | `[[Name]]` links to a world page |
+| source_page_id | FK → Page | **Optional.** Who said it: an NPC or faction of the world… |
+| source | string | **Optional.** …or free text («Un pregonero») |
+| place_id | FK → Page | **Optional.** Where the party heard it: a place of the world |
+| session_id | FK → Session | **Optional.** When |
+| truth | string | `sin_decidir` (default), `verdad`, `medias` or `mentira`. Only masters see it |
+| published | bool | Players see only published rumours (`visible_for()`) |
+| created_at | datetime | Newest first |
+
+---
+
 ### Encounter and Combatant (combat turns)
 
 | Encounter field | Type | Notes |
@@ -680,6 +720,12 @@ These are house rules or constraints the diagram cannot express.
    - Approving it creates an Ability with `unique = true` and gives it to the character (CharacterAbility), so rule 6 applies and the master can give it uses or a cooldown. The sheet shows it at the top of «Rasgos», highlighted.
    - Until it is approved, only the character's player and the masters see it.
 18. **Rulesets:** each campaign plays with **Aegis**, our variant of the SRD 5.2.1 with our additions, or with the **standard SRD 5.2.1** (`Campaign.ruleset`, `rules.AEGIS` / `rules.SRD`). They differ only in levelling up (rule 16: hit points, the levels of the improvement or feat, spells) and in unique skills (rule 17). The rest is the same in both: XP and stored level, subclass at level 3, magic points by class and level, the master's spells, the AP and armor damage rules and the homemade weapons. A new campaign uses Aegis; changing it applies from the next level up on.
+19. **Rumours («Rumores de <campaign>»):** only masters write, edit, publish and delete them. Players see the published ones with their category (name and colour), never their truth; who said them and where are links only if that page of the world is revealed to them, and the session only if its chronicle is published. Each campaign has its own categories, which its masters create, rename, recolour and delete; a new campaign starts with «Rumor», «Comunicado oficial», «Noticia» and «Leyenda» (a `post_save` signal; migration 0030 gives them to existing campaigns).
+20. **Weather layer:** each region of a map can be linked to a real place; «Tiempo real» shows that place's live weather on the region (condition, temperature, and wind from 20 km/h and rain when there is any).
+   - **Source:** Open-Meteo (free, no key), fetched on the server (`weather.py`), all the stale regions of a map in one request. Each region keeps its last values for 20 minutes (`WEATHER_TTL`): pages within that time do not call the API.
+   - **API down:** the regions keep their last values, marked as old; a region never fetched shows nothing. The API is not called again for 5 minutes.
+   - **One clock:** the time shown is the campaign's (`Campaign.time_zone`), never each place's. **Day and night** follow each real place (`is_day`): a region where it is night is shaded and shows a moon, so it can be day in one region and night in another at the same hour.
+   - **Who:** only masters link and unlink regions (a location of the map, or a polygon they draw) and search real places; players see just the layer, without the real places, and not the regions of locations still hidden from them.
 
 ---
 

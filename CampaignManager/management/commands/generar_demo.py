@@ -29,7 +29,7 @@ from CampaignManager.models import (
     Ability, ActiveEffect, Armor, ArmorType, BoardCard, BoardLink, Campaign, Character,
     CharacterAbility, CharacterClass, Combatant, Effect, Encounter, Inventory, Item, Map,
     MapLocation, Page, PartyMove, Post, Quest, QuestObjective, Race, Scene, Session, Spell,
-    Subclass, Subrace, TimelineEvent, UniqueSkill, User, Weapon,
+    Rumour, RumourCategory, Subclass, Subrace, TimelineEvent, UniqueSkill, User, Weapon, WeatherRegion,
 )
 
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
@@ -286,6 +286,41 @@ SCENES = {
 TURNS = {"corona": (2, 0, [("kaida", 19), ("orco1", 15), ("brom", 12), ("aria", 10), ("orco2", 6)])}
 
 
+# The campaign's clock (weather layer). The others use Europe/Madrid.
+TIME_ZONES = {"ecos": "Asia/Tokyo"}
+
+# Rumours: (category, text, said by (page title or free text), heard in (place page), session, truth, published).
+# The categories are the defaults every new campaign gets (campaign_models.DEFAULT_RUMOUR_CATEGORIES).
+RUMOURS = {
+    "corona": [
+        ("Rumor", "Dicen que Lady Morwen paga en oro antiguo a quien le lleve fragmentos de la [[La Corona de Ceniza]].",
+         "Oswin, el mercader", "El Ancla Rota", 5, "medias", True),
+        ("Comunicado oficial", "Por orden del alcalde: queda prohibido salir de Puerto Gris por el Camino del Faro después del anochecer.",
+         "Alcalde Bertrán", "Puerto Gris", 6, "verdad", True),
+        ("Leyenda", "En el Bosque de Ceniza los árboles susurran el nombre de quien los quemó.",
+         "Una anciana de Robleda", "Robleda", 3, "sin_decidir", True),
+        ("Noticia", "Han visto a los saqueadores orcos acampados junto al Paso del Cuervo.",
+         "Un pregonero", "Puerto Gris", 6, "verdad", True),
+        ("Rumor", "El santuario hundido guarda la otra mitad de la corona, y solo se abre con la marea más baja del año.",
+         "Ithra", "Santuario hundido", 6, "mentira", False),
+    ],
+    "ecos": [
+        ("Leyenda", "Las linternas del puente se encienden solas la noche de luna nueva.",
+         "Un barquero", "El puente de las linternas", 1, "sin_decidir", True),
+    ],
+}
+
+# Weather layer: (map, region, around this location (or None), drawn points, real place, latitude, longitude).
+WEATHER_REGIONS = {
+    "corona": [
+        ("Valcendra", "Costa de Puerto Gris", "Puerto Gris", [], "Bilbao, País Vasco, España", 43.2627, -2.9253),
+        ("Valcendra", "Bosque de Ceniza", None, [[48, 34], [64, 30], [68, 48], [52, 56], [44, 48]], "Oslo, Noruega", 59.9127, 10.7461),
+        ("Valcendra", "Torre de Morwen", "Torre de Morwen", [], "Kioto, Japón", 35.0211, 135.7538),
+        ("Valcendra", "Santuario hundido", "Santuario hundido", [], "Reikiavik, Islandia", 64.1355, -21.8954),
+    ],
+}
+
+
 def first_sentence(text):
     plain = re.sub(r"\[\[([^\]]+)\]\]", r"\1", text).split("\n")[0]
     match = re.match(r"^(.*?[.!?])(\s|$)", plain)
@@ -333,7 +368,7 @@ class Command(BaseCommand):
             campaign = Campaign.objects.create(
                 name=data["name"], status=data["status"], description=data.get("description", ""),
                 start_date=datetime.date.fromisoformat(data["start"]), notice=data["notice"],
-                world_day=data["day"], world_year=data["year"],
+                world_day=data["day"], world_year=data["year"], time_zone=TIME_ZONES.get(key, "Europe/Madrid"),
             )
             campaign.masters.set(self.users[u] for u in data["masters"])
             campaign.players.set(self.users[u] for u in data["players"])
@@ -431,6 +466,21 @@ class Command(BaseCommand):
                                          start_session=sessions.get(start), end_session=sessions.get(end))
             for order, (text, done, hidden) in enumerate(objectives):
                 QuestObjective.objects.create(quest=quest, text=text, done=done, hidden=hidden, order=order)
+        for category, text, source, place, session, truth, published in RUMOURS.get(key, []):
+            said_by = Page.objects.filter(campaign=campaign, title=source).first()
+            Rumour.objects.create(
+                campaign=campaign, category=RumourCategory.objects.get(campaign=campaign, name=category), text=text,
+                source_page=said_by, source="" if said_by else source,
+                place=Page.objects.filter(campaign=campaign, title=place).first(), session=sessions.get(session),
+                truth=truth, published=published,
+                created_at=timezone.make_aware(datetime.datetime(2026, 11, 5 + session, 21, 0)),
+            )
+        for map_name, name, location, points, place_name, lat, lon in WEATHER_REGIONS.get(key, []):
+            map_ = Map.objects.get(campaign=campaign, name=map_name)
+            WeatherRegion.objects.create(
+                map=map_, name=name, location=map_.locations.filter(name=location).first() if location else None,
+                points=points, place_name=place_name, latitude=lat, longitude=lon,
+            )
         if key in BOARD:
             cards_data, links = BOARD[key]
             cards = {}

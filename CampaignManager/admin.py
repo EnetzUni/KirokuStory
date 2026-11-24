@@ -7,8 +7,9 @@ from django.contrib.auth.admin import UserAdmin
 from .models import (
     Ability, ActiveEffect, Armor, ArmorDamage, ArmorType, Attack, BoardCard, BoardLink, Campaign, Character,
     CharacterAbility, CharacterClass, ClassAbility, Combatant, Component, DiceRoll, Effect, Encounter, Inventory,
-    Item, ItemEffect, Map, MapLocation, Page, PartyMove, Post, Quest, QuestObjective, Race, RaceAbility, Scene,
-    Session, Spell, Subclass, SubclassAbility, Subrace, SubraceAbility, TimelineEvent, UniqueSkill, User, Weapon,
+    Item, ItemEffect, Map, MapLocation, Page, PartyMove, Post, Quest, QuestObjective, Race, RaceAbility, Rumour,
+    RumourCategory, Scene, Session, Spell, Subclass, SubclassAbility, Subrace, SubraceAbility, TimelineEvent, UniqueSkill,
+    User, Weapon, WeatherRegion,
     granted_ability_ids, unique_ability_conflicts,
 )
 
@@ -440,12 +441,51 @@ class MapLocationInline(admin.TabularInline):
     extra = 0
 
 
+class WeatherRegionInline(admin.StackedInline):
+    model = WeatherRegion
+    extra = 0
+    fields = ["name", "location", "points", "place_name", "latitude", "longitude"]
+
+
 @admin.register(Map)
 class MapAdmin(admin.ModelAdmin):
     list_display = ("name", "campaign", "order")
     list_filter = ("campaign",)
     list_select_related = ["campaign"]
-    inlines = [MapLocationInline]
+    inlines = [MapLocationInline, WeatherRegionInline]
+
+
+@admin.register(WeatherRegion)
+class WeatherRegionAdmin(admin.ModelAdmin):
+    list_display = ("name", "map", "place_name", "latitude", "longitude", "weather_at")
+    list_filter = ("map__campaign",)
+    search_fields = ["name", "place_name"]
+    list_select_related = ["map", "location"]
+    readonly_fields = ["weather", "weather_at"]
+
+
+class RumourInline(admin.TabularInline):
+    model = Rumour
+    extra = 0
+    fields = ["text", "published", "truth"]
+    show_change_link = True
+
+
+@admin.register(RumourCategory)
+class RumourCategoryAdmin(admin.ModelAdmin):
+    list_display = ("name", "campaign", "color", "order")
+    list_filter = ("campaign",)
+    list_select_related = ["campaign"]
+    inlines = [RumourInline]
+
+
+@admin.register(Rumour)
+class RumourAdmin(admin.ModelAdmin):
+    list_display = ("__str__", "campaign", "category", "truth", "published", "session")
+    list_filter = ("campaign", "category", "truth", "published")
+    search_fields = ["text", "source"]
+    list_select_related = ["campaign", "category", "session"]
+    autocomplete_fields = ["source_page", "place"]
 
 
 @admin.register(MapLocation)

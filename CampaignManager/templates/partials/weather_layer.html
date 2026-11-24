@@ -1,0 +1,14 @@
+{% comment %}The weather layer, drawn inside .mapa-lienzo (positions in % of the image): each region shaded
+at night, and a badge with its weather. aria-hidden: the caption below the map says the same in words.{% endcomment %}{% load i18n l10n %}{% localize off %}
+<div class="capa-tiempo" aria-hidden="true">
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+        {% for it in weather.regions %}{% if it.shape.ellipse %}<ellipse cx="{{ it.shape.cx }}" cy="{{ it.shape.cy }}" rx="{{ it.shape.rx }}" ry="{{ it.shape.ry }}" class="region-tiempo{% if it.night %} noche{% endif %}"/>{% else %}<polygon points="{{ it.shape.points }}" class="region-tiempo{% if it.night %} noche{% endif %}"/>{% endif %}
+        {% endfor %}
+    </svg>
+    {% for it in weather.regions %}{% if it.info %}
+    <span class="tiempo-insignia{% if it.night %} noche{% endif %}{% if it.info.old_minutes %} viejo{% endif %}" style="left:{{ it.x }}%;top:{{ it.y }}%" title="{{ it.region.name }}: {{ it.info.label }}, {{ it.info.temperature }} °C">
+        <span>{% if it.night %}🌙{% else %}☀️{% endif %}</span><span>{{ it.info.icon }}</span><b>{{ it.info.temperature }}°</b>{% if it.info.wind %}<span class="pequeno">💨{{ it.info.wind }}</span>{% endif %}{% if it.info.precipitation %}<span class="pequeno">💧{{ it.info.precipitation }}</span>{% endif %}
+    </span>
+    {% endif %}{% endfor %}
+</div>
+{% endlocalize %}

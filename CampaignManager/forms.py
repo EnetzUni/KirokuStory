@@ -2,10 +2,12 @@
 from django import forms
 from django.forms import inlineformset_factory
 
-from . import bespoke, rules
+from . import bespoke, rules, weather
+from .mapping import parse_path
 from .models import (
-    BoardCard, Campaign, Character, CharacterClass, Item, Map, MapLocation, Page, Post, Quest, QuestObjective, Race, Scene,
-    Session, Spell, Stat, Subclass, Subrace, TimelineEvent, User,
+    BoardCard, Campaign, Character, CharacterClass, Item, Map, MapLocation, Page, Post, Quest, QuestObjective, Race,
+    Rumour, RumourCategory, Scene, Session, Spell, Stat, Subclass, Subrace, TimelineEvent, User,
+    time_zone_choices,
 )
 
 
@@ -668,10 +670,16 @@ class CampaignWorldForm(forms.ModelForm):
 
     class Meta:
         model = Campaign
-        fields = ["world_year", "world_day", "cover"]
-        labels = {"world_year": "Año en el mundo", "world_day": "Día en el mundo", "cover": "Portada"}
+        fields = ["world_year", "world_day", "time_zone", "cover"]
+        labels = {"world_year": "Año en el mundo", "world_day": "Día en el mundo", "time_zone": "Zona horaria", "cover": "Portada"}
         help_texts = {"world_year": "Por ejemplo «2401 dk» o «año 1203».", "world_day": "Por ejemplo «Día 9 de Brumaluz».",
-                      "cover": "La imagen de la portada de la campaña."}
+                      "cover": "La imagen de la portada de la campaña.",
+                      "time_zone": "El reloj que comparte todo el mundo de la campaña (la capa del tiempo del mapa lo muestra)."}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # The list comes from the machine's time zone data, so it is built here and not in the model.
+        self.fields["time_zone"].widget = forms.Select(choices=time_zone_choices())
 
 
 class WorldPageForm(forms.Form):
@@ -747,3 +755,114 @@ class PlotForm(forms.Form):
 
 
 PlotFormSet = forms.formset_factory(PlotForm, extra=2)
+
+
+# ---------------------------------------------------------------------------
+# Rumores
+# ---------------------------------------------------------------------------
+
+class RumourForm(CampaignFormMixin, forms.ModelForm):
+    """A rumour, written by a master. Who said it: a page of the world (an NPC or a faction)
+    or free text; where: a place of the world; when: a session."""
+
+    class Meta:
+        model = Rumour
+        fields = ["category", "text", "source_page", "source", "place", "session", "truth", "published"]
+        labels = {"category": "Categoría", "text": "Qué se dice", "source_page": "Quién lo dijo (del Mundo)",
+                  "source": "Quién lo dijo (si no tiene página)", "place": "Dónde se oyó", "session": "En qué sesión",
+                  "truth": "Qué hay de verdad (solo lo ves tú)", "published": "Publicado: los jugadores lo ven"}
+        help_texts = {"text": "Escribe [[Nombre]] para enlazar una página del Mundo.",
+                      "source_page": "Un PNJ o una facción de «Mundo». Los jugadores solo ven el enlace si la página está revelada.",
+                      "source": "Por ejemplo «Una tabernera de Puerto Gris» o «Un pregonero».",
+                      "place": "Un lugar de «Mundo».", "session": "", "category": "",
+                      "truth": "Los jugadores nunca lo ven.", "published": "Si no, solo lo ven los másters."}
+        widgets = {"text": forms.Textarea(attrs={"rows": 4}), "truth": forms.RadioSelect}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        pages = Page.objects.filter(campaign=self.campaign).order_by("title")
+        fields = self.fields
+        fields["category"].queryset = RumourCategory.objects.filter(campaign=self.campaign)
+        fields["source_page"].queryset = pages.filter(category__in=[Page.Category.PNJ, Page.Category.FACCION])
+        fields["place"].queryset = pages.filter(category=Page.Category.LUGAR)
+        fields["session"].queryset = Session.objects.filter(campaign=self.campaign).order_by("-number")
+        fields["session"].label_from_instance = lambda session: f"Sesión {session.number}: {session.title}"
+        for name, empty in (("category", "— Sin categoría —"), ("source_page", "— Nadie del Mundo —"),
+                            ("place", "— Ningún lugar —"), ("session", "— Ninguna —")):
+            fields[name].empty_label = empty
+
+
+class RumourCategoryForm(forms.ModelForm):
+    class Meta:
+        model = RumourCategory
+        fields = ["name", "color"]
+        labels = {"name": "Nombre", "color": "Color"}
+        widgets = {"color": forms.TextInput(attrs={"type": "color"})}
+
+    def __init__(self, *args, campaign=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.campaign = campaign
+        if campaign is not None:
+            self.instance.campaign = campaign
+
+    def clean_name(self):
+        name = self.cleaned_data["name"].strip()
+        others = RumourCategory.objects.filter(campaign=self.campaign, name__iexact=name).exclude(pk=self.instance.pk)
+        if others.exists():
+            raise forms.ValidationError("Ya hay una categoría con ese nombre.")
+        return name
+
+
+# ---------------------------------------------------------------------------
+# Mapa: capa del tiempo
+# ---------------------------------------------------------------------------
+
+class WeatherRegionForm(forms.Form):
+    """A region of the map linked to a real place. The region: a location of the map, or a
+    polygon drawn on it (x,y in % of the image). The place: what the master typed, found with
+    Open-Meteo's geocoding (or coordinates), unless a suggestion already set latitude/longitude."""
+    name = forms.CharField(label="Nombre de la región", max_length=100)
+    location = forms.ModelChoiceField(MapLocation.objects.none(), label="Un lugar del mapa", required=False,
+                                      empty_label="— Dibujarla en el mapa —")
+    points = forms.CharField(label="Puntos del dibujo", required=False, widget=forms.HiddenInput)
+    place = forms.CharField(label="Lugar real", max_length=200,
+                            help_text="Un país, una ciudad («Bilbao, España») o coordenadas («43.26, -2.93»).")
+    latitude = forms.FloatField(required=False, min_value=-90, max_value=90, widget=forms.HiddenInput)
+    longitude = forms.FloatField(required=False, min_value=-180, max_value=180, widget=forms.HiddenInput)
+
+    def __init__(self, *args, map=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.map = map
+        if map is not None:
+            self.fields["location"].queryset = map.locations.order_by("name")
+
+    def clean_points(self):
+        if not self.cleaned_data.get("points"):
+            return []
+        points = parse_path(self.cleaned_data["points"])
+        if points is None:
+            raise forms.ValidationError("El dibujo no es válido: vuelve a dibujar la región.")
+        return points
+
+    def clean(self):
+        cleaned = super().clean()
+        if not cleaned.get("location") and len(cleaned.get("points") or []) < 3:
+            self.add_error(None, "Elige un lugar del mapa o dibuja la región con al menos 3 puntos.")
+        text = (cleaned.get("place") or "").strip()
+        if not text:
+            return cleaned
+        lat, lon = cleaned.get("latitude"), cleaned.get("longitude")
+        if lat is not None and lon is not None:  # a suggestion was chosen
+            cleaned["place_name"] = text
+            return cleaned
+        try:
+            found = weather.search_places(text, limit=1)
+        except weather.WeatherUnavailable:
+            self.add_error("place", "Ahora no se puede buscar el lugar. Escribe sus coordenadas («43.26, -2.93»).")
+            return cleaned
+        if not found:
+            self.add_error("place", "No encuentro ese lugar. Prueba con «Ciudad, País» o con coordenadas.")
+            return cleaned
+        cleaned.update(place_name=found[0]["name"], latitude=found[0]["latitude"], longitude=found[0]["longitude"])
+        return cleaned
+
