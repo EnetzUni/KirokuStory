@@ -3,10 +3,11 @@ catalog and «Campañas» edits the campaign models (and only views the catalog)
 from django import forms
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
+from django.db import models
 
 from .models import (
     Ability, ActiveEffect, Armor, ArmorDamage, ArmorType, Attack, BoardCard, BoardLink, Campaign, Character,
-    CharacterAbility, CharacterClass, ClassAbility, Combatant, Component, DiceRoll, Effect, Encounter, Inventory,
+    CharacterAbility, CharacterClass, ClassAbility, ClassAddon, Combatant, Component, DiceRoll, Effect, Encounter, Inventory,
     Item, ItemEffect, Map, MapLocation, Page, PartyMove, Post, Quest, QuestObjective, Race, RaceAbility, Rumour,
     RumourCategory, Scene, Session, Spell, Subclass, SubclassAbility, Subrace, SubraceAbility, TimelineEvent, UniqueSkill,
     User, Weapon, WeatherRegion,
@@ -42,6 +43,14 @@ class SubclassAbilityInline(RaceAbilityInline):
     model = SubclassAbility
 
 
+class ClassAddonInline(admin.TabularInline):
+    """Aegis: the add-ons of a class with combat magic (the Arcane Warrior)."""
+    model = ClassAddon
+    extra = 0
+    fields = ["kind", "order", "name", "cost", "max_cost", "effect"]
+    formfield_overrides = {models.TextField: {"widget": forms.Textarea(attrs={"rows": 2, "cols": 60})}}
+
+
 class SubraceInline(admin.TabularInline):
     model = Subrace
     extra = 0
@@ -66,11 +75,19 @@ class SubraceAdmin(admin.ModelAdmin):
 
 @admin.register(CharacterClass)
 class CharacterClassAdmin(admin.ModelAdmin):
-    list_display = ("name", "primary_ability", "magic")
-    list_filter = ("magic",)
+    list_display = ("name", "primary_ability", "magic", "aegis_only", "bespoke")
+    list_filter = ("magic", "aegis_only", "bespoke")
     search_fields = ["name"]
     filter_horizontal = ["spells"]
-    inlines = [ClassAbilityInline]
+    inlines = [ClassAbilityInline, ClassAddonInline]
+
+
+@admin.register(ClassAddon)
+class ClassAddonAdmin(admin.ModelAdmin):
+    list_display = ("name", "char_class", "kind", "cost_text", "order")
+    list_filter = ("char_class", "kind")
+    list_select_related = ["char_class"]
+    search_fields = ["name", "effect"]
 
 
 @admin.register(Subclass)

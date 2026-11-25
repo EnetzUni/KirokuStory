@@ -2,10 +2,10 @@
 
 For maintainers: the demo is loaded with `python manage.py cargar_demo`, which
 reads CampaignManager/fixtures/demo_campana.json. This command regenerates that
-fixture. Run it on a database with only the two rules fixtures loaded:
+fixture. Run it on a database with only the three rules fixtures loaded:
 
     python manage.py migrate
-    python manage.py loaddata datos_iniciales_srd armas_caseras
+    python manage.py loaddata datos_iniciales_srd armas_caseras clases_aegis
     python manage.py generar_demo --output CampaignManager/fixtures/demo_campana.json
 
 The data is copied from the prototype (prototipo_referencia.dc.html, seed()).
@@ -515,9 +515,9 @@ class Command(BaseCommand):
 
     # ------------------------------------------------------------------
     def export(self, path):
-        """Everything except the rows of the two rules fixtures."""
+        """Everything except the rows of the three rules fixtures."""
         rules_rows = set()
-        for name in ("datos_iniciales_srd.json", "armas_caseras.json"):
+        for name in ("datos_iniciales_srd.json", "armas_caseras.json", "clases_aegis.json"):
             for row in json.loads((FIXTURES / name).read_text(encoding="utf-8")):
                 rules_rows.add((row["model"].lower(), row["pk"]))
         objects = []

@@ -2,7 +2,9 @@
 
 1. datos_iniciales_srd: the SRD 5.2.1 rules catalog (no weapons).
 2. armas_caseras: our homemade weapons.
-3. demo_campana: the prototype's campaigns, users and everything in them.
+3. clases_aegis: our own classes (the Arcane Warrior), made from SRD classes.
+   A database that had the SRD catalog before gets them from migration 0032.
+4. demo_campana: the prototype's campaigns, users and everything in them.
 
 It also copies the demo images (maps) into MEDIA_ROOT. The fixtures have fixed
 primary keys, so load them only once, into empty tables:
@@ -20,7 +22,7 @@ from django.core.management.base import BaseCommand, CommandError
 from CampaignManager.models import Campaign, Race
 
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
-FIXTURE_ORDER = ["datos_iniciales_srd", "armas_caseras", "demo_campana"]
+FIXTURE_ORDER = ["datos_iniciales_srd", "armas_caseras", "clases_aegis", "demo_campana"]
 
 
 class Command(BaseCommand):

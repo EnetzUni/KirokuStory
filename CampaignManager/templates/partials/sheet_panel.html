@@ -112,7 +112,7 @@
         {# ---- Magia: the maximum comes from the class and level, plus the master's adjustment ---- #}
         {% if character.has_magic or is_master %}
         <section class="tarjeta compacta" aria-labelledby="h-magia">
-            <h2 id="h-magia" class="rotulo">{% translate "Puntos de magia" %}</h2>
+            <h2 id="h-magia" class="rotulo">{% translate "Puntos de magia" %}{% if character.combat_magic %} («a»){% endif %}</h2>
             {% if character.has_magic %}
             <span class="numero-medio"><span data-valor="magia">{{ character.magic_points }}</span> <span class="atenuado" style="font-size:16px">/ {{ character.magic_points_max }}</span></span>
             <span class="pips" aria-hidden="true">{% for on in mp_pips %}<i class="pip{% if on %} lleno{% endif %}"></i>{% endfor %}</span>
@@ -218,8 +218,11 @@
     </section>
 
     {% elif tab == "spells" %}
-    <section class="pila" aria-label="{% translate 'Conjuros' %}">
-        {% if character.has_magic %}<p class="ayuda">{% blocktranslate with n=character.magic_points m=character.magic_points_max s=max_slot %}Le quedan {{ n }} de {{ m }} puntos de magia. Un espacio de nivel N cuesta N puntos; el más alto a este nivel es el {{ s }}.{% endblocktranslate %}</p>{% endif %}
+    <section class="pila" aria-label="{% if addon_groups %}{% translate 'Añadidos' %}{% else %}{% translate 'Conjuros' %}{% endif %}">
+        {# Aegis combat magic (the Arcane Warrior): the class's add-ons instead of spells. #}
+        {% if addon_groups %}{% include "partials/sheet_addons.html" %}
+        {% if spell_groups %}<h2 class="rotulo">{% translate "Conjuros" %}</h2>{% endif %}{% endif %}
+        {% if character.has_magic and spell_groups or character.has_magic and not addon_groups %}<p class="ayuda">{% blocktranslate with n=character.magic_points m=character.magic_points_max s=max_slot %}Le quedan {{ n }} de {{ m }} puntos de magia. Un espacio de nivel N cuesta N puntos; el más alto a este nivel es el {{ s }}.{% endblocktranslate %}</p>{% endif %}
         {% for spell_level, group in spell_groups %}
         <h2 class="rotulo">{% if spell_level == 0 %}{% translate "Trucos" %}{% else %}{% translate "Nivel" %} {{ spell_level }}{% endif %}</h2>
         <div class="rejilla-s" style="grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr))">
@@ -251,7 +254,7 @@
             {% endfor %}
         </div>
         {% empty %}
-        <p class="atenuado">{% translate "No conoce conjuros." %}</p>
+        {% if not addon_groups %}<p class="atenuado">{% translate "No conoce conjuros." %}</p>{% endif %}
         {% endfor %}
         {% if is_master and spell_catalog %}
         <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="tarjeta compacta">{% include "partials/sheet_hidden.html" %}

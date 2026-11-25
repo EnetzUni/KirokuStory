@@ -1,0 +1,10 @@
+{% load i18n %}{% comment %}The rules every add-on of combat magic follows (Aegis, rules.py), from the Arcane Warrior's
+class sheet. Optional `dc`: the character's «salvación a superar» (12 + its Dexterity modifier).{% endcomment %}
+<ul class="reglas-anadidos">
+    <li>{% translate "Un añadido no gasta una acción más de lo que cuesta la acción a la que se suma: disparar una flecha cuesta una acción, y dispararla con «Flecha Brillante», también." %}</li>
+    <li>{% translate "Las flechas son mágicas y generadas, no flechas imbuidas." %}</li>
+    <li>{% translate "Los buffs se suman a los ataques, uno como máximo por ataque." %}</li>
+    <li>{% translate "Todos los añadidos, salvo los de defensa, necesitan que el ataque acierte. Sus números se suman a lo que el ataque hace de por sí." %}</li>
+    <li>{% if dc %}{% blocktranslate %}Sus efectos se salvan con Destreza contra {{ dc }} (12 + Destreza) al final del turno del objetivo, salvo que digan otra cosa.{% endblocktranslate %}{% else %}{% translate "Sus efectos se salvan con Destreza contra 12 + la Destreza de quien los usa, al final del turno del objetivo, salvo que digan otra cosa." %}{% endif %}
+        {% translate "Algunos buffs tienen las dos partes: en «Veneno», el 1d8 dura hasta que se salve y la desventaja, solo su próximo turno." %}</li>
+</ul>

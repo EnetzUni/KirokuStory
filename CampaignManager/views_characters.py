@@ -26,7 +26,8 @@ from .forms import (
     IdentityStepForm, LevelUpForm, RaceStepForm, ScoresStepForm, UniqueSkillForm, UniqueSkillStepForm,
 )
 from .models import (
-    Ability, ActiveEffect, Armor, ArmorDamage, ArmorType, Character, CharacterAbility, CharacterClass, ClassAbility, Combatant, Effect, Inventory,
+    Ability, ActiveEffect, Armor, ArmorDamage, ArmorType, Character, CharacterAbility, CharacterClass, ClassAbility, ClassAddon,
+    Combatant, Effect, Inventory,
     Item, Race, RaceAbility, Spell, SubclassAbility, Subrace, SubraceAbility, UniqueSkill, User, Weapon,
     unique_ability_conflicts,
 )
@@ -38,6 +39,8 @@ from .services import active_encounter, current_combatant
 GOLD = "Pieza de oro (po)"
 SHEET_TABS = [("res", gettext_noop("Resumen")), ("act", gettext_noop("Acciones")), ("spells", gettext_noop("Conjuros")), ("inv", gettext_noop("Inventario")),
               ("feats", gettext_noop("Rasgos")), ("bio", gettext_noop("Biografía"))]
+# Aegis combat magic: the «Conjuros» tab of a class with add-ons (the Arcane Warrior) shows them.
+ADDONS_TAB = gettext_noop("Añadidos")
 
 
 # ---------------------------------------------------------------------------
@@ -338,6 +341,8 @@ def sheet_context(request, campaign, character):
             "castable": spell.level == 0 or (character.has_magic and spell.level <= max_slot),
         })
 
+    addons = character.char_class.addon_groups()  # Aegis combat magic
+
     granted = []
     for label, link_model, field, source in granted_sources(character):
         links = link_model.objects.filter(**{field: source}).select_related("ability").order_by("level_required", "ability__name")
@@ -360,7 +365,8 @@ def sheet_context(request, campaign, character):
     context = {
         "campaign": campaign, "is_master": is_master, "sheet_view": sheet_view,
         "character": character, "can_edit": can_edit, "tab": tab,
-        "tabs": [{"key": k, "label": label, "current": k == tab} for k, label in SHEET_TABS],
+        "tabs": [{"key": k, "label": ADDONS_TAB if k == "spells" and addons else label, "current": k == tab}
+                 for k, label in SHEET_TABS],
         "level": level, "xp_next": next_xp,
         # Past 100 % while the player has not levelled up yet; below 0 if the master took XP back.
         "xp_pct": 100 if next_xp is None else rules.clamp(round(100 * (character.xp - prev_xp) / (next_xp - prev_xp)), 0, 100),
@@ -382,6 +388,7 @@ def sheet_context(request, campaign, character):
         "unique_skill": skill,
         "can_propose_skill": campaign.is_aegis and can_edit and (skill is None or skill.status != UniqueSkill.Status.APROBADA),
         "weapons": weapons, "spell_groups": sorted(spell_groups.items()), "max_slot": max_slot,
+        "addon_groups": addons, "addon_dc": character.addon_save_dc if addons else None,
         "inventory": rows, "gold": gold.quantity if gold else 0,
         # The master's own pieces (bespoke) are not offered to players.
         "catalog": (Item.objects.filter(template__isnull=True, **({} if is_master else {"bespoke": False})).order_by("name")
@@ -391,11 +398,11 @@ def sheet_context(request, campaign, character):
         "my_turn": bool(actor and actor.character_id == character.pk), "encounter": encounter,
     }
     if sheet_view == User.SheetView.FICHA:
-        context.update(paper_context(character, weapons, spell_groups, abilities, granted, skill))
+        context.update(paper_context(character, weapons, spell_groups, abilities, granted, skill, addons))
     return context
 
 
-def paper_context(character, weapons, spell_groups, abilities, granted, skill):
+def paper_context(character, weapons, spell_groups, abilities, granted, skill, addons=()):
     """What only the «Vista ficha» (the paper sheet layout) needs, from the same data."""
     mods = {key: rules.ability_modifier(getattr(character, key)) for key in rules.ABILITY_KEYS}
     held = {row.ability_id for row in abilities}
@@ -418,7 +425,7 @@ def paper_context(character, weapons, spell_groups, abilities, granted, skill):
         "paper_granted": [i["ability"] for g in granted for i in g["items"] if i["reached"] and i["ability"].pk not in held],
         "paper_spells": spells,
         "spell_mod": spell_mod, "spell_dc": None if spell_mod is None else 8 + spell_mod,
-        "magic_page": character.has_magic or bool(spells),
+        "magic_page": character.has_magic or bool(spells) or bool(addons),
         # The current hit points are tinted when low (a quarter or less) and at 0 or below.
         "hp_state": "cero" if hp <= 0 else ("baja" if hp * 4 <= character.hp else ""),
     }
@@ -698,6 +705,17 @@ def _apply(request, character, action, arg):
         character.magic_points = rules.clamp(character.magic_points + (1 if action == "magia_recuperar" else -1),
                                              0, character.magic_points_max)
         return ""
+    if action == "anadido":
+        # Aegis combat magic: an add-on goes with an attack (or a defence) and costs its «a».
+        addon = get_object_or_404(ClassAddon, pk=_positive(post.get("anadido")) or 0, char_class_id=character.char_class_id)
+        cost = _positive(post.get("coste")) or addon.cost
+        if cost not in addon.costs:
+            raise SheetError(f"{addon.name} cuesta {addon.cost_text}.")
+        if character.magic_points < cost:
+            raise SheetError(f"No quedan puntos de magia para {addon.name}: cuesta {cost}a y le quedan {character.magic_points}.")
+        character.magic_points -= cost
+        return (f"{name} usa {addon.name} ({cost}a): le quedan {character.magic_points} "
+                f"de {character.magic_points_max} puntos de magia.")
     if action == "usar_habilidad":
         row = get_object_or_404(CharacterAbility.objects.select_related("ability"), pk=post.get("valor"), character=character)
         try:
@@ -984,10 +1002,10 @@ def _store(draft, step, form):
         draft["skill_name"], draft["skill_description"] = data["name"].strip(), data["description"].strip()
 
 
-def draft_problems(draft, npc=False):
+def draft_problems(draft, npc=False, aegis=True):
     """What is still missing before the character can be sent, as (step, message)."""
     problems = []
-    for step, form in [(0, RaceStepForm(_initial(draft, 0), npc=npc)), (1, ClassStepForm(_initial(draft, 1), npc=npc)),
+    for step, form in [(0, RaceStepForm(_initial(draft, 0), npc=npc)), (1, ClassStepForm(_initial(draft, 1), npc=npc, aegis=aegis)),
                        (2, ScoresStepForm(_initial(draft, 2), free=npc))]:
         if not form.is_valid():
             problems += [(step, message) for errors in form.errors.values() for message in errors]
@@ -1005,7 +1023,9 @@ def _form_kwargs(form_class, campaign, is_master, npc):
         return {"campaign": campaign, "is_master": is_master, "npc": npc}
     if form_class is ScoresStepForm:
         return {"free": npc}
-    if form_class in (RaceStepForm, ClassStepForm, EquipmentStepForm):
+    if form_class is ClassStepForm:
+        return {"npc": npc, "aegis": campaign.is_aegis}  # the classes of Aegis only in its campaigns
+    if form_class in (RaceStepForm, EquipmentStepForm):
         return {"npc": npc}
     return {}
 
@@ -1068,7 +1088,7 @@ def _creator(request, campaign, npc):
     elif request.method == "POST":
         if going == "atras" or jumping:
             return redirect(_step_url(campaign, _target_step(going, step, skipped), npc))
-        if not draft_problems(draft, npc):
+        if not draft_problems(draft, npc, campaign.is_aegis):
             character = _create_character(request, campaign, draft, npc)
             request.session.pop(key, None)
             if npc:
@@ -1134,7 +1154,8 @@ def _creator_context(request, campaign, draft, step, form, is_master, npc=False)
         "race_traits": RaceAbility.objects.filter(race=race, level_required__lte=1).select_related("ability") if race else [],
         "subrace_traits": SubraceAbility.objects.filter(subrace=subrace, level_required__lte=1).select_related("ability") if subrace else [],
         "classes": [{"c": c, "die": hit_die(c), "checked": str(c.pk) == chosen_class}
-                    for c in CharacterClass.objects.filter(**catalog).order_by("name")],
+                    for c in CharacterClass.objects.filter(**catalog, **({} if campaign.is_aegis else {"aegis_only": False}))
+                    .order_by("name")],
         "char_class": char_class, "hit_die": hit_die(char_class),
         "class_custom": (draft.get("class_custom") or {}).get("class_name", "") if npc else "",
         "class_traits": ClassAbility.objects.filter(char_class=char_class, level_required__lte=1).select_related("ability") if char_class else [],
@@ -1154,7 +1175,7 @@ def _creator_context(request, campaign, draft, step, form, is_master, npc=False)
         "level": level, "max_ap": max_ap, "hp": hp,
         "ac": (draft.get("ac") if npc else None) or 10 + rules.ability_modifier(scores["dexterity"]),
         "player": None if npc else (User.objects.filter(pk=draft.get("player")).first() if is_master else request.user),
-        "problems": draft_problems(draft, npc) if step == LAST_STEP else [],
+        "problems": draft_problems(draft, npc, campaign.is_aegis) if step == LAST_STEP else [],
         "portrait_url": default_storage.url(draft["portrait"]) if draft.get("portrait") else "",
     }
 

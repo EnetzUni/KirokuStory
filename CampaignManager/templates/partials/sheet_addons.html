@@ -1,0 +1,32 @@
+{% load i18n %}{% comment %}The «Añadidos» tab of the web sheet (Aegis combat magic): the class's add-ons by group, each with
+its cost in magic points («a») and a button that spends it. Needs the sheet's context (`act`, `addon_groups`...).{% endcomment %}
+<div class="tarjeta compacta">
+    <div class="fila-s" style="justify-content:space-between">
+        <h2 class="rotulo">{% translate "Añadidos de la clase" %}</h2>
+        <span class="fila-s" style="gap:6px">
+            <span class="pastilla p-morado"><span data-valor="magia-anadidos">{{ character.magic_points }}</span> / {{ character.magic_points_max }} «a»</span>
+            <span class="pastilla" title="{% translate '12 + modificador de Destreza' %}">{% translate "Salvación a superar" %} {{ addon_dc }}</span>
+        </span>
+    </div>
+    <details class="pequeno"><summary>{% translate "Cómo funcionan" %}</summary>{% include "partials/addon_rules.html" with dc=addon_dc %}</details>
+</div>
+{% for group in addon_groups %}
+<section class="tarjeta sin-relleno" aria-labelledby="anadidos-{{ group.kind }}">
+    <h3 id="anadidos-{{ group.kind }}" class="cabeza-tabla">{% translate group.label %}</h3>
+    {% for a in group.addons %}
+    <div class="fila-tabla">
+        <span class="anadido-coste" title="{% translate 'Puntos de magia que cuesta' %}">{{ a.cost_text }}</span>
+        <span style="flex:1 1 200px"><b>{{ a.name }}</b><br><span class="pequeno">{{ a.effect }}</span></span>
+        {% if can_edit %}
+        <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="fila-s">{% include "partials/sheet_hidden.html" %}<input type="hidden" name="anadido" value="{{ a.pk }}">
+            {% if a.max_cost %}
+            <label class="sr-only" for="coste-{{ a.pk }}">{% blocktranslate with name=a.name %}Puntos para {{ name }}{% endblocktranslate %}</label>
+            <select id="coste-{{ a.pk }}" name="coste" class="entrada" style="width:auto">{% for c in a.costs %}<option value="{{ c }}"{% if c > character.magic_points %} disabled{% endif %}>{{ c }}a</option>{% endfor %}</select>
+            {% endif %}
+            <button class="btn btn-magia" name="accion" value="anadido"{% if character.magic_points < a.cost %} disabled{% endif %}>{% translate "Usar" %}</button>
+        </form>
+        {% endif %}
+    </div>
+    {% endfor %}
+</section>
+{% endfor %}

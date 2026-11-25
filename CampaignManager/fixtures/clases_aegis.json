@@ -1,0 +1,495 @@
+[
+{
+ "model": "CampaignManager.characterclass",
+ "pk": 13,
+ "fields": {
+  "name": "Arcane Warrior",
+  "primary_ability": "Destreza y Sabiduría",
+  "description": "Dado de puntos de golpe: 1d10 por nivel de Arcane Warrior.\nCompetencias en tiradas de salvación: Fuerza y Destreza.\nCompetencias en habilidades: Elige tres: Atletismo, Investigación, Naturaleza, Percepción, Perspicacia, Sigilo, Supervivencia o Trato con animales.\nCompetencias con armas: Armas sencillas y marciales.\nEntrenamiento con armaduras: Armaduras ligeras y medias y escudos.\nEquipo inicial: Elige A o B: (A) armadura de cuero tachonado, cimitarra, espada corta, arco largo, 20 flechas, aljaba, paquete de explorador y 7 po, o (B) 150 po.\nMagia de combate (Aegis): no lanza conjuros. Tiene puntos de magia («a»), 10 + 2 por nivel, y los gasta en los añadidos de su clase, que se suman a sus ataques con espada y arco o a su defensa. Salvación a superar: 12 + su modificador de Destreza.",
+  "magic": "combate",
+  "bespoke": false,
+  "aegis_only": true,
+  "spells": []
+ }
+},
+{
+ "model": "CampaignManager.ability",
+ "pk": 291,
+ "fields": {
+  "name": "Magia de combate",
+  "unique": false,
+  "description": "No lanzas conjuros: tu magia va en tus armas. Tienes puntos de magia («a»): 10 + 2 por nivel de Arcane Warrior, y los recuperas todos con un descanso largo. Los gastas en los añadidos de tu clase (de espada, de arco, buffs y de defensa), que tienes en la pestaña «Añadidos» de tu ficha.\nUn añadido no gasta una acción más de lo que cuesta la acción a la que se suma: disparar una flecha cuesta una acción, y dispararla con «Flecha Brillante», también. Todos, salvo los de defensa, necesitan que el ataque acierte. Las salvaciones contra tus añadidos son de Destreza, contra 12 + tu modificador de Destreza.",
+  "feat": false,
+  "feat_min_level": 4,
+  "effects": []
+ }
+},
+{
+ "model": "CampaignManager.classability",
+ "pk": 175,
+ "fields": {
+  "char_class": 13,
+  "ability": 88,
+  "level_required": 1
+ }
+},
+{
+ "model": "CampaignManager.classability",
+ "pk": 176,
+ "fields": {
+  "char_class": 13,
+  "ability": 90,
+  "level_required": 1
+ }
+},
+{
+ "model": "CampaignManager.classability",
+ "pk": 177,
+ "fields": {
+  "char_class": 13,
+  "ability": 91,
+  "level_required": 2
+ }
+},
+{
+ "model": "CampaignManager.classability",
+ "pk": 178,
+ "fields": {
+  "char_class": 13,
+  "ability": 92,
+  "level_required": 2
+ }
+},
+{
+ "model": "CampaignManager.classability",
+ "pk": 179,
+ "fields": {
+  "char_class": 13,
+  "ability": 93,
+  "level_required": 3
+ }
+},
+{
+ "model": "CampaignManager.classability",
+ "pk": 180,
+ "fields": {
+  "char_class": 13,
+  "ability": 94,
+  "level_required": 4
+ }
+},
+{
+ "model": "CampaignManager.classability",
+ "pk": 181,
+ "fields": {
+  "char_class": 13,
+  "ability": 9,
+  "level_required": 5
+ }
+},
+{
+ "model": "CampaignManager.classability",
+ "pk": 182,
+ "fields": {
+  "char_class": 13,
+  "ability": 95,
+  "level_required": 6
+ }
+},
+{
+ "model": "CampaignManager.classability",
+ "pk": 183,
+ "fields": {
+  "char_class": 13,
+  "ability": 96,
+  "level_required": 9
+ }
+},
+{
+ "model": "CampaignManager.classability",
+ "pk": 184,
+ "fields": {
+  "char_class": 13,
+  "ability": 97,
+  "level_required": 10
+ }
+},
+{
+ "model": "CampaignManager.classability",
+ "pk": 185,
+ "fields": {
+  "char_class": 13,
+  "ability": 98,
+  "level_required": 13
+ }
+},
+{
+ "model": "CampaignManager.classability",
+ "pk": 186,
+ "fields": {
+  "char_class": 13,
+  "ability": 99,
+  "level_required": 14
+ }
+},
+{
+ "model": "CampaignManager.classability",
+ "pk": 187,
+ "fields": {
+  "char_class": 13,
+  "ability": 100,
+  "level_required": 17
+ }
+},
+{
+ "model": "CampaignManager.classability",
+ "pk": 188,
+ "fields": {
+  "char_class": 13,
+  "ability": 101,
+  "level_required": 18
+ }
+},
+{
+ "model": "CampaignManager.classability",
+ "pk": 189,
+ "fields": {
+  "char_class": 13,
+  "ability": 81,
+  "level_required": 19
+ }
+},
+{
+ "model": "CampaignManager.classability",
+ "pk": 190,
+ "fields": {
+  "char_class": 13,
+  "ability": 102,
+  "level_required": 20
+ }
+},
+{
+ "model": "CampaignManager.classability",
+ "pk": 191,
+ "fields": {
+  "char_class": 13,
+  "ability": 291,
+  "level_required": 1
+ }
+},
+{
+ "model": "CampaignManager.subclass",
+ "pk": 13,
+ "fields": {
+  "name": "Cazador",
+  "description": "Protege la naturaleza y a la gente contra la destrucción. Acechas a tus presas en las tierras salvajes y en otros lugares y empleas tus habilidades de cazador para proteger la naturaleza y a la gente contra las fuerzas que buscan destruirlas.",
+  "char_class": 13
+ }
+},
+{
+ "model": "CampaignManager.subclassability",
+ "pk": 59,
+ "fields": {
+  "subclass": 13,
+  "ability": 103,
+  "level_required": 3
+ }
+},
+{
+ "model": "CampaignManager.subclassability",
+ "pk": 60,
+ "fields": {
+  "subclass": 13,
+  "ability": 104,
+  "level_required": 3
+ }
+},
+{
+ "model": "CampaignManager.subclassability",
+ "pk": 61,
+ "fields": {
+  "subclass": 13,
+  "ability": 105,
+  "level_required": 7
+ }
+},
+{
+ "model": "CampaignManager.subclassability",
+ "pk": 62,
+ "fields": {
+  "subclass": 13,
+  "ability": 106,
+  "level_required": 11
+ }
+},
+{
+ "model": "CampaignManager.subclassability",
+ "pk": 63,
+ "fields": {
+  "subclass": 13,
+  "ability": 107,
+  "level_required": 15
+ }
+},
+{
+ "model": "CampaignManager.classaddon",
+ "pk": 1,
+ "fields": {
+  "char_class": 13,
+  "kind": "espada",
+  "name": "Empuje y Derribo",
+  "cost": 2,
+  "max_cost": null,
+  "effect": "Empuja 5 m y derriba.",
+  "order": 0
+ }
+},
+{
+ "model": "CampaignManager.classaddon",
+ "pk": 2,
+ "fields": {
+  "char_class": 13,
+  "kind": "espada",
+  "name": "Área de Dolor",
+  "cost": 3,
+  "max_cost": null,
+  "effect": "En un radio de 5 m, 2d8 de daño (1d8 si se salva), con salvación de Destreza.",
+  "order": 1
+ }
+},
+{
+ "model": "CampaignManager.classaddon",
+ "pk": 3,
+ "fields": {
+  "char_class": 13,
+  "kind": "espada",
+  "name": "Espada Veloz",
+  "cost": 5,
+  "max_cost": null,
+  "effect": "Hace un dash de 10 m en la dirección del ataque, 2d8 de daño.",
+  "order": 2
+ }
+},
+{
+ "model": "CampaignManager.classaddon",
+ "pk": 4,
+ "fields": {
+  "char_class": 13,
+  "kind": "arco",
+  "name": "Flecha",
+  "cost": 1,
+  "max_cost": null,
+  "effect": "Una flecha normal.",
+  "order": 3
+ }
+},
+{
+ "model": "CampaignManager.classaddon",
+ "pk": 5,
+ "fields": {
+  "char_class": 13,
+  "kind": "arco",
+  "name": "Flecha Brillante",
+  "cost": 2,
+  "max_cost": null,
+  "effect": "1d6 de daño radiante. Brilla hasta mi próximo turno: si vuelve a ser atacado en el mismo turno, tengo ventaja para atacarle.",
+  "order": 4
+ }
+},
+{
+ "model": "CampaignManager.classaddon",
+ "pk": 6,
+ "fields": {
+  "char_class": 13,
+  "kind": "arco",
+  "name": "Flecha Precisa",
+  "cost": 2,
+  "max_cost": null,
+  "effect": "+3 al golpe, 1d6 de daño.",
+  "order": 5
+ }
+},
+{
+ "model": "CampaignManager.classaddon",
+ "pk": 7,
+ "fields": {
+  "char_class": 13,
+  "kind": "arco",
+  "name": "Flecha Fantasma",
+  "cost": 3,
+  "max_cost": null,
+  "effect": "Golpea a todos los enemigos de la línea recta en la que se dispara la flecha.",
+  "order": 6
+ }
+},
+{
+ "model": "CampaignManager.classaddon",
+ "pk": 8,
+ "fields": {
+  "char_class": 13,
+  "kind": "arco",
+  "name": "Flecha Trueno",
+  "cost": 5,
+  "max_cost": null,
+  "effect": "4d8 de daño eléctrico (2d8 si se salva), con salvación de Destreza. En un radio de 5 m, 2d8 (1d8 si se salva), con salvación de Destreza.",
+  "order": 7
+ }
+},
+{
+ "model": "CampaignManager.classaddon",
+ "pk": 9,
+ "fields": {
+  "char_class": 13,
+  "kind": "arco",
+  "name": "Bombardeo Perfecto",
+  "cost": 5,
+  "max_cost": null,
+  "effect": "Tres flechas a objetivos distintos, +5 al golpe.",
+  "order": 8
+ }
+},
+{
+ "model": "CampaignManager.classaddon",
+ "pk": 10,
+ "fields": {
+  "char_class": 13,
+  "kind": "buff",
+  "name": "Veneno",
+  "cost": 2,
+  "max_cost": null,
+  "effect": "1d8. En su próximo turno tiene desventaja en todas las tiradas.",
+  "order": 9
+ }
+},
+{
+ "model": "CampaignManager.classaddon",
+ "pk": 11,
+ "fields": {
+  "char_class": 13,
+  "kind": "buff",
+  "name": "Marca",
+  "cost": 2,
+  "max_cost": null,
+  "effect": "Todos los ataques en su contra, +1d8.",
+  "order": 10
+ }
+},
+{
+ "model": "CampaignManager.classaddon",
+ "pk": 12,
+ "fields": {
+  "char_class": 13,
+  "kind": "buff",
+  "name": "Lentitud",
+  "cost": 3,
+  "max_cost": null,
+  "effect": "Su velocidad se reduce a la mitad.",
+  "order": 11
+ }
+},
+{
+ "model": "CampaignManager.classaddon",
+ "pk": 13,
+ "fields": {
+  "char_class": 13,
+  "kind": "buff",
+  "name": "Bloqueo Mágico",
+  "cost": 3,
+  "max_cost": null,
+  "effect": "En su próximo turno no puede usar magia.",
+  "order": 12
+ }
+},
+{
+ "model": "CampaignManager.classaddon",
+ "pk": 14,
+ "fields": {
+  "char_class": 13,
+  "kind": "buff",
+  "name": "Ceguera",
+  "cost": 4,
+  "max_cost": null,
+  "effect": "Durante su próximo turno queda cegado.",
+  "order": 13
+ }
+},
+{
+ "model": "CampaignManager.classaddon",
+ "pk": 15,
+ "fields": {
+  "char_class": 13,
+  "kind": "buff",
+  "name": "Parálisis",
+  "cost": 5,
+  "max_cost": null,
+  "effect": "Durante su próximo turno queda paralizado.",
+  "order": 14
+ }
+},
+{
+ "model": "CampaignManager.classaddon",
+ "pk": 16,
+ "fields": {
+  "char_class": 13,
+  "kind": "defensa",
+  "name": "Poder atentivo",
+  "cost": 1,
+  "max_cost": null,
+  "effect": "Equivale a activar guardia. El ataque que se hace al activarlo hace un 50 % de daño adicional.",
+  "order": 15
+ }
+},
+{
+ "model": "CampaignManager.classaddon",
+ "pk": 17,
+ "fields": {
+  "char_class": 13,
+  "kind": "defensa",
+  "name": "Evasión brillante",
+  "cost": 1,
+  "max_cost": null,
+  "effect": "Equivale a activar postura defensiva, con 3 de CA en vez de 2.",
+  "order": 16
+ }
+},
+{
+ "model": "CampaignManager.classaddon",
+ "pk": 18,
+ "fields": {
+  "char_class": 13,
+  "kind": "defensa",
+  "name": "Escudo",
+  "cost": 1,
+  "max_cost": 5,
+  "effect": "4 × a de vida temporal en forma de escudo, hasta mi próximo turno.",
+  "order": 17
+ }
+},
+{
+ "model": "CampaignManager.classaddon",
+ "pk": 19,
+ "fields": {
+  "char_class": 13,
+  "kind": "defensa",
+  "name": "Armadura Reforzada",
+  "cost": 2,
+  "max_cost": null,
+  "effect": "6 de AP y 6 de MAP, hasta mi próximo turno.",
+  "order": 18
+ }
+},
+{
+ "model": "CampaignManager.classaddon",
+ "pk": 20,
+ "fields": {
+  "char_class": 13,
+  "kind": "defensa",
+  "name": "¿Efectos Secundarios?",
+  "cost": 2,
+  "max_cost": null,
+  "effect": "Al hacer cualquier tirada de salvación, si me salvo no recibo ningún efecto, diga lo que diga el ataque original.",
+  "order": 19
+ }
+}
+]
+

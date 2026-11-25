@@ -14,7 +14,7 @@ Text version of the entity-relationship diagram (`ER.drawio`), written as contex
 | Area | Models |
 |---|---|
 | Users and campaigns | User, Campaign |
-| Characters | Character, Race, Subrace, CharacterClass, Subclass |
+| Characters | Character, Race, Subrace, CharacterClass, Subclass, ClassAddon |
 | Abilities | Ability, CharacterAbility, RaceAbility, SubraceAbility, ClassAbility, SubclassAbility, UniqueSkill |
 | Spells and combat | Spell, Component, Attack, DiceRoll, ArmorDamage |
 | Effects | Effect, ActiveEffect |
@@ -150,9 +150,11 @@ NPCs are Characters with `is_npc = true`. There can be many of the same NPC (fou
 | name | string | |
 | primary_ability | string | |
 | description | text | |
-| magic | string | `completa` (full caster), `media` (half caster), `pacto` (pact magic) or `ninguna` (default). Gives the magic points at each level (rule 15) |
+| magic | string | `completa` (full caster), `media` (half caster), `pacto` (pact magic), `combate` (Aegis combat magic: add-ons instead of spells, rule 21) or `ninguna` (default). Gives the magic points at each level (rule 15) |
+| aegis_only | bool | Default false. A class of our own, such as the Arcane Warrior: only campaigns that play with Aegis offer it (rule 18) |
 
 - Defines (*define*) many Characters.
+- Has (*tiene*) many ClassAddons, if its magic is `combate`.
 - Grants (*otorga*) Abilities through ClassAbility.
 - Can cast (*puede lanzar*) many Spells. A Spell can be available to many classes.
 - Has (*tiene*) many Subclasses.
@@ -168,6 +170,22 @@ NPCs are Characters with `is_npc = true`. There can be many of the same NPC (fou
 - Belongs to one CharacterClass (*tiene*); a class has many Subclasses. For example, "Círculo de la Luna" is a subclass of "Druida".
 - Defines (*define*) many Characters. A character's subclass is optional, but must be a subclass of its class (see game rules).
 - Grants (*otorga*) Abilities through SubclassAbility.
+
+### ClassAddon (Aegis)
+
+An add-on («añadido») of a class with combat magic (rule 21): it goes with an attack or a defence and costs magic points («a»).
+
+| Field | Type | Notes |
+|---|---|---|
+| char_class_id | FK → CharacterClass | `CASCADE` |
+| kind | string | `espada`, `arco`, `buff` or `defensa`: the groups of the class sheet |
+| name | string | Unique in its class |
+| cost | int | Magic points («a») it costs, from 1 |
+| max_cost | int | **Optional.** When the player chooses how many points to spend (Escudo: 1a to 5a): the most, above `cost` (`CheckConstraint`) |
+| effect | text | What it adds to the attack or to the defence |
+| order | int | Its place on the class sheet |
+
+- The Arcane Warrior has 20 (`fixtures/clases_aegis.json`; migration 0032 gives them to databases that already had the SRD catalog).
 
 ---
 
@@ -705,7 +723,7 @@ These are house rules or constraints the diagram cannot express.
 15. **Open decisions (E4), kept in `CampaignManager/rules.py`:**
    - **XP → level:** the SRD table, `XP_THRESHOLDS`.
    - **Magic points:** casting with a level N slot costs N points (`magic_point_cost`); cantrips cost nothing. The highest slot is `ceil(level / 2)`, at most 9 (`max_spell_slot`).
-   - **Maximum magic points (house rule):** given by the class and the level (`class_magic_points`): as many points as levels of the spell slots the SRD 5.2.1 gives that class, so the points are worth the same as the slots. A full caster uses the full caster table (level 1: 2, level 5: 16, level 20: 89); a half caster, that table at half its level rounded up; pact magic, the warlock's slots × their level; `ninguna`, 0. The master adds or takes away points per character (`Character.magic_points_bonus`).
+   - **Maximum magic points (house rule):** given by the class and the level (`class_magic_points`): as many points as levels of the spell slots the SRD 5.2.1 gives that class, so the points are worth the same as the slots. A full caster uses the full caster table (level 1: 2, level 5: 16, level 20: 89); a half caster, that table at half its level rounded up; pact magic, the warlock's slots × their level; combat magic (Aegis, rule 21), 10 + 2 per level; `ninguna`, 0. The master adds or takes away points per character (`Character.magic_points_bonus`).
    - **Ability uses:** set by the master in CharacterAbility, not read from the SRD.
    - **Character creation:** standard array (15, 14, 13, 12, 10, 8) or point buy (27 points, 8 to 15, SRD costs). Level 1 hit points = the class hit die's maximum + the Constitution modifier; armor class = 10 + the Dexterity modifier.
 16. **Experience and levels:** only masters give or take XP (from the sheet, or to several party members at once). XP never changes the level by itself: once `xp` reaches the next level of the table, the player (or a master) levels up from the sheet, one level at a time, with that level's choices, which depend on the campaign's ruleset (rule 18):
@@ -720,13 +738,18 @@ These are house rules or constraints the diagram cannot express.
    - It waits for a master (`pendiente`). Masters see a counter on «Personajes» in the menu (and on the folded menu's button on the phone) and review it there or on the sheet: they approve it as it is, change it before approving it, or reject it, with an optional note the player sees. A rejected skill can be rewritten and sent again. When a master writes it, it is approved at once.
    - Approving it creates an Ability with `unique = true` and gives it to the character (CharacterAbility), so rule 6 applies and the master can give it uses or a cooldown. The sheet shows it at the top of «Rasgos», highlighted.
    - Until it is approved, only the character's player and the masters see it.
-18. **Rulesets:** each campaign plays with **Aegis**, our variant of the SRD 5.2.1 with our additions, or with the **standard SRD 5.2.1** (`Campaign.ruleset`, `rules.AEGIS` / `rules.SRD`). They differ only in levelling up (rule 16: hit points, the levels of the improvement or feat, spells) and in unique skills (rule 17). The rest is the same in both: XP and stored level, subclass at level 3, magic points by class and level, the master's spells, the AP and armor damage rules and the homemade weapons. A new campaign uses Aegis; changing it applies from the next level up on.
+18. **Rulesets:** each campaign plays with **Aegis**, our variant of the SRD 5.2.1 with our additions, or with the **standard SRD 5.2.1** (`Campaign.ruleset`, `rules.AEGIS` / `rules.SRD`). They differ only in levelling up (rule 16: hit points, the levels of the improvement or feat, spells) and in unique skills (rule 17). The rest is the same in both: XP and stored level, subclass at level 3, magic points by class and level, the master's spells, the AP and armor damage rules and the homemade weapons. Classes marked `aegis_only` (the Arcane Warrior) are offered only by Aegis campaigns: an SRD campaign's character creator does not list them, though a master can still give one in «Editar ficha». A new campaign uses Aegis; changing it applies from the next level up on.
 19. **Rumours («Rumores de <campaign>»):** only masters write, edit, publish and delete them. Players see the published ones with their category (name and colour), never their truth; who said them and where are links only if that page of the world is revealed to them, and the session only if its chronicle is published. Each campaign has its own categories, which its masters create, rename, recolour and delete; a new campaign starts with «Rumor», «Comunicado oficial», «Noticia» and «Leyenda» (a `post_save` signal; migration 0030 gives them to existing campaigns).
 20. **Weather layer:** each region of a map can be linked to a real place; «Tiempo real» shows that place's live weather on the region (condition, temperature, and wind from 20 km/h and rain when there is any).
    - **Source:** Open-Meteo (free, no key), fetched on the server (`weather.py`), all the stale regions of a map in one request. Each region keeps its last values for 20 minutes (`WEATHER_TTL`): pages within that time do not call the API.
    - **API down:** the regions keep their last values, marked as old; a region never fetched shows nothing. The API is not called again for 5 minutes.
    - **One clock:** the time shown is the campaign's (`Campaign.time_zone`), never each place's. **Day and night** follow each real place (`is_day`): a region where it is night is shaded and shows a moon, so it can be day in one region and night in another at the same hour.
    - **Who:** only masters link and unlink regions (a location of the map, or a polygon they draw) and search real places; players see just the layer, without the real places, and not the regions of locations still hidden from them.
+21. **Combat magic and add-ons (Aegis, the Arcane Warrior):** a class with `magic = combate` casts no spells. Its magic points («a») are 10 + 2 per level (`rules.class_magic_points`; level 9: 28), recovered with a long rest like any magic points, and it spends them on the add-ons of its class (ClassAddon) from the sheet: the «Conjuros» tab becomes «Añadidos», and the paper sheet shows them as on the class sheet.
+   - An add-on costs its `cost` in «a», or what the player chooses between `cost` and `max_cost`. It cannot be used without enough points left.
+   - **Saving throw («salvación a superar»):** of Dexterity, against 12 + the user's Dexterity modifier (`rules.addon_save_dc`, `Character.addon_save_dc`).
+   - **Rules of every add-on** (`partials/addon_rules.html`): it costs no action beyond the action it goes with; the arrows are magical and conjured; at most one buff per attack; all but the defence ones need the attack to hit, and their numbers are added to the attack's; their effects are saved against at the end of the target's turn unless they say otherwise.
+   - **The Arcane Warrior** is the Explorador with this magic instead of spells: the same hit die, description, subclasses (Cazador) and class abilities, except «Lanzamiento de conjuros», which «Magia de combate» replaces at level 1. It has no class spell list.
 
 ---
 
@@ -755,6 +778,7 @@ These are house rules or constraints the diagram cannot express.
 | *otorga* (subrace) | `Subrace.abilities = ManyToManyField(Ability, through="SubraceAbility")` |
 | *otorga* (subclass) | `Subclass.abilities = ManyToManyField(Ability, through="SubclassAbility")` |
 | *puede lanzar* | `CharacterClass.spells = ManyToManyField(Spell)` |
+| *tiene* (add-ons) | `ClassAddon.char_class = ForeignKey(CharacterClass, related_name="addons")` |
 | *requiere* | `Spell.components = ManyToManyField(Component)` |
 | *realiza* (spell) | `Spell.attacks = ManyToManyField(Attack)` |
 | *realiza* (weapon) | `Weapon.attacks = ManyToManyField(Attack)` |
@@ -772,7 +796,8 @@ The two User ↔ Campaign relationships need different `related_name` values, ot
 
 ### Constraints and choices
 
-- `UniqueConstraint` on Inventory (`character`, `item`), ItemEffect (`item`, `effect`), CharacterAbility (`character`, `ability`), RaceAbility (`race`, `ability`), SubraceAbility (`subrace`, `ability`), ClassAbility (`char_class`, `ability`) and SubclassAbility (`subclass`, `ability`).
+- `UniqueConstraint` on Inventory (`character`, `item`), ItemEffect (`item`, `effect`), CharacterAbility (`character`, `ability`), RaceAbility (`race`, `ability`), SubraceAbility (`subrace`, `ability`), ClassAbility (`char_class`, `ability`), SubclassAbility (`subclass`, `ability`) and ClassAddon (`char_class`, `name`).
+- `CheckConstraint` on ClassAddon: `max_cost` is empty or above `cost`.
 - `CheckConstraint` on Character: `template` is empty or `is_npc` is true; death saves up to 3. `magic_points` up to the calculated maximum is checked in `Character.clean()`.
 - `CheckConstraint` on CharacterAbility: `uses_left` up to `max_uses`, `cooldown_left` up to `cooldown_rounds`.
 - Campaign models: `UniqueConstraint` on Session (`campaign`, `number`), Page (`campaign`, `slug`), BoardLink (`card_a`, `card_b`) and one active Encounter per campaign; `CheckConstraint` on BoardLink (`card_a` < `card_b`) and Combatant (a character or a name).
@@ -788,7 +813,7 @@ The two User ↔ Campaign relationships need different `related_name` values, ot
 | Link tables (ItemEffect, Inventory, ActiveEffect, CharacterAbility, RaceAbility, SubraceAbility, ClassAbility, SubclassAbility) | `CASCADE` | Rows disappear with either side |
 | Campaign models → Campaign, and their parts (objectives, links, posts, locations, moves, combatants) → their whole | `CASCADE` | Deleting a campaign deletes its diary, wiki, board, scenes, maps and fights |
 | Optional references inside a campaign (event → session or location, page → parent or location, quest → giver, note → page or author, post → author or character) | `SET_NULL` | The row stays without the reference |
-| Subrace.race, Subclass.char_class | `CASCADE` | Deleting a race or class deletes its subraces or subclasses; blocked if a character uses one of them |
+| Subrace.race, Subclass.char_class, ClassAddon.char_class | `CASCADE` | Deleting a race or class deletes its subraces, subclasses or add-ons; blocked if a character uses one of them |
 | Weapon.item, Armor.item | `CASCADE` | Deleting the Item deletes its weapon or armor data |
 | Character.race, Character.subrace, Character.char_class, Character.subclass, Armor.armor_type | `PROTECT` | Cannot delete a race, subrace, class, subclass or armor type still in use |
 | Character.player | `SET_NULL` | The character stays without a user |

@@ -7,6 +7,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator, RegexVa
 from django.db import models, transaction
 from django.db.models.signals import m2m_changed, post_delete, pre_delete
 from django.dispatch import receiver
+from django.utils.translation import gettext_noop
 
 from . import rules
 
@@ -271,6 +272,16 @@ class Character(models.Model):
     @property
     def has_magic(self):
         return self.magic_points_max > 0
+
+    @property
+    def combat_magic(self):
+        """Aegis: the class spends its magic points on add-ons, not on spells (the Arcane Warrior)."""
+        return self.char_class_id is not None and self.char_class.magic == CharacterClass.Magic.COMBATE
+
+    @property
+    def addon_save_dc(self):
+        """«Salvación a superar» against its add-ons: 12 + Dexterity modifier (rules.addon_save_dc)."""
+        return rules.addon_save_dc(rules.ability_modifier(self.dexterity))
 
     def all_ability_ids(self):
         """IDs of the abilities held directly or granted by race, subrace, class and
@@ -545,6 +556,8 @@ class CharacterClass(models.Model):
         COMPLETA = "completa", "Lanzador completo"
         MEDIA = "media", "Medio lanzador"
         PACTO = "pacto", "Magia de pacto"
+        # Aegis: no spells; the points («a») go to the class's add-ons (ClassAddon).
+        COMBATE = "combate", "Magia de combate (añadidos)"
         NINGUNA = "ninguna", "Sin magia"
 
     name = models.CharField(max_length=100)
@@ -554,6 +567,8 @@ class CharacterClass(models.Model):
                              help_text="Gives the character's magic points at each level")
     # Made by a master for one character (NPC creator, sheet editor): kept out of the players' lists.
     bespoke = models.BooleanField(default=False, help_text="Made by a master for a character: players do not see it in the catalog lists")
+    # Our own classes, such as the Arcane Warrior: campaigns that play with the standard SRD do not offer them.
+    aegis_only = models.BooleanField(default=False, help_text="A class of Aegis: campaigns with the standard SRD 5.2.1 do not offer it")
 
     # otorga, puede lanzar
     abilities = models.ManyToManyField("Ability", through="ClassAbility")
@@ -564,6 +579,13 @@ class CharacterClass(models.Model):
 
     def __str__(self):
         return self.name
+
+    def addon_groups(self):
+        """Aegis: its add-ons in the groups of the class sheet (Espada, Arco, Buffs, Defensa),
+        as [{"kind", "label", "addons"}]. Empty for a class without add-ons."""
+        addons = list(self.addons.all())
+        return [{"kind": kind, "label": label, "addons": [a for a in addons if a.kind == kind]}
+                for kind, label in ClassAddon.Kind.choices if any(a.kind == kind for a in addons)]
 
 
 class Subclass(models.Model):
@@ -580,6 +602,51 @@ class Subclass(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class ClassAddon(models.Model):
+    """Aegis: an add-on («añadido») of a class with combat magic, such as the Arcane Warrior.
+    It goes with an attack (or a defence) without costing another action, and costs magic
+    points («a»). The rules all add-ons share are in rules.py and partials/addon_rules.html."""
+
+    class Kind(models.TextChoices):
+        # The groups of the class sheet, in its order.
+        ESPADA = "espada", gettext_noop("Espada")
+        ARCO = "arco", gettext_noop("Arco")
+        BUFF = "buff", gettext_noop("Buffs")
+        DEFENSA = "defensa", gettext_noop("Defensa")
+
+    char_class = models.ForeignKey("CharacterClass", on_delete=models.CASCADE, related_name="addons")
+    kind = models.CharField(max_length=10, choices=Kind.choices)
+    name = models.CharField(max_length=100)
+    cost = models.PositiveSmallIntegerField(validators=[MinValueValidator(1)], help_text="Magic points («a») it costs")
+    max_cost = models.PositiveSmallIntegerField(
+        null=True, blank=True,
+        help_text="Only when the player chooses how many points to spend (Escudo: from 1a to 5a): the most it can cost")
+    effect = models.TextField(help_text="What it adds to the attack or to the defence")
+    order = models.PositiveSmallIntegerField(default=0, help_text="Its place on the class sheet")
+
+    class Meta:
+        ordering = ["char_class", "order", "id"]
+        constraints = [
+            models.UniqueConstraint(fields=["char_class", "name"], name="unique_class_addon"),
+            models.CheckConstraint(condition=models.Q(max_cost__isnull=True) | models.Q(max_cost__gt=models.F("cost")),
+                                   name="addon_max_cost_above_cost",
+                                   violation_error_message="The highest cost must be above the cost."),
+        ]
+
+    def __str__(self):
+        return f"{self.char_class} - {self.name} ({self.cost_text})"
+
+    @property
+    def cost_text(self):
+        """As on the class sheet: «2a», or «1a-5a» when the player chooses."""
+        return f"{self.cost}a-{self.max_cost}a" if self.max_cost else f"{self.cost}a"
+
+    @property
+    def costs(self):
+        """The points it can cost: its cost, or every value the player can choose."""
+        return list(range(self.cost, (self.max_cost or self.cost) + 1))
 
 
 # ---------------------------------------------------------------------------

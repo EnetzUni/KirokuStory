@@ -69,8 +69,8 @@
             <div class="rejilla-s" style="grid-template-columns:repeat(auto-fill,minmax(min(240px,100%),1fr))">
                 {% for c in classes %}
                 <label class="eleccion"><input type="radio" name="char_class" value="{{ c.c.pk }}"{% if c.checked %} checked{% endif %}>
-                    <strong>{{ c.c.name }}</strong>
-                    <span class="pequeno atenuado">{% translate "Característica principal" %}: {{ c.c.primary_ability }}{% if c.die %} · {% translate "dado de golpe" %} d{{ c.die }}{% endif %}</span>
+                    <strong>{{ c.c.name }}{% if c.c.aegis_only %} <span class="pastilla p-teal">Aegis</span>{% endif %}</strong>
+                    <span class="pequeno atenuado">{% translate "Característica principal" %}: {{ c.c.primary_ability }}{% if c.die %} · {% translate "dado de golpe" %} d{{ c.die }}{% endif %}{% if c.c.magic == "combate" %} · {% translate "magia de combate: añadidos en vez de conjuros" %}{% endif %}</span>
                 </label>
                 {% endfor %}
             </div>

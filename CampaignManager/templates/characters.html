@@ -37,27 +37,32 @@
     <h2 class="rotulo">{% translate "El grupo" %}</h2>
     <div class="rejilla">
         {% for c in party %}
-        <article class="tarjeta compacta">
-            <div class="miembro" style="padding:0">
-                <span class="avatar" style="background:{{ c|avatar_color }}">{% if c.portrait %}<img src="{{ c.portrait.url }}" alt="">{% else %}{{ c.name|initial }}{% endif %}</span>
-                <span class="miembro-datos">
-                    <span class="fila-s" style="justify-content:space-between"><b>{{ c.name }}</b>
-                        {% if c.status == "pendiente" %}<span class="pastilla p-ambar">{% translate "Pendiente" %}</span>
-                        {% elif c.can_edit and c.can_level_up %}<a class="pastilla p-acento" href="{% url 'level_up' campaign.pk c.pk %}"><span aria-hidden="true">↑</span> {% translate "Sube de nivel" %}</a>{% endif %}</span>
-                    <span class="pequeno atenuado">{{ c.race.name }}{% if c.subrace %} ({{ c.subrace.name }}){% endif %} · {{ c.char_class.name }} {{ c.level }}{% if c.player %} · {{ c.player.username }}{% endif %}</span>
+        {# Each character opens with its portrait (or its initial on its colour) and its name over it. #}
+        <article class="tarjeta sin-relleno personaje">
+            <a class="retrato" href="{% url 'sheet' campaign.pk c.pk %}" style="background:{{ c|avatar_color }}">
+                {% if c.portrait %}<img src="{{ c.portrait.url }}" alt="" loading="lazy" decoding="async">{% else %}<span class="retrato-inicial" aria-hidden="true">{{ c.name|initial }}</span>{% endif %}
+                <h3 class="retrato-nombre">{{ c.name }}</h3>
+                <span class="nivel">{% translate "Nivel" %} {{ c.level }}</span>
+            </a>
+            <div class="personaje-datos">
+                <span class="fila-s" style="justify-content:space-between">
+                    <span class="pequeno atenuado">{{ c.race.name }}{% if c.subrace %} ({{ c.subrace.name }}){% endif %} · {{ c.char_class.name }}{% if c.subclass %} ({{ c.subclass.name }}){% endif %}{% if c.player %} · {{ c.player.username }}{% endif %}</span>
+                    {% if c.status == "pendiente" %}<span class="pastilla p-ambar">{% translate "Pendiente" %}</span>
+                    {% elif c.can_edit and c.can_level_up %}<a class="pastilla p-acento" href="{% url 'level_up' campaign.pk c.pk %}"><span aria-hidden="true">↑</span> {% translate "Sube de nivel" %}</a>{% endif %}
                 </span>
-            </div>
-            <div class="medidor"><span style="min-width:28px">{% translate "Vida" %}</span><span class="barra vida"><span style="width:{% pct c.temp_hp c.hp %}%"></span></span><b>{{ c.temp_hp }}/{{ c.hp }}</b></div>
-            <div class="medidor"><span style="min-width:28px">AP</span><span class="barra ap"><span style="width:{% pct c.temp_ap c.max_ap %}%"></span></span><b>{{ c.temp_ap }}/{{ c.max_ap }}</b></div>
-            <div class="fila-s">
-                <a class="btn btn-pequeno" href="{% url 'sheet' campaign.pk c.pk %}">{% if c.can_edit %}{% translate "Abrir ficha" %}{% else %}{% translate "Ver ficha" %}{% endif %}</a>
-                {% if is_master %}<a class="btn btn-pequeno" href="{% url 'character_edit' campaign.pk c.pk %}">{% translate "Editar" %}</a>{% endif %}
-                {% if is_master and c.status == "pendiente" %}
-                <form method="post" action="{% url 'character_review' campaign.pk c.pk %}" class="en-linea">{% csrf_token %}
-                    <button class="btn btn-pequeno btn-bien" name="accion" value="aprobar">{% translate "Aprobar" %}</button>
-                    <button class="btn btn-pequeno btn-peligro" name="accion" value="rechazar">{% translate "Rechazar" %}</button>
-                </form>
-                {% endif %}
+                <div class="medidor"><span style="min-width:28px">{% translate "Vida" %}</span><span class="barra vida"><span style="width:{% pct c.temp_hp c.hp %}%"></span></span><b>{{ c.temp_hp }}/{{ c.hp }}</b></div>
+                <div class="medidor"><span style="min-width:28px">AP</span><span class="barra ap"><span style="width:{% pct c.temp_ap c.max_ap %}%"></span></span><b>{{ c.temp_ap }}/{{ c.max_ap }}</b></div>
+                <div class="fila-s">
+                    <a class="btn btn-pequeno" href="{% url 'sheet' campaign.pk c.pk %}">{% if c.can_edit %}{% translate "Abrir ficha" %}{% else %}{% translate "Ver ficha" %}{% endif %}</a>
+                    {% if is_master %}<a class="btn btn-pequeno" href="{% url 'character_edit' campaign.pk c.pk %}">{% translate "Editar" %}</a>{% endif %}
+                    {% if c.can_edit and not c.portrait %}<a class="btn btn-pequeno btn-texto" href="{% url 'sheet' campaign.pk c.pk %}?tab=bio#retrato">{% translate "Añadir retrato" %}</a>{% endif %}
+                    {% if is_master and c.status == "pendiente" %}
+                    <form method="post" action="{% url 'character_review' campaign.pk c.pk %}" class="en-linea">{% csrf_token %}
+                        <button class="btn btn-pequeno btn-bien" name="accion" value="aprobar">{% translate "Aprobar" %}</button>
+                        <button class="btn btn-pequeno btn-peligro" name="accion" value="rechazar">{% translate "Rechazar" %}</button>
+                    </form>
+                    {% endif %}
+                </div>
             </div>
         </article>
         {% empty %}
@@ -92,7 +97,7 @@
     <div class="tarjeta sin-relleno">
         {% for c in npcs %}
         <div class="fila-tabla">
-            <span class="avatar" style="width:32px;height:32px;font-size:14px;background:{{ c|avatar_color }}">{{ c.name|initial }}</span>
+            <span class="avatar" style="background:{{ c|avatar_color }}">{% if c.portrait %}<img src="{{ c.portrait.url }}" alt="" loading="lazy">{% else %}{{ c.name|initial }}{% endif %}</span>
             <span style="flex:1 1 180px"><b>{{ c.name }}</b><br><span class="pequeno atenuado">{% if c.template %}{% translate "Copia de" %} {{ c.template.name }}{% else %}{% translate "Plantilla" %}{% endif %}</span></span>
             <span class="pequeno">{% translate "Vida" %} <b>{{ c.temp_hp }}/{{ c.hp }}</b> · AP <b>{{ c.temp_ap }}</b></span>
             <a class="btn btn-pequeno" href="{% url 'sheet' campaign.pk c.pk %}">{% translate "Ficha" %}</a>

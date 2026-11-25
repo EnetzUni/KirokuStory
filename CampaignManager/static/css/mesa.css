@@ -458,9 +458,18 @@ html.pantalla-abierta,html.pantalla-abierta body{overflow:hidden}
 @media (prefers-reduced-motion:reduce){.lugares-secundarios .flecha{transition:none}}
 
 /* ---------- Personajes y ficha ---------- */
-.retrato{height:150px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;color:rgba(255,255,255,.92);font-size:64px;font-weight:700}
-.retrato img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+/* «Personajes»: each party member's card opens with its portrait (or its initial on its colour),
+   its level and its name over it. Faces are usually in the upper part of a portrait. */
+.retrato{position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:4/3;max-height:300px;overflow:hidden;
+  color:rgba(255,255,255,.92);font-size:72px;font-weight:700;text-decoration:none}
+.retrato img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 20%}
+.retrato-inicial{line-height:1;margin-bottom:28px}
 .retrato .nivel{position:absolute;right:10px;top:10px;font-size:12px;font-weight:700;padding:3px 9px;border-radius:var(--r-ctl);background:rgba(0,0,0,.6);color:#FFFFFF}
+.retrato-nombre{position:absolute;left:0;right:0;bottom:0;padding:36px 14px 10px;font-size:24px;line-height:1.15;color:#FFFFFF;overflow-wrap:anywhere;
+  background:linear-gradient(to bottom,rgba(0,0,0,0),rgba(0,0,0,.72));text-shadow:0 1px 3px rgba(0,0,0,.55)}
+.retrato:hover .retrato-nombre{text-decoration:underline;text-underline-offset:4px}
+.retrato:focus-visible{outline:3px solid var(--text);outline-offset:-3px}
+.personaje-datos{padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px}
 .ficha-cabeza{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px 20px;padding:0 20px 18px;margin-top:-52px}
 .ficha-franja{height:92px}
 .ficha-datos{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:4px;padding-top:56px}
@@ -485,6 +494,10 @@ html.pantalla-abierta,html.pantalla-abierta body{overflow:hidden}
 .arma-cabeza{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;background:var(--surface2);border-bottom:1px solid var(--line)}
 .mensaje.flotante{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:30;max-width:min(560px,calc(100% - 32px));padding:10px 16px;border-radius:var(--r-card);background:var(--surface);border:1px solid var(--accent);color:var(--ok-text)}
 .mensaje.flotante.error{border-color:var(--danger-text)}
+/* Aegis combat magic: an add-on's cost in magic points («a»), and the rules all of them share. */
+.anadido-coste{min-width:48px;font-weight:700;color:var(--magic);white-space:nowrap}
+.reglas-anadidos{margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.tabla .tabla-grupo th{font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding-top:8px;padding-bottom:8px}
 .rasgo{font-size:11px;font-weight:700;letter-spacing:.04em;padding:2px 8px;border-radius:var(--r-ctl);background:var(--neutral-bg);color:var(--neutral-text)}
 .cambio{animation:resaltar 1.2s ease-out}
 @keyframes resaltar{from{background:var(--ochre)}to{background:transparent}}
@@ -646,6 +659,12 @@ html.pantalla-abierta,html.pantalla-abierta body{overflow:hidden}
 .hoja-unica{border-top:1px solid var(--tinta);padding:10px 12px 0;display:flex;flex-direction:column;gap:4px}
 
 .hoja-banda{display:grid;gap:10px;grid-template-columns:minmax(0,2fr) repeat(2,minmax(0,1fr));background:var(--tinte);border-radius:12px;padding:10px}
+.hoja-banda.dos{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+.hoja-rotulo .minuscula{text-transform:none}
+/* Aegis combat magic: the class's add-ons (cost, name, effect), grouped as on its class sheet. */
+.hoja-anadidos .hoja-tabla{min-width:600px}
+.hoja-tabla tr.hoja-grupo th{background:var(--tinte);color:var(--tinta);padding-top:6px;padding-bottom:6px;letter-spacing:.16em}
+.hoja-retrato-form{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:14px}
 
 /* Tablet portrait (about 820px): three columns, inventory and attacks underneath. */
 @media (max-width:1100px){

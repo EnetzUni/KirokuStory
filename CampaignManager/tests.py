@@ -4,11 +4,14 @@ what players may see (spec, section 6).
     python manage.py test CampaignManager
 """
 import datetime
+import importlib
 import json
 import re
 import tempfile
+from pathlib import Path
 from unittest import mock
 
+from django.apps import apps as django_apps
 from django.core.cache import cache
 from django.utils import timezone
 
@@ -20,9 +23,10 @@ from . import rules, weather
 from .models import (
     Rumour, RumourCategory, WeatherRegion,
     Ability, Armor, ArmorDamage, ArmorType, BoardCard, Campaign, Character, CharacterAbility, CharacterClass,
-    ClassAbility, Combatant, Encounter, Inventory, Item, Map, MapLocation, Page, PartyMove, Post, Quest, QuestObjective, Race, Session,
-    Spell, Subclass, Subrace, TimelineEvent, UniqueSkill, User, Weapon,
+    ClassAbility, ClassAddon, Combatant, Encounter, Inventory, Item, Map, MapLocation, Page, PartyMove, Post, Quest, QuestObjective,
+    Race, Session, Spell, Subclass, SubclassAbility, Subrace, TimelineEvent, UniqueSkill, User, Weapon,
 )
+from .views_characters import hit_die, level_up_plan
 
 AJAX = {"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"}
 
@@ -589,7 +593,7 @@ class RulesetTests(LevelUpData):
 
 
 class DemoData(TestCase):
-    fixtures = ["datos_iniciales_srd", "armas_caseras", "demo_campana"]
+    fixtures = ["datos_iniciales_srd", "armas_caseras", "clases_aegis", "demo_campana"]
 
     @classmethod
     def setUpTestData(cls):
@@ -2068,3 +2072,147 @@ class MapImportanceTests(DemoData):
         with mock.patch("CampaignManager.weather.refresh", return_value=True):
             editing = self.map_page(self.client, "&tiempo=1&recorrido=1")
         self.assertNotIn("ruta-controles", editing)
+
+
+class ArcaneWarriorTests(DemoData):
+    """Aegis: the Arcane Warrior is the Explorador with combat magic instead of spells: magic
+    points («a») 10 + 2 per level, spent on the add-ons of its class (Leah's sheet)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.warrior = CharacterClass.objects.get(name="Arcane Warrior")
+        cls.explorer = CharacterClass.objects.get(name="Explorador")
+        # Leah at level 9: Dexterity 17 (+3), so 28 «a» and «salvación a superar» 15.
+        cls.leah = Character.objects.create(
+            name="Leah", race=Race.objects.get(name="Humano"), char_class=cls.warrior, player=cls.lucia, level=9, xp=48000,
+            hp=63, temp_hp=63, ac=15, strength=12, dexterity=17, constitution=18, intelligence=10, wisdom=10, charisma=14,
+            magic_points=28)
+        cls.leah.campaigns.add(cls.corona)
+
+    def addon(self, name):
+        return ClassAddon.objects.get(char_class=self.warrior, name=name)
+
+    def use(self, addon, client=None, **data):
+        client = client or self.player()
+        return client.post(self.url("sheet_action", self.leah.pk), {"accion": "anadido", "anadido": addon.pk, **data}, **AJAX)
+
+    def test_it_is_the_explorador_without_spellcasting(self):
+        def links(char_class):
+            return {(row.ability.name, row.level_required) for row in char_class.classability_set.select_related("ability")}
+        self.assertEqual(links(self.warrior), links(self.explorer) - {("Lanzamiento de conjuros", 1)} | {("Magia de combate", 1)})
+        self.assertEqual([s.name for s in self.warrior.subclasses.all()], [s.name for s in self.explorer.subclasses.all()])
+        self.assertEqual(
+            {(r.ability_id, r.level_required) for r in self.warrior.subclasses.get().subclassability_set.all()},
+            {(r.ability_id, r.level_required) for r in self.explorer.subclasses.get().subclassability_set.all()})
+        self.assertEqual((hit_die(self.warrior), self.warrior.primary_ability), (10, self.explorer.primary_ability))
+        self.assertEqual((self.warrior.magic, self.warrior.aegis_only, self.warrior.spells.count()), ("combate", True, 0))
+        self.assertEqual([g["kind"] for g in self.warrior.addon_groups()], ["espada", "arco", "buff", "defensa"])
+        self.assertEqual(self.warrior.addons.count(), 20)
+
+    def test_magic_points_and_saving_throw_as_on_leahs_sheet(self):
+        self.assertEqual([rules.class_magic_points("combate", level) for level in (1, 9, 20)], [12, 28, 50])
+        self.assertEqual((self.leah.magic_points_max, self.leah.addon_save_dc, self.leah.has_magic), (28, 15, True))
+        self.assertEqual(level_up_plan(self.leah, self.corona)["magic_after"], 30)
+
+    def test_the_sheet_shows_the_addons_and_using_one_spends_its_cost(self):
+        page = self.player().get(self.url("sheet", self.leah.pk) + "?tab=spells").content.decode()
+        for text in ("Añadidos de la clase", "Flecha Trueno", "1a-5a", "Salvación a superar 15", "Puntos de magia («a»)"):
+            self.assertIn(text, page)
+        self.assertIn(">Añadidos</a>", page)  # the tab, instead of «Conjuros»
+        self.assertNotIn("No conoce conjuros", page)
+        response = self.use(self.addon("Flecha Trueno"))
+        self.assertEqual(response.json()["msg"], "Leah usa Flecha Trueno (5a): le quedan 23 de 28 puntos de magia.")
+        self.use(self.addon("Escudo"), coste="3")  # the player chooses how many: 4 × 3 temporary hit points
+        self.leah.refresh_from_db()
+        self.assertEqual(self.leah.magic_points, 20)
+
+    def test_an_addon_cannot_cost_more_than_its_range_nor_more_than_what_is_left(self):
+        self.assertTrue(self.use(self.addon("Escudo"), coste="6").json()["error"])
+        Character.objects.filter(pk=self.leah.pk).update(magic_points=4)
+        response = self.use(self.addon("Parálisis"))
+        self.assertTrue(response.json()["error"])
+        self.assertIn("cuesta 5a y le quedan 4", response.json()["msg"])
+        self.leah.refresh_from_db()
+        self.assertEqual(self.leah.magic_points, 4)
+
+    def test_only_the_addons_of_its_own_class(self):
+        aria = Character.objects.get(name="Aria")
+        response = self.player().post(self.url("sheet_action", aria.pk), {"accion": "anadido", "anadido": self.addon("Flecha").pk}, **AJAX)
+        self.assertEqual(response.status_code, 404)
+        brom = Character.objects.get(name="Brom")  # another player's character
+        response = self.player().post(self.url("sheet_action", brom.pk), {"accion": "anadido", "anadido": self.addon("Flecha").pk}, **AJAX)
+        self.assertEqual(response.status_code, 403)
+
+    def test_the_paper_sheet_has_the_addons_table(self):
+        self.lucia.sheet_view = User.SheetView.FICHA
+        self.lucia.save(update_fields=["sheet_view"])
+        page = self.player().get(self.url("sheet", self.leah.pk)).content.decode()
+        for text in ("hoja-anadidos", "Bombardeo Perfecto", "¿Efectos Secundarios?", "Buffs", '<b class="hoja-num">15</b>'):
+            self.assertIn(text, page)
+        self.assertNotIn("hoja-magia", page)  # no spells table: it knows none
+
+    def test_only_aegis_campaigns_offer_it(self):
+        url = self.url("creator") + "?paso=1"
+        self.client.force_login(User.objects.get(username="unai"))
+        self.assertIn("Arcane Warrior", self.client.get(url).content.decode())
+        self.corona.ruleset = Campaign.Ruleset.SRD
+        self.corona.save(update_fields=["ruleset"])
+        self.assertNotIn("Arcane Warrior", self.client.get(url).content.decode())
+        response = self.client.post(url, {"paso": "1", "ir": "siguiente", "char_class": self.warrior.pk})
+        self.assertEqual(response.status_code, 200)  # not a valid choice: the step shows the error
+        self.assertIn("char_class", response.context["form"].errors)
+
+    def test_the_catalog_shows_its_addons(self):
+        page = self.player().get(reverse("character_class_detail", args=[self.warrior.pk])).content.decode()
+        for text in ("Aegis", "Añadidos de la clase", "Empuje y Derribo", "1a-5a", "Magia de combate"):
+            self.assertIn(text, page)
+
+
+class ArcaneWarriorMigrationTests(TestCase):
+    """A database that already had the SRD catalog gets the Arcane Warrior from migration 0032;
+    an empty one, from fixtures/clases_aegis.json. Both must make the same class."""
+    fixtures = ["datos_iniciales_srd"]
+
+    def test_the_migration_makes_the_class_of_the_fixture(self):
+        migration = importlib.import_module("CampaignManager.migrations.0032_arcane_warrior")
+        migration.add_arcane_warrior(django_apps)
+        migration.add_arcane_warrior(django_apps)  # a second time changes nothing
+        warrior = CharacterClass.objects.get(name="Arcane Warrior")
+        rows = json.loads((Path(__file__).parent / "fixtures" / "clases_aegis.json").read_text(encoding="utf-8"))
+        by_model = {}
+        for row in rows:
+            by_model.setdefault(row["model"].split(".")[1], []).append(row)
+        fixture_class = by_model["characterclass"][0]["fields"]
+        for field in ("name", "primary_ability", "description", "magic", "aegis_only"):
+            self.assertEqual(getattr(warrior, field), fixture_class[field], field)
+        names = dict(Ability.objects.values_list("pk", "name"))
+        names.update({row["pk"]: row["fields"]["name"] for row in by_model["ability"]})
+        self.assertEqual(
+            sorted((names[r["fields"]["ability"]], r["fields"]["level_required"]) for r in by_model["classability"]),
+            sorted((r.ability.name, r.level_required) for r in warrior.classability_set.select_related("ability")))
+        self.assertEqual(Ability.objects.get(name="Magia de combate").description, by_model["ability"][0]["fields"]["description"])
+        self.assertEqual(
+            sorted((names[r["fields"]["ability"]], r["fields"]["level_required"]) for r in by_model["subclassability"]),
+            sorted((r.ability.name, r.level_required) for r in SubclassAbility.objects.filter(subclass__char_class=warrior)))
+        self.assertEqual(
+            [tuple(r["fields"][k] for k in ("kind", "order", "name", "cost", "max_cost", "effect")) for r in by_model["classaddon"]],
+            [(a.kind, a.order, a.name, a.cost, a.max_cost, a.effect) for a in warrior.addons.all()])
+
+
+class PortraitCardTests(DemoData):
+    """«Personajes»: each party member's card opens with its portrait (or its initial) and its name."""
+
+    def test_portraits_and_names_on_the_cards(self):
+        aria = Character.objects.get(name="Aria")
+        aria.portrait = "retratos/aria.png"
+        aria.save(update_fields=["portrait"])
+        page = self.player().get(self.url("characters")).content.decode()
+        self.assertIn(f'<img src="{aria.portrait.url}"', page)
+        self.assertIn('<h3 class="retrato-nombre">Aria</h3>', page)
+        self.assertIn('<h3 class="retrato-nombre">Brom</h3>', page)  # without a portrait: its initial
+        self.assertIn('class="retrato-inicial" aria-hidden="true">B<', page)
+        # «Añadir retrato» only on the cards one can edit that have no portrait yet.
+        self.assertNotIn("Añadir retrato", page)
+        Character.objects.filter(pk=aria.pk).update(portrait="")
+        self.assertIn("Añadir retrato", self.player().get(self.url("characters")).content.decode())

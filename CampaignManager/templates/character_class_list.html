@@ -9,7 +9,7 @@
         <table class="tabla">
             <thead><tr><th>{% translate "Nombre" %}</th><th>{% translate "Característica principal" %}</th></tr></thead>
             <tbody>
-                {% for character_class in character_classes %}<tr><td><a href="{% url 'character_class_detail' character_class.pk %}">{{ character_class.name }}</a></td><td>{{ character_class.primary_ability }}</td></tr>
+                {% for character_class in character_classes %}<tr><td><a href="{% url 'character_class_detail' character_class.pk %}">{{ character_class.name }}</a>{% if character_class.aegis_only %} <span class="pastilla p-teal">Aegis</span>{% endif %}</td><td>{{ character_class.primary_ability }}</td></tr>
                 {% empty %}<tr><td colspan="2" class="atenuado">{% translate "Todavía no hay clases." %}</td></tr>{% endfor %}
             </tbody>
         </table>

@@ -19,6 +19,14 @@ The affinities are empty boxes; skills and saves show the ability modifier.
             <div class="hoja-campo"><b><span data-valor="xp">{{ character.xp }}</span> XP · {% translate "nivel" %} {{ level }}{% if character.can_level_up and can_edit %} <a class="hoja-subir" href="{% url 'level_up' campaign.pk character.pk %}">↑ {% translate "Subir de nivel" %}</a>{% endif %}</b><span class="hoja-rotulo">{% translate "XP y nivel" %}</span></div>
         </div>
         </div>
+        {% if can_edit %}
+        {# The portrait shown on the sheet and on «Personajes», as in the web view's «Biografía». #}
+        <form method="post" action="{{ act }}" enctype="multipart/form-data" class="hoja-retrato-form">{% include "partials/sheet_hidden.html" %}
+            <label class="hoja-rotulo" for="retrato">{% translate "Retrato" %}</label>
+            <input id="retrato" type="file" name="retrato" accept="image/*">
+            <button class="btn" name="accion" value="retrato">{% if character.portrait %}{% translate "Cambiar retrato" %}{% else %}{% translate "Subir retrato" %}{% endif %}</button>
+        </form>
+        {% endif %}
     </header>
 
     {% if effects %}
@@ -239,18 +247,59 @@ The affinities are empty boxes; skills and saves show the ability modifier.
 
 {% if magic_page %}
 <section class="hoja" aria-label="{% translate 'Ficha de personaje: magia' %}">
-    <div class="hoja-banda">
+    <div class="hoja-banda{% if addon_groups and not paper_spells %} dos{% endif %}">
         <form method="post" action="{{ act }}" data-ajax data-target="#ficha" class="hoja-mini ancho">{% include "partials/sheet_hidden.html" %}
-            <span class="hoja-rotulo">{% translate "Puntos de magia" %}</span>
+            <span class="hoja-rotulo">{% translate "Puntos de magia" %}{% if addon_groups %} <span class="minuscula">(«a»)</span>{% endif %}</span>
             <fieldset class="hoja-fs hoja-mm"{% if not can_edit %} disabled{% endif %}>
                 <button class="hoja-mini-btn" name="accion" value="magia_gastar" aria-label="{% translate 'Gastar 1 punto de magia' %}"{% if not character.magic_points %} disabled{% endif %}>−</button>
                 <b class="hoja-num"><span data-valor="magia">{{ character.magic_points }}</span><small> / {{ character.magic_points_max }}</small></b>
                 <button class="hoja-mini-btn" name="accion" value="magia_recuperar" aria-label="{% translate 'Recuperar 1 punto de magia' %}">+</button>
             </fieldset>
         </form>
-        <div class="hoja-mini" title="{% translate 'CD de salvación de los conjuros: 8 + modificador de la característica principal' %}"><span class="hoja-rotulo">{% translate "Salvación" %}</span><b class="hoja-num">{% if spell_dc is not None %}{{ spell_dc }}{% endif %}</b></div>
+        {% if addon_groups %}
+        <div class="hoja-mini" title="{% translate 'Salvación a superar contra los añadidos: 12 + modificador de Destreza' %}"><span class="hoja-rotulo">{% translate "Salvación" %}</span><b class="hoja-num">{{ addon_dc }}</b><small class="hoja-nota">12 + {% translate "DES" %}</small></div>
+        {% endif %}
+        {% if paper_spells or not addon_groups %}
+        <div class="hoja-mini" title="{% translate 'CD de salvación de los conjuros: 8 + modificador de la característica principal' %}"><span class="hoja-rotulo">{% if addon_groups %}{% translate "CD conjuros" %}{% else %}{% translate "Salvación" %}{% endif %}</span><b class="hoja-num">{% if spell_dc is not None %}{{ spell_dc }}{% endif %}</b></div>
         <div class="hoja-mini" title="{% translate 'Ataque de conjuro: modificador de la característica principal' %}"><span class="hoja-rotulo">{% translate "Ataque" %}</span><b class="hoja-num">{% if spell_mod is not None %}{{ spell_mod|signed }}{% endif %}</b></div>
+        {% endif %}
     </div>
+    {% if addon_groups %}
+    {# Aegis combat magic (the Arcane Warrior), as on its class sheet: the rules, then cost, name and effect by group. #}
+    <div class="hoja-caja hoja-anadidos sin-relleno-x">
+        <h2 class="hoja-titulo-caja">{% translate "Añadidos de la clase" %}</h2>
+        <div class="pequeno">{% include "partials/addon_rules.html" with dc=addon_dc %}</div>
+        <div class="hoja-tabla-marco">
+            <table class="hoja-tabla">
+                <thead><tr><th scope="col">{% translate "Coste" %}</th><th scope="col">{% translate "Nombre" %}</th><th scope="col">{% translate "Efecto" %}</th><th scope="col"><span class="sr-only">{% translate "Usar" %}</span></th></tr></thead>
+                {% for group in addon_groups %}
+                <tbody>
+                    <tr class="hoja-grupo"><th scope="rowgroup" colspan="4">{% translate group.label %}</th></tr>
+                    {% for a in group.addons %}
+                    <tr>
+                        <td class="anadido-coste">{{ a.cost_text }}</td>
+                        <td><b>{{ a.name }}</b></td>
+                        <td>{{ a.effect }}</td>
+                        <td>
+                            <form method="post" action="{{ act }}" data-ajax data-target="#ficha">{% include "partials/sheet_hidden.html" %}<input type="hidden" name="anadido" value="{{ a.pk }}">
+                                <fieldset class="hoja-fs hoja-fila-ctl"{% if not can_edit %} disabled{% endif %}>
+                                    {% if a.max_cost %}
+                                    <label class="sr-only" for="hoja-coste-{{ a.pk }}">{% blocktranslate with name=a.name %}Puntos para {{ name }}{% endblocktranslate %}</label>
+                                    <select id="hoja-coste-{{ a.pk }}" name="coste" class="entrada hoja-select">{% for c in a.costs %}<option value="{{ c }}"{% if c > character.magic_points %} disabled{% endif %}>{{ c }}a</option>{% endfor %}</select>
+                                    {% endif %}
+                                    <button class="btn btn-magia" name="accion" value="anadido"{% if character.magic_points < a.cost %} disabled{% endif %}>{% translate "Usar" %}</button>
+                                </fieldset>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+    {% endif %}
+    {% if paper_spells or not addon_groups %}
     <div class="hoja-caja hoja-magia sin-relleno-x">
         <h2 class="hoja-titulo-caja">{% translate "Magia" %}</h2>
         <div class="hoja-tabla-marco">
@@ -286,6 +335,7 @@ The affinities are empty boxes; skills and saves show the ability modifier.
             </table>
         </div>
     </div>
+    {% endif %}
 </section>
 {% endif %}
 </div>

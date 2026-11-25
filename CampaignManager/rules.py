@@ -150,10 +150,26 @@ FULL_CASTER_SLOTS = [
 PACT_SLOTS = [(1, 1), (2, 1), (2, 2), (2, 2), (2, 3), (2, 3), (2, 4), (2, 4), (2, 5), (2, 5)] + [(3, 5)] * 6 + [(4, 5)] * 4
 
 
+# Aegis: combat magic («magia de combate»), the Arcane Warrior's. It casts no spells: its magic
+# points («a») are 10 + 2 per level, and it spends them on the add-ons of its class
+# (models.ClassAddon), which go with its attacks or its defence. The add-ons' saving throws
+# are of Dexterity, against 12 + the warrior's Dexterity modifier.
+COMBAT_MAGIC_BASE, COMBAT_MAGIC_PER_LEVEL = 10, 2
+ADDON_SAVE_BASE = 12
+
+
+def addon_save_dc(dex_modifier):
+    """«Salvación a superar» against the add-ons of combat magic: 12 + Dexterity modifier."""
+    return ADDON_SAVE_BASE + dex_modifier
+
+
 def class_magic_points(magic, level):
     """Magic points a class with this kind of magic gives at `level`:
     "completa" (full caster), "media" (half caster: a full caster of half the
-    level, rounded up, like paladins and rangers), "pacto" (warlock) or "ninguna"."""
+    level, rounded up, like paladins and rangers), "pacto" (warlock), "combate"
+    (Aegis combat magic: 10 + 2 per level) or "ninguna"."""
+    if magic == "combate":
+        return COMBAT_MAGIC_BASE + COMBAT_MAGIC_PER_LEVEL * level
     if magic == "pacto":
         slots, slot_level = PACT_SLOTS[level - 1]
         return slots * slot_level

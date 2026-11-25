@@ -4119,3 +4119,109 @@ msgstr "Main place"
 #: CampaignManager/templates/partials/map_section.html
 msgid "Secundarios"
 msgstr "Secondary"
+
+#: CampaignManager/templates/partials/addon_rules.html
+msgid "Un añadido no gasta una acción más de lo que cuesta la acción a la que se suma: disparar una flecha cuesta una acción, y dispararla con «Flecha Brillante», también."
+msgstr "An add-on costs no action beyond the action it goes with: shooting an arrow costs an action, and so does shooting it with «Flecha Brillante»."
+
+#: CampaignManager/templates/partials/addon_rules.html
+msgid "Las flechas son mágicas y generadas, no flechas imbuidas."
+msgstr "The arrows are magical and conjured, not imbued arrows."
+
+#: CampaignManager/templates/partials/addon_rules.html
+msgid "Los buffs se suman a los ataques, uno como máximo por ataque."
+msgstr "Buffs are added to attacks, at most one per attack."
+
+#: CampaignManager/templates/partials/addon_rules.html
+msgid "Todos los añadidos, salvo los de defensa, necesitan que el ataque acierte. Sus números se suman a lo que el ataque hace de por sí."
+msgstr "Every add-on except the defence ones needs the attack to hit. Their numbers are added to what the attack does on its own."
+
+#: CampaignManager/templates/partials/addon_rules.html
+#, python-format
+msgid "Sus efectos se salvan con Destreza contra %(dc)s (12 + Destreza) al final del turno del objetivo, salvo que digan otra cosa."
+msgstr "Their effects are saved against with Dexterity against %(dc)s (12 + Dexterity) at the end of the target's turn, unless they say otherwise."
+
+#: CampaignManager/templates/partials/addon_rules.html
+msgid "Sus efectos se salvan con Destreza contra 12 + la Destreza de quien los usa, al final del turno del objetivo, salvo que digan otra cosa."
+msgstr "Their effects are saved against with Dexterity against 12 + the user's Dexterity, at the end of the target's turn, unless they say otherwise."
+
+#: CampaignManager/templates/partials/addon_rules.html
+msgid "Algunos buffs tienen las dos partes: en «Veneno», el 1d8 dura hasta que se salve y la desventaja, solo su próximo turno."
+msgstr "Some buffs have both parts: in «Veneno», the 1d8 lasts until the target saves, and the disadvantage only its next turn."
+
+#: CampaignManager/templates/partials/sheet_addons.html
+msgid "Añadidos de la clase"
+msgstr "Class add-ons"
+
+#: CampaignManager/templates/partials/sheet_addons.html
+msgid "12 + modificador de Destreza"
+msgstr "12 + Dexterity modifier"
+
+#: CampaignManager/templates/partials/sheet_addons.html
+msgid "Salvación a superar"
+msgstr "Save DC"
+
+#: CampaignManager/templates/partials/sheet_addons.html
+msgid "Cómo funcionan"
+msgstr "How they work"
+
+#: CampaignManager/templates/partials/sheet_addons.html
+msgid "Puntos de magia que cuesta"
+msgstr "Magic points it costs"
+
+#: CampaignManager/templates/partials/sheet_addons.html
+#, python-format
+msgid "Puntos para %(name)s"
+msgstr "Points for %(name)s"
+
+#: CampaignManager/models.py
+msgid "Espada"
+msgstr "Sword"
+
+#: CampaignManager/models.py
+msgid "Arco"
+msgstr "Bow"
+
+#: CampaignManager/models.py
+msgid "Buffs"
+msgstr "Buffs"
+
+#: CampaignManager/models.py
+msgid "Defensa"
+msgstr "Defence"
+
+#: CampaignManager/views_characters.py
+msgid "Añadidos"
+msgstr "Add-ons"
+
+#: CampaignManager/templates/partials/sheet_paper.html
+msgid "Salvación a superar contra los añadidos: 12 + modificador de Destreza"
+msgstr "Save DC against the add-ons: 12 + Dexterity modifier"
+
+#: CampaignManager/templates/partials/sheet_paper.html
+msgid "DES"
+msgstr "DEX"
+
+#: CampaignManager/templates/partials/sheet_paper.html
+msgid "CD conjuros"
+msgstr "Spell DC"
+
+#: CampaignManager/templates/partials/sheet_paper.html
+msgid "Efecto"
+msgstr "Effect"
+
+#: CampaignManager/templates/partials/sheet_paper.html
+msgid "Subir retrato"
+msgstr "Upload a portrait"
+
+#: CampaignManager/templates/character_class_detail.html
+msgid "Una clase nuestra: solo la ofrecen las campañas que juegan con Aegis"
+msgstr "One of our own classes: only campaigns that play with Aegis offer it"
+
+#: CampaignManager/templates/creator.html
+msgid "magia de combate: añadidos en vez de conjuros"
+msgstr "combat magic: add-ons instead of spells"
+
+#: CampaignManager/templates/characters.html
+msgid "Añadir retrato"
+msgstr "Add a portrait"

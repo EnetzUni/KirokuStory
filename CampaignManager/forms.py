@@ -243,13 +243,15 @@ class ClassStepForm(forms.Form):
     class_magic = forms.ChoiceField(label="Su magia", required=False, choices=CharacterClass.Magic.choices,
                                     initial=CharacterClass.Magic.NINGUNA)
 
-    def __init__(self, *args, npc=False, **kwargs):
+    def __init__(self, *args, npc=False, aegis=True, **kwargs):
         super().__init__(*args, **kwargs)
         if npc:
             self.fields["char_class"].queryset = CharacterClass.objects.order_by("name")
             self.fields["char_class"].required = False
         else:
             del self.fields["class_name"], self.fields["class_magic"]
+        if not aegis:  # a campaign with the standard SRD: not our own classes
+            self.fields["char_class"].queryset = self.fields["char_class"].queryset.filter(aegis_only=False)
 
     def clean(self):
         cleaned = super().clean()

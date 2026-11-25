@@ -4,9 +4,27 @@
 {% block content %}
 <section class="pila" aria-labelledby="h-reglas">
     <nav class="migas" aria-label="{% translate 'Ruta' %}"><a href="{% url 'index' %}">{% translate "Reglas" %}</a> <span aria-hidden="true">›</span> <a href="{% url 'character_class_list' %}">{% translate "Clases" %}</a> <span aria-hidden="true">›</span> <span>{{ character_class.name }}</span></nav>
-    <h1 id="h-reglas">{{ character_class.name }}</h1>
+    <div class="fila-s"><h1 id="h-reglas">{{ character_class.name }}</h1>{% if character_class.aegis_only %}<span class="pastilla p-teal" title="{% translate 'Una clase nuestra: solo la ofrecen las campañas que juegan con Aegis' %}">Aegis</span>{% endif %}</div>
     {% if character_class.description %}<div class="lectura-p">{{ character_class.description|linebreaks }}</div>{% endif %}
     <p><b>{% translate "Característica principal" %}:</b> {{ character_class.primary_ability }}</p>
+    {% with groups=character_class.addon_groups %}{% if groups %}
+    {# Aegis combat magic: what the class spends its magic points («a») on, instead of spells. #}
+    <div class="tarjeta compacta">
+        <h2 class="rotulo">{% translate "Añadidos de la clase" %}</h2>
+        <div class="pequeno">{% include "partials/addon_rules.html" %}</div>
+        <div class="tabla-marco">
+            <table class="tabla">
+                <thead><tr><th scope="col">{% translate "Coste" %}</th><th scope="col">{% translate "Nombre" %}</th><th scope="col">{% translate "Efecto" %}</th></tr></thead>
+                {% for group in groups %}
+                <tbody>
+                    <tr class="tabla-grupo"><th scope="rowgroup" colspan="3">{% translate group.label %}</th></tr>
+                    {% for a in group.addons %}<tr><td class="anadido-coste">{{ a.cost_text }}</td><td><b>{{ a.name }}</b></td><td>{{ a.effect }}</td></tr>{% endfor %}
+                </tbody>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+    {% endif %}{% endwith %}
     <div class="tarjeta compacta">
         <h2 class="rotulo">{% translate "Habilidades que otorga" %}</h2>
         <ul class="lista-limpia" style="gap:4px">
