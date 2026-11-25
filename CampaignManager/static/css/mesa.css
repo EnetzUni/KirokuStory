@@ -115,6 +115,13 @@ button:disabled,.btn[aria-disabled="true"]{cursor:not-allowed;opacity:.5}
 .chip[aria-pressed="true"],.chip.on,label.chip:has(input:checked){background:var(--accent-soft);border-color:var(--accent);color:var(--accent-soft-text);font-weight:700}
 label.chip input{position:absolute;opacity:0;width:1px;height:1px}
 label.chip:has(input:focus-visible){outline:3px solid var(--accent);outline-offset:2px}
+/* A few chips joined into one control (one choice among them, e.g. «Lugares»: Todos · Principales · Ninguno). */
+.chips-unidos{display:inline-flex;align-items:center;flex-wrap:nowrap}
+.chips-unidos .chip{border-radius:0;padding:0 10px}
+.chips-unidos .chip+.chip{margin-left:-1px}
+.chips-unidos .chip:first-of-type{border-radius:var(--r-ctl) 0 0 var(--r-ctl)}
+.chips-unidos .chip:last-of-type{border-radius:0 var(--r-ctl) var(--r-ctl) 0}
+.chips-unidos .chip[aria-pressed="true"],.chips-unidos .chip:focus-visible{position:relative}
 .pastilla{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:var(--r-ctl);background:var(--neutral-bg);color:var(--neutral-text);white-space:nowrap}
 .p-verde{background:var(--ok-bg);color:var(--ok-text)}
 .p-ambar{background:var(--warn-bg);color:var(--warn-text)}
@@ -415,12 +422,40 @@ html.pantalla-abierta,html.pantalla-abierta body{overflow:hidden}
 .pin-nombre{position:absolute;font-size:12px;font-weight:700;padding:2px 8px;border-radius:6px;background:#FEFAE0;color:#283618;white-space:nowrap;pointer-events:none;transform:translate(18px,-50%)}
 .pin-nombre.izquierda{transform:translate(calc(-100% - 18px),-50%)}
 .pin-nombre.oculto{border:1px dashed #6E6860;background:rgba(255,255,255,.85)}
+/* Main places (capitals, key places): a bigger pin with a dark ring. Secondary ones: small. */
+.pin.lugar-principal i{width:20px;height:20px;box-shadow:0 0 0 2px rgba(40,54,24,.6)}
+.pin.lugar-secundario i{width:12px;height:12px;border-width:2px}
+.pin-nombre.lugar-principal{font-size:13px}
+.pin-nombre.lugar-secundario{font-size:11px;font-weight:600;padding:1px 6px;transform:translate(12px,-50%)}
+.pin-nombre.lugar-secundario.izquierda{transform:translate(calc(-100% - 12px),-50%)}
+/* «Lugares»: only the main places, or none at all. The place chosen always shows. */
+.mapa.solo-principales .pin.lugar-secundario:not([aria-current="true"]),
+.mapa.solo-principales .pin.lugar-secundario:not([aria-current="true"])+.pin-nombre,
+.mapa.sin-lugares .pin:not([aria-current="true"]),
+.mapa.sin-lugares .pin:not([aria-current="true"])+.pin-nombre{display:none}
+/* With the weather layer on, the party's route is not drawn, nor its controls: that view is
+   about the weather. Unless the master is shaping the route. */
+#mapa-seccion.con-tiempo .mapa:not(.editando-ruta) svg.ruta,
+#mapa-seccion.con-tiempo .mapa:not(.editando-ruta) .ruta-flecha,
+#mapa-seccion.con-tiempo .ruta-controles{display:none}
+/* «Nombres» off: the places keep their pins, without their names, so the weather zones show
+   clearly. The place chosen keeps its name. */
+.mapa.sin-nombres .pin-nombre{display:none}
+.mapa.sin-nombres .pin[aria-current="true"]+.pin-nombre{display:block}
 .grupo-aqui{position:absolute;transform:translate(-50%,-50%);width:38px;height:38px;border-radius:50%;border:3px solid #2B6CB0;pointer-events:none}
 .mapa.colocando{cursor:crosshair;outline:3px dashed #9E2A2B;outline-offset:-3px}
 .borrador{position:absolute;transform:translate(-50%,-50%);width:24px;height:24px;border-radius:50%;border:3px dashed #9E2A2B;background:rgba(255,255,255,.7);pointer-events:none}
 .lugar-fila{min-height:40px;padding:0 8px;border-radius:var(--r-ctl);display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text);text-decoration:none}
 .lugar-fila[aria-current="true"]{background:var(--accent-soft);font-weight:700}
 .lugar-fila i{width:12px;height:12px;border-radius:50%;flex:none}
+.lugar-fila.lugar-secundario{font-size:13px}
+.lugares-secundarios>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;min-height:40px;padding:0 8px;border-radius:var(--r-ctl);font-size:14px;font-weight:700;color:var(--label)}
+.lugares-secundarios>summary::-webkit-details-marker{display:none}
+.lugares-secundarios>summary:hover{background:var(--surface2)}
+.lugares-secundarios>summary:focus-visible{outline:2px solid var(--text);outline-offset:1px}
+.lugares-secundarios .flecha{display:inline-block;width:12px;transition:transform .15s}
+.lugares-secundarios[open]>summary .flecha{transform:rotate(90deg)}
+@media (prefers-reduced-motion:reduce){.lugares-secundarios .flecha{transition:none}}
 
 /* ---------- Personajes y ficha ---------- */
 .retrato{height:150px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;color:rgba(255,255,255,.92);font-size:64px;font-weight:700}

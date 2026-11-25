@@ -1984,3 +1984,87 @@ class WeatherTests(DemoData):
         self.client.post(self.url("map_weather_delete", drawn.pk), **AJAX)
         self.assertFalse(WeatherRegion.objects.filter(pk=drawn.pk).exists())
 
+
+
+class MapNamesTests(DemoData):
+    """The map can hide the places' names (to see the weather zones): a «Nombres» switch, and
+    each pin keeps its name on hover."""
+
+    def test_the_switch_and_the_names_on_hover(self):
+        the_map = Map.objects.filter(campaign=self.corona).exclude(image="").first()
+        page = self.player().get(self.url("map") + f"?mapa={the_map.pk}").content.decode()
+        self.assertIn("data-nombres", page)
+        location = the_map.locations.exclude(status="oculto").first()
+        self.assertIn(f'title="{location.name}"', page)
+
+
+class MapImportanceTests(DemoData):
+    """Places are main (capitals, key places) or secondary. The map can hide the secondary ones,
+    or all (mesa.js, «Lugares»); with the weather layer on, it does not draw the party's route."""
+
+    def setUp(self):
+        self.valcendra = Map.objects.get(campaign=self.corona, name="Valcendra")
+        self.minor = self.valcendra.locations.get(name="Paso del Cuervo")
+        self.main = self.valcendra.locations.get(name="Puerto Gris")
+
+    def map_page(self, client, query=""):
+        return client.get(self.url("map") + f"?mapa={self.valcendra.pk}{query}").content.decode()
+
+    def test_pins_carry_their_importance_and_the_main_ones_are_drawn_on_top(self):
+        self.assertEqual(self.minor.importance, MapLocation.Importance.SECUNDARIO)
+        self.assertEqual(self.main.importance, MapLocation.Importance.PRINCIPAL)
+        page = self.map_page(self.player())
+        self.assertIn('class="pin conocido lugar-secundario"', page)
+        self.assertIn('class="pin visitado lugar-principal"', page)
+        self.assertIn("data-lugares", page)  # the «Lugares» switch
+        # Secondary pins come first in the page, so the main ones overlap them.
+        self.assertLess(page.index('pin conocido lugar-secundario'), page.index('pin visitado lugar-principal'))
+        # The list beside the map: the secondary places, in a part that folds.
+        folded = page[page.index("data-secundarios"):]
+        self.assertIn(self.minor.name, folded)
+        self.assertNotIn(f">{self.main.name}<", folded)
+
+    def test_the_home_page_map_has_the_switch_too(self):
+        page = self.player().get(self.url("home")).content.decode()
+        self.assertIn("data-lugares", page)
+        self.assertIn("lugar-secundario", page)
+
+    def test_the_master_changes_a_places_importance(self):
+        self.client.force_login(self.carlos)
+        page = self.map_page(self.client, f"&lugar={self.minor.pk}")
+        self.assertIn('name="valor" value="principal"', page)
+        response = self.client.post(self.url("map_location_action", self.minor.pk),
+                                    {"accion": "importancia", "valor": "principal"}, **AJAX)
+        self.assertIn("principal", response.json()["msg"])
+        self.minor.refresh_from_db()
+        self.assertEqual(self.minor.importance, MapLocation.Importance.PRINCIPAL)
+        bad = self.client.post(self.url("map_location_action", self.minor.pk), {"accion": "importancia", "valor": "capital"}, **AJAX)
+        self.assertEqual(bad.status_code, 404)
+
+    def test_players_cannot_change_it(self):
+        response = self.player().post(self.url("map_location_action", self.main.pk),
+                                      {"accion": "importancia", "valor": "secundario"}, **AJAX)
+        self.assertEqual(response.status_code, 403)
+        self.main.refresh_from_db()
+        self.assertEqual(self.main.importance, MapLocation.Importance.PRINCIPAL)
+
+    def test_a_new_place_can_be_secondary(self):
+        self.client.force_login(self.carlos)
+        self.client.post(self.url("map_location_add", self.valcendra.pk),
+                         {"name": "Molino viejo", "x": "40", "y": "40", "status": "conocido", "importance": "secundario"}, **AJAX)
+        self.assertEqual(self.valcendra.locations.get(name="Molino viejo").importance, MapLocation.Importance.SECUNDARIO)
+
+    def test_the_weather_view_hides_the_route(self):
+        self.client.force_login(self.carlos)
+        plain = self.map_page(self.client)
+        self.assertNotIn("con-tiempo", plain)
+        self.assertIn("<polyline", plain)
+        with mock.patch("CampaignManager.weather.refresh", return_value=True):
+            page = self.map_page(self.client, "&tiempo=1")
+        self.assertIn('id="mapa-seccion" class="fila con-tiempo"', page)
+        # The slider and «Editar el camino» are marked to hide with it (mesa.css)...
+        self.assertEqual(page.count("ruta-controles"), 2)
+        # ...but not while the master is shaping the route.
+        with mock.patch("CampaignManager.weather.refresh", return_value=True):
+            editing = self.map_page(self.client, "&tiempo=1&recorrido=1")
+        self.assertNotIn("ruta-controles", editing)

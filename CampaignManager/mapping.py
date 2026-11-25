@@ -60,6 +60,8 @@ def map_data(map_, is_master, until_session=None, since_session=None):
     locations = list(map_.locations.all())
     if not is_master:
         locations = [loc for loc in locations if loc.status != MapLocation.Status.OCULTO]
+    # The secondary places first: drawn later, the main ones stay on top where pins overlap.
+    locations.sort(key=lambda loc: loc.importance == MapLocation.Importance.PRINCIPAL)
     moves = list(map_.moves.select_related("location", "session"))
     if until_session is not None:
         moves = [m for m in moves if m.session is None or m.session.number <= until_session]

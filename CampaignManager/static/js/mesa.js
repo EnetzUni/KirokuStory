@@ -881,6 +881,8 @@
   }
   function showWeather($toggle, on) {
     $toggle.attr("aria-pressed", on ? "true" : "false");
+    // The party's route (and its controls) hides while the layer is on: see .con-tiempo in mesa.css.
+    $("#mapa-seccion").toggleClass("con-tiempo", on);
     clearInterval(weatherTimer);
     if (on) {
       loadWeather($toggle);
@@ -903,6 +905,67 @@
   }
   restoreWeather();
   $(document).on("mesa:actualizado", restoreWeather);
+
+  // ---- Mapa: los nombres de los lugares ----
+  // «Nombres» shows or hides every place's name on the map page. With the weather layer on they
+  // start hidden, so its zones and badges are seen well; on the plain map they start shown. The
+  // browser remembers the choice for each of the two. The map of the home page always shows them.
+  function weatherShown() { return $("[data-tiempo]").attr("aria-pressed") === "true"; }
+  function namesKey() { return "mapa-nombres:" + (weatherShown() ? "tiempo" : "mapa"); }
+  function namesWanted() {
+    var saved = null;
+    try { saved = window.localStorage.getItem(namesKey()); } catch (e) { /* not kept */ }
+    return saved === null ? !weatherShown() : saved === "1";
+  }
+  function applyNames() {
+    var $button = $("[data-nombres]");
+    if (!$button.length) { return; }
+    var on = namesWanted();
+    $("#mapa-seccion .mapa").toggleClass("sin-nombres", !on);
+    $button.attr("aria-pressed", on ? "true" : "false").prop("hidden", false);
+  }
+  $(document).on("click", "[data-nombres]", function () {
+    var on = $(this).attr("aria-pressed") !== "true";
+    try { window.localStorage.setItem(namesKey(), on ? "1" : "0"); } catch (e) { /* not kept */ }
+    applyNames();
+  });
+  // After «Tiempo real» (its own handler, above, has already changed its state).
+  $(document).on("click", "[data-tiempo]", applyNames);
+  applyNames();
+  $(document).on("mesa:actualizado", applyNames);
+
+  // ---- Mapa: qué lugares se ven ----
+  // «Lugares»: every place, only the main ones (capitals, key places) or none. It applies to every
+  // map of the page, the home page's too, and the browser remembers it. The place chosen always
+  // shows (mesa.css). The list beside the map folds its secondary places while the map hides them.
+  var PLACE_MODES = ["todos", "principales", "ninguno"];
+  var placesChosen = null; // this page's choice, for a browser that keeps nothing
+  function placesWanted() {
+    var saved = placesChosen;
+    if (saved === null) {
+      try { saved = window.localStorage.getItem("mapa-lugares"); } catch (e) { /* not kept */ }
+    }
+    return PLACE_MODES.indexOf(saved) >= 0 ? saved : "todos";
+  }
+  function applyPlaces() {
+    var mode = placesWanted();
+    $(".mapa").toggleClass("solo-principales", mode === "principales").toggleClass("sin-lugares", mode === "ninguno");
+    $("[data-lugares]").prop("hidden", false).find("[data-lugares-ver]").each(function () {
+      $(this).attr("aria-pressed", $(this).data("lugares-ver") === mode ? "true" : "false");
+    });
+    // No places, no names to show or hide.
+    $("[data-nombres]").prop("disabled", mode === "ninguno");
+    $("[data-secundarios]").each(function () {
+      if (!$(this).find("[aria-current=true]").length) { this.open = mode === "todos"; }
+    });
+  }
+  $(document).on("click", "[data-lugares-ver]", function () {
+    placesChosen = $(this).data("lugares-ver");
+    try { window.localStorage.setItem("mapa-lugares", placesChosen); } catch (e) { /* not kept */ }
+    applyPlaces();
+  });
+  applyPlaces();
+  $(document).on("mesa:actualizado", applyPlaces);
 
   // The master draws a region: each click on the map adds a corner (x,y in % of the image).
   function drawingPoints($form) {

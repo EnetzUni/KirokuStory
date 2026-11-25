@@ -1,0 +1,4 @@
+{% comment %}One place in the list beside the map. Needs `loc`, `current_map`, `selected` and `route_query`.{% endcomment %}
+<a class="lugar-fila lugar-{{ loc.importance }}" href="?mapa={{ current_map.pk }}&amp;lugar={{ loc.pk }}{{ route_query }}" data-ajax-link {% if selected == loc %}aria-current="true"{% endif %}>
+    <span class="pin {{ loc.status }}" style="position:static;transform:none;width:auto;height:auto"><i style="width:12px;height:12px"></i></span>
+    <span style="flex:1">{{ loc.name }}</span><span class="pequeno atenuado">{{ loc.get_status_display }}</span></a>

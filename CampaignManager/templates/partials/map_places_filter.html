@@ -1,0 +1,10 @@
+{% load i18n %}{% comment %}Which places the map shows: all of them, only the main ones, or none. mesa.js applies it to every map of
+the page and the browser remembers it. Hidden without JavaScript: the map then shows every place.{% endcomment %}
+<div class="fila-s" style="gap:4px 8px" role="group" aria-label="{% translate 'Lugares en el mapa' %}" data-lugares hidden>
+    <span class="pequeno atenuado" aria-hidden="true">📍&nbsp;{% translate "Lugares" %}</span>
+    <span class="chips-unidos">
+        <button type="button" class="chip" data-lugares-ver="todos" aria-pressed="true">{% translate "Todos" %}</button>
+        <button type="button" class="chip" data-lugares-ver="principales" aria-pressed="false" title="{% translate 'Ocultar los lugares secundarios' %}">{% translate "Principales" %}</button>
+        <button type="button" class="chip" data-lugares-ver="ninguno" aria-pressed="false" title="{% translate 'Ocultar todos los lugares' %}">{% translate "Ninguno" %}</button>
+    </span>
+</div>

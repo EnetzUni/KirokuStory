@@ -549,6 +549,7 @@ BoardLink joins two notes with red thread (`card_a`, `card_b`, both `CASCADE`). 
 | name | string | |
 | x, y | float | Position in % of the image (0 to 100) |
 | status | string | `oculto` (not sent to players), `conocido` or `visitado` |
+| importance | string | `principal` (capitals and key places, drawn bigger) or `secundario`. The map can hide the secondary places, or all of them |
 
 PartyMove is one step of the party's route: `map`, `location` (both `CASCADE`), `session` (optional, `SET_NULL`) and `order`. Moving the party marks the location as `visitado`. The map's session slider shows the route up to a session.
 

@@ -482,12 +482,18 @@ class MapLocation(models.Model):
         CONOCIDO = "conocido", "Conocido"
         VISITADO = "visitado", "Visitado"
 
+    class Importance(models.TextChoices):
+        # Capitals and key places, drawn bigger; the secondary ones can be hidden from the map.
+        PRINCIPAL = "principal", "Principal"
+        SECUNDARIO = "secundario", "Secundario"
+
     map = models.ForeignKey(Map, on_delete=models.CASCADE, related_name="locations")
     name = models.CharField(max_length=100)
     # Percentage of the image, so the position does not depend on its size.
     x = models.FloatField(validators=[MinValueValidator(0), MaxValueValidator(100)])
     y = models.FloatField(validators=[MinValueValidator(0), MaxValueValidator(100)])
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.CONOCIDO)
+    importance = models.CharField(max_length=10, choices=Importance.choices, default=Importance.PRINCIPAL)
 
     objects = MapLocationQuerySet.as_manager()
 

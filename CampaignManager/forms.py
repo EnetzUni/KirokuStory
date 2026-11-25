@@ -193,8 +193,8 @@ class MapForm(CampaignFormMixin, forms.ModelForm):
 class LocationForm(forms.ModelForm):
     class Meta:
         model = MapLocation
-        fields = ["name", "x", "y", "status"]
-        labels = {"name": "Nombre", "x": "X (%)", "y": "Y (%)", "status": "Estado"}
+        fields = ["name", "x", "y", "status", "importance"]
+        labels = {"name": "Nombre", "x": "X (%)", "y": "Y (%)", "status": "Estado", "importance": "Importancia"}
 
 
 # ---------------------------------------------------------------------------

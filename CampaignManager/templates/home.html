@@ -65,7 +65,10 @@
             <article class="tarjeta">
                 <h2 class="rotulo">{% translate "El mapa" %} · {{ md.map.name }}</h2>
                 {% include "partials/map_canvas.html" with link_pins=True %}
-                <a class="btn" style="align-self:flex-start" href="{% url 'map' campaign.pk %}">{% translate "Abrir el mapa" %}</a>
+                <div class="fila-s" style="justify-content:space-between">
+                    <a class="btn" href="{% url 'map' campaign.pk %}">{% translate "Abrir el mapa" %}</a>
+                    {% include "partials/map_places_filter.html" %}
+                </div>
             </article>
             {% endif %}
         </div>

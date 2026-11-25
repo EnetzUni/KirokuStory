@@ -3489,7 +3489,8 @@
   "name": "Puerto Gris",
   "x": 19.0,
   "y": 68.8,
-  "status": "visitado"
+  "status": "visitado",
+  "importance": "principal"
  }
 },
 {
@@ -3500,7 +3501,8 @@
   "name": "Camino del Faro",
   "x": 30.0,
   "y": 52.8,
-  "status": "visitado"
+  "status": "visitado",
+  "importance": "secundario"
  }
 },
 {
@@ -3511,7 +3513,8 @@
   "name": "Robleda",
   "x": 43.0,
   "y": 60.8,
-  "status": "visitado"
+  "status": "visitado",
+  "importance": "secundario"
  }
 },
 {
@@ -3522,7 +3525,8 @@
   "name": "Bosque de Ceniza",
   "x": 56.0,
   "y": 43.2,
-  "status": "visitado"
+  "status": "visitado",
+  "importance": "principal"
  }
 },
 {
@@ -3533,7 +3537,8 @@
   "name": "Ruinas de Vel-Ithar",
   "x": 72.0,
   "y": 32.0,
-  "status": "visitado"
+  "status": "visitado",
+  "importance": "principal"
  }
 },
 {
@@ -3544,7 +3549,8 @@
   "name": "Torre de Morwen",
   "x": 87.0,
   "y": 17.6,
-  "status": "conocido"
+  "status": "conocido",
+  "importance": "principal"
  }
 },
 {
@@ -3555,7 +3561,8 @@
   "name": "Paso del Cuervo",
   "x": 79.0,
   "y": 68.8,
-  "status": "conocido"
+  "status": "conocido",
+  "importance": "secundario"
  }
 },
 {
@@ -3566,7 +3573,8 @@
   "name": "Santuario hundido",
   "x": 10.5,
   "y": 40.0,
-  "status": "oculto"
+  "status": "oculto",
+  "importance": "secundario"
  }
 },
 {
@@ -3577,7 +3585,8 @@
   "name": "El Ancla Rota",
   "x": 33.0,
   "y": 57.6,
-  "status": "visitado"
+  "status": "visitado",
+  "importance": "secundario"
  }
 },
 {
@@ -3588,7 +3597,8 @@
   "name": "Tienda de Oswin",
   "x": 50.0,
   "y": 44.8,
-  "status": "visitado"
+  "status": "visitado",
+  "importance": "secundario"
  }
 },
 {
@@ -3599,7 +3609,8 @@
   "name": "Muelles",
   "x": 21.5,
   "y": 79.2,
-  "status": "visitado"
+  "status": "visitado",
+  "importance": "principal"
  }
 },
 {
@@ -3610,7 +3621,8 @@
   "name": "Templo de la Llama",
   "x": 66.0,
   "y": 32.0,
-  "status": "conocido"
+  "status": "conocido",
+  "importance": "principal"
  }
 },
 {
@@ -3621,7 +3633,8 @@
   "name": "Barrio Alto",
   "x": 82.0,
   "y": 20.8,
-  "status": "oculto"
+  "status": "oculto",
+  "importance": "principal"
  }
 },
 {

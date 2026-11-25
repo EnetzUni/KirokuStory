@@ -141,6 +141,9 @@ SESSIONS = {
     "prologo": [(1, "2025-11-02", "Último día de otoño", "Niebla en el puerto", "Brom y Kaida escaparon de Puerto Gris la noche del primer incendio.", 300, "10 po", "")],
 }
 
+# Places drawn small on the map, which can be hidden from it (MapLocation.importance).
+MINOR_PLACES = {"faro", "robleda", "cuervo", "santuario", "pg_ancla", "pg_mercado"}
+
 # map key: (name, image, [locations: key, name, x, y, status], [moves: session, location])
 MAPS = {
     "corona": [
@@ -443,7 +446,9 @@ class Command(BaseCommand):
         for order, (map_key, name, image, locs, moves) in enumerate(MAPS.get(key, [])):
             map_ = Map.objects.create(campaign=campaign, name=name, image=image, order=order)
             for loc_key, loc_name, x, y, status in locs:
-                locations[loc_key] = MapLocation.objects.create(map=map_, name=loc_name, x=x, y=y, status=status)
+                importance = "secundario" if loc_key in MINOR_PLACES else "principal"
+                locations[loc_key] = MapLocation.objects.create(map=map_, name=loc_name, x=x, y=y, status=status,
+                                                                importance=importance)
             for index, (session, loc_key) in enumerate(moves):
                 PartyMove.objects.create(map=map_, location=locations[loc_key], session=sessions[session], order=index)
         for _, session, day, title, kind, chars, loc_key, hidden in EVENTS.get(key, []):

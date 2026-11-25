@@ -53,6 +53,10 @@ def map_context(request, campaign, is_master, map_id=None, location_id=None, dra
                 actions += [("estado", "visitado", "Marcar como visitado"), ("estado", "oculto", "Volver a ocultar")]
             if selected.status == MapLocation.Status.VISITADO:
                 actions.append(("estado", "conocido", "Marcar como no visitado"))
+            if selected.importance == MapLocation.Importance.PRINCIPAL:
+                actions.append(("importancia", "secundario", "Marcar como lugar secundario"))
+            else:
+                actions.append(("importancia", "principal", "Marcar como lugar principal"))
             if md["party"] is None or md["party"].pk != selected.pk:
                 actions.append(("grupo", "1", f"Mover al grupo aquí (sesión {last.number})" if last else "Mover al grupo aquí"))
         detail = {"location": selected, "page": page,
@@ -83,8 +87,11 @@ def map_context(request, campaign, is_master, map_id=None, location_id=None, dra
         "weather_on": weather_mode == "1", "editing_weather": editing_weather,
         "weather_form": WeatherRegionForm(map=current) if editing_weather else None,
         "map_form": MapForm(instance=current, campaign=campaign) if is_master else None,
-        "location_form": LocationForm(initial={"status": "conocido", "x": 50, "y": 50}),
-        "places": md["locations"], "route_query": route_query,
+        "location_form": LocationForm(initial={"status": "conocido", "importance": "principal", "x": 50, "y": 50}),
+        # The list beside the map: the main places, then the secondary ones (which fold).
+        "places": [loc for loc in md["locations"] if loc.importance == MapLocation.Importance.PRINCIPAL],
+        "minor_places": [loc for loc in md["locations"] if loc.importance == MapLocation.Importance.SECUNDARIO],
+        "route_query": route_query,
     }
 
 
@@ -171,6 +178,13 @@ def location_action(request, campaign, pk):
         # Its page follows: hidden locations have hidden pages.
         Page.objects.filter(location=location).update(revealed=status != MapLocation.Status.OCULTO)
         msg = f"{location.name}: {location.get_status_display().lower()}."
+    elif action == "importancia":
+        importance = request.POST.get("valor")
+        if importance not in MapLocation.Importance.values:
+            raise Http404
+        location.importance = importance
+        location.save(update_fields=["importance"])
+        msg = f"{location.name}: lugar {location.get_importance_display().lower()}."
     elif action == "borrar":
         # The party's stops at this place go with it, so do the stretches that lead to it.
         # Its page in the World stays (unlinked from the map): it may have notes worth keeping.

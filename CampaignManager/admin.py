@@ -490,8 +490,8 @@ class RumourAdmin(admin.ModelAdmin):
 
 @admin.register(MapLocation)
 class MapLocationAdmin(admin.ModelAdmin):
-    list_display = ("name", "map", "status", "x", "y")
-    list_filter = ("map__campaign", "status")
+    list_display = ("name", "map", "status", "importance", "x", "y")
+    list_filter = ("map__campaign", "status", "importance")
     search_fields = ["name"]
     list_select_related = ["map"]
 

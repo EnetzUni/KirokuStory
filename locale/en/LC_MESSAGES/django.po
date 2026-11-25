@@ -4071,3 +4071,51 @@ msgstr "Spanish"
 #: KirokuStory/settings.py:95
 msgid "English"
 msgstr "English"
+
+#: CampaignManager/templates/partials/map_section.html
+msgid "Nombres"
+msgstr "Names"
+
+#: CampaignManager/templates/partials/map_section.html
+msgid "Mostrar u ocultar el nombre de cada lugar en el mapa"
+msgstr "Show or hide each place's name on the map"
+
+#: CampaignManager/templates/partials/map_places_filter.html
+msgid "Lugares en el mapa"
+msgstr "Places on the map"
+
+#: CampaignManager/templates/partials/map_places_filter.html
+msgid "Principales"
+msgstr "Main"
+
+#: CampaignManager/templates/partials/map_places_filter.html
+msgid "Ninguno"
+msgstr "None"
+
+#: CampaignManager/templates/partials/map_places_filter.html
+msgid "Ocultar los lugares secundarios"
+msgstr "Hide the secondary places"
+
+#: CampaignManager/templates/partials/map_places_filter.html
+msgid "Ocultar todos los lugares"
+msgstr "Hide every place"
+
+#: CampaignManager/templates/partials/map_section.html
+msgid "Importancia del lugar"
+msgstr "Place importance"
+
+#: CampaignManager/templates/partials/map_section.html
+msgid "Principal: capitales y lugares clave, con un pin más grande. Los secundarios se pueden ocultar del mapa."
+msgstr "Main: capitals and key places, with a bigger pin. The secondary ones can be hidden from the map."
+
+#: CampaignManager/templates/partials/map_section.html
+msgid "Lugar secundario"
+msgstr "Secondary place"
+
+#: CampaignManager/templates/partials/map_section.html
+msgid "Lugar principal"
+msgstr "Main place"
+
+#: CampaignManager/templates/partials/map_section.html
+msgid "Secundarios"
+msgstr "Secondary"

@@ -1,4 +1,5 @@
 {% comment %}A map with its pins, route and party. Needs `md` (mapping.map_data) and `campaign`; `selected`, `link_pins`, `zoom` and `editing_route` are optional.
+Pins carry their importance (.lugar-principal, .lugar-secundario): mesa.js can hide the secondary ones, or all, from the map (.solo-principales, .sin-lugares).
 Everything drawn on the map lives in .mapa-lienzo, so positions in % are relative to the image. With `zoom`, mesa.js enlarges that layer
 (its real width and height, never a CSS scale) so the browser redraws the image from the original file at every zoom level.
 The route is one line per stretch (previous stop, waypoints, stop) with an arrow head just before the stop.{% endcomment %}{% load i18n l10n %}{% localize off %}
@@ -17,9 +18,9 @@ The route is one line per stretch (previous stop, waypoints, stop) with an arrow
     {% endif %}
     {% if md.party %}<span class="grupo-aqui" style="left:{{ md.party.x }}%;top:{{ md.party.y }}%" aria-hidden="true"></span>{% endif %}
     {% for loc in md.locations %}
-    {% if link_pins %}<a class="pin {{ loc.status }}" href="{% url 'map' campaign.pk %}?mapa={{ md.map.pk }}&amp;lugar={{ loc.pk }}"{% if ajax_pins %} data-ajax-link{% endif %} style="left:{{ loc.x }}%;top:{{ loc.y }}%" aria-label="{{ loc.name }}, {{ loc.get_status_display|lower }}" {% if selected == loc %}aria-current="true"{% endif %}><i></i></a>
-    {% else %}<span class="pin {{ loc.status }}" style="left:{{ loc.x }}%;top:{{ loc.y }}%" aria-hidden="true"><i></i></span>{% endif %}
-    <span class="pin-nombre {{ loc.status }}{% if loc.x > 76 %} izquierda{% endif %}" style="left:{{ loc.x }}%;top:{{ loc.y }}%" aria-hidden="true">{{ loc.name }}</span>
+    {% if link_pins %}<a class="pin {{ loc.status }} lugar-{{ loc.importance }}" href="{% url 'map' campaign.pk %}?mapa={{ md.map.pk }}&amp;lugar={{ loc.pk }}"{% if ajax_pins %} data-ajax-link{% endif %} style="left:{{ loc.x }}%;top:{{ loc.y }}%" aria-label="{{ loc.name }}, {{ loc.get_status_display|lower }}{% if loc.importance == 'secundario' %}, {{ loc.get_importance_display|lower }}{% endif %}" title="{{ loc.name }}" {% if selected == loc %}aria-current="true"{% endif %}><i></i></a>
+    {% else %}<span class="pin {{ loc.status }} lugar-{{ loc.importance }}" style="left:{{ loc.x }}%;top:{{ loc.y }}%" aria-hidden="true"><i></i></span>{% endif %}
+    <span class="pin-nombre {{ loc.status }} lugar-{{ loc.importance }}{% if loc.x > 76 %} izquierda{% endif %}" style="left:{{ loc.x }}%;top:{{ loc.y }}%" aria-hidden="true">{{ loc.name }}</span>
     {% endfor %}
     {% if draft %}<span class="borrador" style="left:{{ draft.x }}%;top:{{ draft.y }}%" aria-hidden="true"></span>{% endif %}
     </div>
