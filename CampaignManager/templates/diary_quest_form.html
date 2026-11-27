@@ -1,7 +1,7 @@
 {% extends "diary_base.html" %}
 {% load i18n mesa %}
 {% block diary %}
-<form method="post" class="tarjeta lectura" data-objetivos>
+<form method="post" enctype="multipart/form-data" class="tarjeta lectura" data-objetivos>
     {% csrf_token %}
     <h2>{% if object %}{% translate "Editar aventura" %}{% else %}{% translate "Nueva aventura" %}{% endif %}</h2>
     {{ form.non_field_errors }}

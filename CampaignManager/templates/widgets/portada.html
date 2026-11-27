@@ -1,0 +1,8 @@
+{% load i18n %}{% comment %}forms.CoverInput: the cover now (small), a box to remove it, and the file to upload a new one.{% endcomment %}
+<div class="portada-campo">
+    {% if widget.is_initial %}
+    <img class="portada-actual" src="{{ widget.value.url }}" alt="{% translate 'Portada actual' %}">
+    {% if not widget.required %}<label class="casilla"><input type="checkbox" name="{{ widget.checkbox_name }}" id="{{ widget.checkbox_id }}"{% if widget.attrs.disabled %} disabled{% endif %}> {% translate "Quitar la portada" %}</label>{% endif %}
+    {% endif %}
+    <input type="{{ widget.type }}" name="{{ widget.name }}"{% include "django/forms/widgets/attrs.html" %}>
+</div>

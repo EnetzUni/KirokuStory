@@ -10,11 +10,13 @@ The route is one line per stretch (previous stop, waypoints, stop) with an arrow
     {% if weather %}{% include "partials/weather_layer.html" %}{% endif %}
     {% if editing_weather %}<svg class="dibujo-region" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon data-dibujo points=""/></svg>{% endif %}
     {% if md.segments %}
+    {# Each stretch in its own colour. As sent: a dashed line with an arrow head at its stop. mesa.js draws it instead as
+       small arrows all along the way, the same size on screen at any zoom, and hides these (.con-flechas). #}
     <svg class="ruta" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-        {% for seg in md.segments %}<polyline points="{{ seg.points }}" data-tramo="{{ seg.move.pk }}"{% if editing_route %} data-guardar="{% url 'map_move_path' campaign.pk seg.move.pk %}"{% endif %} fill="none" stroke="#BC6C25" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>
+        {% for seg in md.segments %}<polyline class="ruta-tramo" points="{{ seg.points }}" data-tramo="{{ seg.move.pk }}"{% if editing_route %} data-guardar="{% url 'map_move_path' campaign.pk seg.move.pk %}"{% endif %} fill="none" stroke="{{ seg.move.color }}" stroke-width="4" stroke-dasharray="10 7" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>
         {% endfor %}
     </svg>
-    {% for seg in md.segments %}<span class="ruta-flecha" data-flecha="{{ seg.move.pk }}"{% if seg.arrow %} style="left:{{ seg.arrow.x }}%;top:{{ seg.arrow.y }}%;--dx:{{ seg.arrow.dx }};--dy:{{ seg.arrow.dy }}"{% else %} hidden{% endif %} aria-hidden="true"></span>{% endfor %}
+    {% for seg in md.segments %}<span class="ruta-flecha" data-flecha="{{ seg.move.pk }}" style="{% if seg.arrow %}left:{{ seg.arrow.x }}%;top:{{ seg.arrow.y }}%;--dx:{{ seg.arrow.dx }};--dy:{{ seg.arrow.dy }};{% endif %}--color:{{ seg.move.color }}"{% if not seg.arrow %} hidden{% endif %} aria-hidden="true"></span>{% endfor %}
     {% endif %}
     {% if md.party %}<span class="grupo-aqui" style="left:{{ md.party.x }}%;top:{{ md.party.y }}%" aria-hidden="true"></span>{% endif %}
     {% for loc in md.locations %}

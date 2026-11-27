@@ -4225,3 +4225,393 @@ msgstr "combat magic: add-ons instead of spells"
 #: CampaignManager/templates/characters.html
 msgid "Añadir retrato"
 msgstr "Add a portrait"
+
+#: CampaignManager/templates/partials/map_section.html
+msgid "Dale a cada tramo su color para distinguirlos en el mapa: los nuevos siguen con el del anterior. Quita un tramo añadido por error: el camino irá directo de la parada anterior a la siguiente."
+msgstr "Give each stretch its own colour to tell them apart on the map: new ones keep the colour of the one before. Remove a stretch added by mistake: the route will go straight from the stop before to the next one."
+
+#: CampaignManager/templates/partials/map_section.html
+#, python-format
+msgid "Color del tramo %(a)s → %(b)s"
+msgstr "Colour of the stretch %(a)s → %(b)s"
+
+#: CampaignManager/campaign_models.py
+msgid "Cobre"
+msgstr "Copper"
+
+#: CampaignManager/campaign_models.py
+msgid "Granate"
+msgstr "Garnet"
+
+#: CampaignManager/campaign_models.py
+msgid "Azul"
+msgstr "Blue"
+
+#: CampaignManager/campaign_models.py
+msgid "Verde"
+msgstr "Green"
+
+#: CampaignManager/campaign_models.py
+msgid "Violeta"
+msgstr "Violet"
+
+#: CampaignManager/campaign_models.py
+msgid "Verde azulado"
+msgstr "Teal"
+
+#: CampaignManager/campaign_models.py
+msgid "Ocre"
+msgstr "Ochre"
+
+#: CampaignManager/campaign_models.py
+msgid "Rosa"
+msgstr "Pink"
+
+#: CampaignManager/campaign_models.py
+msgid "Verde bosque"
+msgstr "Forest green"
+
+#: CampaignManager/templates/widgets/paleta_color.html
+msgid "Sin color"
+msgstr "No colour"
+
+#: CampaignManager/templates/widgets/paleta_color.html
+msgid "Otro"
+msgstr "Other"
+
+#: CampaignManager/templates/widgets/paleta_color.html
+msgid "Otro color"
+msgstr "Other colour"
+
+#: CampaignManager/templates/widgets/portada.html
+msgid "Portada actual"
+msgstr "Current cover"
+
+#: CampaignManager/templates/widgets/portada.html
+msgid "Quitar la portada"
+msgstr "Remove the cover"
+
+#: CampaignManager/templates/partials/combat_card.html
+msgid "Puesto en el orden de combate"
+msgstr "Place in the order of the fight"
+
+#: CampaignManager/templates/partials/combat_card.html
+msgid "Después"
+msgstr "Next"
+
+#: CampaignManager/templates/partials/combat_card.html
+#, python-format
+msgid "Cantidad para %(name)s"
+msgstr "Amount for %(name)s"
+
+#: CampaignManager/templates/partials/combat_card.html
+msgid "Penetrante y triturante"
+msgstr "Penetrating and shredding"
+
+#: CampaignManager/templates/partials/combat_card.html
+msgid "Pasar al otro lado de la mesa"
+msgstr "Move to the other side of the table"
+
+#: CampaignManager/templates/partials/combat_card.html
+msgid "A los enemigos"
+msgstr "To the enemies"
+
+#: CampaignManager/templates/partials/combat_card.html
+msgid "Con el grupo"
+msgstr "With the party"
+
+#: CampaignManager/templates/partials/combat_card.html
+#, python-format
+msgid "¿Sacar a %(name)s del combate?"
+msgstr "Take %(name)s out of the fight?"
+
+#: CampaignManager/templates/partials/turns_list.html
+msgid "Turno de"
+msgstr "Turn of"
+
+#: CampaignManager/templates/partials/turns_list.html
+msgid "Siguiente turno"
+msgstr "Next turn"
+
+#: CampaignManager/templates/partials/turns_list.html
+msgid "Nadie del grupo en este combate."
+msgstr "Nobody from the party in this fight."
+
+#: CampaignManager/templates/partials/turns_list.html
+msgid "Enemigos"
+msgstr "Enemies"
+
+#: CampaignManager/templates/partials/turns_list.html
+msgid "Todavía no hay enemigos: añádelos abajo."
+msgstr "No enemies yet: add them below."
+
+#: CampaignManager/templates/partials/turns_list.html
+msgid "Todavía no hay enemigos."
+msgstr "No enemies yet."
+
+#: CampaignManager/campaign_models.py
+msgid "Gris pizarra"
+msgstr "Slate grey"
+
+#: CampaignManager/templates/world_page.html
+msgid "Fichas"
+msgstr "Sheets"
+
+#: CampaignManager/templates/world_page.html
+msgid "PV"
+msgstr "HP"
+
+#: CampaignManager/templates/partials/sheets_field.html
+msgid "Buscar una ficha"
+msgstr "Search for a sheet"
+
+#: CampaignManager/templates/partials/sheet_panel.html
+msgid "En el mundo"
+msgstr "In the world"
+
+#: CampaignManager/templates/partials/turns_list.html
+msgid "Nueva ronda"
+msgstr "New round"
+
+#: CampaignManager/templates/partials/combat_card.html
+msgid "Le toca"
+msgstr "Their turn now"
+
+#: CampaignManager/templates/partials/combat_card.html
+msgid "Antes en el orden"
+msgstr "Earlier in the order"
+
+#: CampaignManager/templates/partials/combat_card.html
+msgid "Después en el orden"
+msgstr "Later in the order"
+
+#: CampaignManager/templates/partials/combat_card.html
+#, python-format
+msgid "Mover a %(name)s antes en el orden"
+msgstr "Move %(name)s earlier in the order"
+
+#: CampaignManager/templates/partials/combat_card.html
+#, python-format
+msgid "Mover a %(name)s después en el orden"
+msgstr "Move %(name)s later in the order"
+
+#: CampaignManager/views_turns.py
+msgid "Rasguños"
+msgstr "Scratched"
+
+#: CampaignManager/views_turns.py
+msgid "Herido"
+msgstr "Wounded"
+
+#: CampaignManager/views_turns.py
+msgid "Malherido"
+msgstr "Badly wounded"
+
+#: CampaignManager/views_turns.py
+msgid "Al límite"
+msgstr "On the brink"
+
+#: CampaignManager/templates/partials/combat_card.html
+msgid "Un solo turno: actúan a la vez, como si fueran uno"
+msgstr "One turn: they act at once, as if they were one"
+
+#: CampaignManager/templates/partials/combat_card.html
+#, python-format
+msgid "A la vez con %(name)s"
+msgstr "Together with %(name)s"
+
+#: CampaignManager/templates/partials/combat_card.html
+msgid "Rondas que le quedan"
+msgstr "Rounds left"
+
+#: CampaignManager/templates/partials/combat_card.html
+#, python-format
+msgid "Quitar %(state)s a %(name)s"
+msgstr "Remove %(state)s from %(name)s"
+
+#: CampaignManager/templates/partials/combat_card.html
+#, python-format
+msgid "Poner un estado a %(name)s"
+msgstr "Give %(name)s a state"
+
+#: CampaignManager/templates/partials/combat_card.html
+msgid "+ Poner un estado…"
+msgstr "+ Add a state…"
+
+#: CampaignManager/templates/partials/combat_card.html
+msgid "Rondas que dura"
+msgstr "Rounds it lasts"
+
+#: CampaignManager/templates/partials/turns_list.html
+msgid "Actúan a la vez"
+msgstr "They act at once"
+
+#: CampaignManager/templates/partials/turns_list.html
+#, python-format
+msgid "con %(name)s"
+msgstr "with %(name)s"
+
+#: CampaignManager/templates/partials/combat_card.html
+msgid "Poner"
+msgstr "Add"
+
+#: CampaignManager/templates/partials/sheet_panel.html
+msgid "Actúa a la vez con"
+msgstr "Acts together with"
+
+#: CampaignManager/templates/partials/wiki_field.html
+msgid "o escribe [["
+msgstr "or type [["
+
+#: CampaignManager/templates/partials/wiki_field.html
+msgid "Elige unas palabras del texto y enlázalas con otra página (Ctrl + K)"
+msgstr "Choose some words of the text and link them to another page (Ctrl + K)"
+
+#: CampaignManager/templates/partials/wiki_field.html
+msgid "Enlaces"
+msgstr "Links"
+
+#: CampaignManager/templates/partials/page_delete.html
+msgid "Borrar página"
+msgstr "Delete page"
+
+#: CampaignManager/templates/partials/page_delete.html
+#, python-format
+msgid "¿Borrar «%(title)s»?"
+msgstr "Delete «%(title)s»?"
+
+#: CampaignManager/templates/partials/page_delete.html
+msgid "No se puede deshacer."
+msgstr "It cannot be undone."
+
+#: CampaignManager/templates/partials/page_delete.html
+#, python-format
+msgid "Las páginas que tiene dentro (%(n)s) quedarán sueltas."
+msgstr "The pages inside it (%(n)s) will be left on their own."
+
+#: CampaignManager/templates/partials/page_delete.html
+#, python-format
+msgid "Los textos que la enlazan (%(n)s) conservan sus palabras; el enlace queda como página por crear."
+msgstr "The texts that link to it (%(n)s) keep their words; the link becomes a page to create."
+
+#: CampaignManager/templates/partials/page_delete.html
+msgid "Sus fichas no se borran: solo dejan de estar enlazadas."
+msgstr "Its sheets are not deleted: they are just no longer linked."
+
+#: CampaignManager/templates/partials/page_delete.html
+msgid "Su lugar sigue en el mapa, sin página."
+msgstr "Its place stays on the map, without a page."
+
+#: CampaignManager/templates/partials/page_delete.html
+msgid "Sí, borrarla"
+msgstr "Yes, delete it"
+
+#: CampaignManager/templates/partials/page_delete.html
+msgid "No, dejarla"
+msgstr "No, keep it"
+
+#: CampaignManager/templates/world_edit.html
+#, python-format
+msgid "Editar «%(title)s»"
+msgstr "Edit «%(title)s»"
+
+#: CampaignManager/templates/world_edit.html
+msgid "Categoría"
+msgstr "Category"
+
+#: CampaignManager/templates/world_edit.html
+msgid "Lugar"
+msgstr "Place"
+
+#: CampaignManager/templates/world_edit.html
+msgid "Facción"
+msgstr "Faction"
+
+#: CampaignManager/templates/world_edit.html
+msgid "Cómo se verá y otros detalles"
+msgstr "How it will look, and other details"
+
+#: CampaignManager/templates/world_edit.html
+msgid "Sin título"
+msgstr "Untitled"
+
+#: CampaignManager/templates/world_edit.html
+msgid "Oculta para el grupo"
+msgstr "Hidden from the group"
+
+#: CampaignManager/templates/world_edit.html
+msgid "Crear página"
+msgstr "Create page"
+
+#: CampaignManager/templates/world_edit.html
+msgid "Cambios sin guardar"
+msgstr "Unsaved changes"
+
+#: CampaignManager/templates/world_edit.html
+msgid "Enlazar «%%s» con:"
+msgstr "Link «%%s» to:"
+
+#: CampaignManager/templates/world_edit.html
+msgid "Insertar un enlace a:"
+msgstr "Insert a link to:"
+
+#: CampaignManager/templates/world_edit.html
+msgid "«%%s»: una página nueva"
+msgstr "«%%s»: a new page"
+
+#: CampaignManager/templates/world_edit.html
+msgid "Oculta"
+msgstr "Hidden"
+
+#: CampaignManager/templates/world_edit.html
+msgid "Quitar el enlace a %%s (las palabras se quedan)"
+msgstr "Remove the link to %%s (the words stay)"
+
+#: CampaignManager/templates/world_edit.html
+msgid "Ver dónde está en el texto"
+msgstr "Show where it is in the text"
+
+#: CampaignManager/templates/world_edit.html
+msgid "Todavía no existe: el enlace te dejará crearla"
+msgstr "It does not exist yet: the link will let you create it"
+
+#: CampaignManager/templates/world_edit.html
+msgid "Busca una página…"
+msgstr "Find a page…"
+
+#: CampaignManager/templates/world_edit.html
+msgid "Busca la página que quieres enlazar"
+msgstr "Find the page you want to link"
+
+#: CampaignManager/templates/world_edit.html
+msgid "Páginas"
+msgstr "Pages"
+
+#: CampaignManager/templates/world_edit.html
+msgid "↑ ↓ para elegir · Intro para enlazar · Esc para cerrar"
+msgstr "↑ ↓ to choose · Enter to link · Esc to close"
+
+#: CampaignManager/templates/world_index.html
+#, python-format
+msgid "en %(label)s"
+msgstr "in %(label)s"
+
+#: CampaignManager/templates/widgets/imagen_pagina.html
+msgid "Elegir imagen"
+msgstr "Choose image"
+
+#: CampaignManager/templates/widgets/imagen_pagina.html
+msgid "Quitar la imagen"
+msgstr "Remove the image"
+
+#: CampaignManager/views_world.py
+msgid "Ficha de PNJ · solo tú"
+msgstr "NPC sheet · only you"
+
+#: CampaignManager/views_world.py
+msgid "Página creada."
+msgstr "Page created."
+
+#: CampaignManager/views_world.py
+msgid "Cambios guardados."
+msgstr "Changes saved."

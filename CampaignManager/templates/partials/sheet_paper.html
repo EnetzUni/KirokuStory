@@ -17,6 +17,7 @@ The affinities are empty boxes; skills and saves show the ability modifier.
             <div class="hoja-campo"><b>{{ character.name }}</b><span class="hoja-rotulo">{% translate "Nombre" %}</span></div>
             <div class="hoja-campo"><b>{{ character.char_class.name }}{% if character.subclass %} ({{ character.subclass.name }}){% endif %} · {{ character.race.name }}{% if character.subrace %} ({{ character.subrace.name }}){% endif %}</b><span class="hoja-rotulo">{% translate "Clase y especie" %}</span></div>
             <div class="hoja-campo"><b><span data-valor="xp">{{ character.xp }}</span> XP · {% translate "nivel" %} {{ level }}{% if character.can_level_up and can_edit %} <a class="hoja-subir" href="{% url 'level_up' campaign.pk character.pk %}">↑ {% translate "Subir de nivel" %}</a>{% endif %}</b><span class="hoja-rotulo">{% translate "XP y nivel" %}</span></div>
+            {% if world_pages %}<div class="hoja-campo"><b>{% for p in world_pages %}<a href="{% url 'world_page' campaign.pk p.slug %}">{{ p.title }}</a>{% if not forloop.last %} · {% endif %}{% endfor %}</b><span class="hoja-rotulo">{% translate "En el mundo" %}</span></div>{% endif %}
         </div>
         </div>
         {% if can_edit %}

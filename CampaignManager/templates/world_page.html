@@ -38,11 +38,26 @@
             <span class="pequeno atenuado" style="text-align:center">{% translate "En el mapa" %}: {{ page.location.map.name }} · {{ page.location.get_status_display|lower }}</span>
             <a class="btn" href="{% url 'map' campaign.pk %}?mapa={{ page.location.map_id }}&amp;lugar={{ page.location_id }}">{% translate "Ver en el mapa" %}</a>
             {% endif %}
+            {% if sheets %}
+            {# Its sheets: its NPC, the troops of a faction or a place, a character from here. #}
+            <div class="pila-s" style="border-top:1px solid var(--line);padding-top:10px">
+                <h2 class="rotulo">{% translate "Fichas" %}</h2>
+                {% for s in sheets %}
+                <a class="ficha-mini" href="{{ s.url }}">
+                    <span class="avatar" style="background:{{ s.character|avatar_color }}">{% if s.character.portrait %}<img src="{{ s.character.portrait.url }}" alt="">{% else %}{{ s.character.name|initial }}{% endif %}</span>
+                    <span class="ficha-mini-datos"><b>{{ s.character.name }}</b>
+                        <span class="pequeno atenuado">{% if s.character.is_npc %}{% translate "PNJ" %}{% else %}{% translate "PJ" %}{% endif %} · {{ s.character.char_class.name }} · {% translate "nivel" %} {{ s.character.level }}</span>
+                        <span class="pequeno">{% translate "PV" %} {{ s.character.hp }} · {% translate "CA" %} {{ s.character.ac }} · AP {{ s.max_ap }}</span></span>
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
             {% if is_master %}
             <div class="pila-s" style="border-top:1px solid var(--line);padding-top:10px">
                 <a class="btn btn-principal" href="{% url 'world_edit' campaign.pk page.slug %}">{% translate "Editar página" %}</a>
                 <form method="post" action="{% url 'world_toggle' campaign.pk page.slug %}">{% csrf_token %}
                     <button type="submit" class="btn" style="width:100%">{% if page.revealed %}{% translate "Ocultar al grupo" %}{% else %}{% translate "Revelar al grupo" %}{% endif %}</button></form>
+                {% include "partials/page_delete.html" %}
             </div>
             {% endif %}
         </div>

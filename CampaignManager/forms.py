@@ -1,9 +1,12 @@
 """Public forms of «Kiroku Story» (ModelForms with their validation)."""
 from django import forms
+from django.db.models import Exists, OuterRef, Q
 from django.forms import inlineformset_factory
 
 from . import bespoke, rules, weather
+from .campaign_models import COLOR_PALETTE
 from .mapping import parse_path
+from .permissions import npc_templates_for
 from .models import (
     BoardCard, Campaign, Character, CharacterClass, Item, Map, MapLocation, Page, Post, Quest, QuestObjective, Race,
     Rumour, RumourCategory, Scene, Session, Spell, Stat, Subclass, Subrace, TimelineEvent, User,
@@ -106,21 +109,73 @@ class PostForm(forms.Form):
             del self.fields["whisper_to"]
 
 
+class ColorPaletteWidget(forms.Widget):
+    """A colour chosen with one click among the palette's swatches, none, or any other with the
+    browser's colour picker («Otro»). Sends the colour as #RRGGBB, or "" for none."""
+    template_name = "widgets/paleta_color.html"
+    OTHER = "otro"
+
+    def __init__(self, palette=COLOR_PALETTE, attrs=None):
+        super().__init__(attrs)
+        self.palette = palette
+
+    def get_context(self, name, value, attrs):
+        context = super().get_context(name, value, attrs)
+        value = (value or "").upper()
+        known = {color.upper() for color, _ in self.palette}
+        other = bool(value) and value not in known
+        context["widget"].update(
+            swatches=[{"color": color, "label": label, "checked": value == color.upper()} for color, label in self.palette],
+            none_checked=not value, other_checked=other, other_value=(value if other else self.palette[0][0]).lower(),
+            other_name=f"{name}_{self.OTHER}", group_label=self.attrs.get("aria-label", ""))
+        return context
+
+    def value_from_datadict(self, data, files, name):
+        choice = data.get(name, "")
+        return data.get(f"{name}_{self.OTHER}", "") if choice == self.OTHER else choice
+
+    def id_for_label(self, id_):
+        return ""  # a group of swatches: the label names the group (aria-label), not one of them
+
+
+class CoverInput(forms.ClearableFileInput):
+    """An image field shown as its picture now, «Quitar la portada» and the file box."""
+    template_name = "widgets/portada.html"
+
+    def __init__(self, attrs=None):
+        super().__init__({"accept": "image/*", **(attrs or {})})
+
+
+class PageImageInput(CoverInput):
+    """The image of a world page in its editor: a button to choose it and «Quitar la imagen».
+    The picture itself shows in the editor's preview, above it."""
+    template_name = "widgets/imagen_pagina.html"
+
+
 class QuestForm(CampaignFormMixin, forms.ModelForm):
-    """An adventure: status, the sessions it spans and (in the formset) its objectives."""
+    """An adventure: status, the sessions it spans and (in the formset) its objectives. Its colour
+    and header image help tell it apart; a mission without a colour takes its adventure's."""
 
     class Meta:
         model = Quest
-        fields = ["title", "parent", "description", "status", "start_session", "end_session", "giver", "secret", "hidden"]
+        fields = ["title", "parent", "color", "cover", "description", "status", "start_session", "end_session", "giver",
+                  "secret", "hidden"]
         labels = {"title": "Título", "parent": "Dentro de la aventura", "description": "Descripción", "status": "Estado",
-                  "giver": "Quién la encarga",
+                  "giver": "Quién la encarga", "color": "Color", "cover": "Portada",
                   "start_session": "Empieza en la sesión", "end_session": "Termina en la sesión",
                   "secret": "Secreto del máster (solo lo ves tú)", "hidden": "Oculta: los jugadores no la ven"}
         help_texts = {"end_session": "Déjalo vacío mientras está en curso. Al completarla, fallarla o acabarla sin dato, la sesión en que acabó.",
                       "start_session": "",
                       "description": "Los jugadores la leen. Lo que no deben saber va en el secreto del máster.",
-                      "parent": "Vacío: es una aventura (un arco). Si eliges una, esta es una de sus misiones y se cuenta dentro de ella."}
-        widgets = {"description": forms.Textarea(attrs={"rows": 3}), "secret": forms.Textarea(attrs={"rows": 3})}
+                      "parent": "Vacío: es una aventura (un arco). Si eliges una, esta es una de sus misiones y se cuenta dentro de ella.",
+                      "color": "Para distinguirla de un vistazo en «Aventuras», la línea del tiempo y el inicio. "
+                               "Una misión sin color usa el de su aventura.",
+                      "cover": "Una imagen de cabecera, como la portada de la campaña: se ve en pequeño encima de la aventura, también plegada."}
+        widgets = {"description": forms.Textarea(attrs={"rows": 3}), "secret": forms.Textarea(attrs={"rows": 3}),
+                   "color": ColorPaletteWidget(attrs={"aria-label": "Color"}), "cover": CoverInput()}
+
+    def clean_color(self):
+        return (self.cleaned_data.get("color") or "").upper()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -153,19 +208,34 @@ ObjectiveFormSet = inlineformset_factory(
 
 
 class PageForm(CampaignFormMixin, forms.ModelForm):
+    """A page of the world. The editor (world_edit.html) lays it out: title and category on top, the two
+    texts with their link finder, and the rest (visibility, image, where it is, its sheets) to one side."""
+
     class Meta:
         model = Page
-        fields = ["title", "category", "parent", "summary", "body", "secret", "image", "location"]
-        labels = {"title": "Título", "category": "Categoría", "parent": "Dentro de", "summary": "Resumen",
-                  "body": "Lo que sabe el grupo", "secret": "Secreto del máster", "image": "Imagen",
-                  "location": "Lugar del mapa (solo para lugares)"}
-        widgets = {"body": forms.Textarea(attrs={"rows": 8}), "secret": forms.Textarea(attrs={"rows": 3}),
-                   "summary": forms.Textarea(attrs={"rows": 2})}
-        help_texts = {"body": "Escribe el nombre de otra página entre dobles corchetes, como [[Puerto Gris]], y se convierte en un enlace. Una línea en blanco separa párrafos.",
-                      "summary": "Se ve en la vista previa al pasar sobre un enlace. Si lo dejas vacío, se usa la primera frase."}
+        fields = ["title", "category", "revealed", "parent", "summary", "body", "secret", "image", "location", "sheets"]
+        labels = {"title": "Título", "category": "Categoría", "revealed": "Visible para el grupo", "parent": "Dentro de",
+                  "summary": "Resumen", "body": "Lo que sabe el grupo", "secret": "Secreto del máster", "image": "Imagen",
+                  "location": "Lugar del mapa", "sheets": "Fichas"}
+        widgets = {"title": forms.TextInput(attrs={"class": "editor-titulo", "placeholder": "Título de la página",
+                                                   "autocomplete": "off"}),
+                   "category": forms.RadioSelect, "revealed": forms.CheckboxInput(attrs={"role": "switch"}),
+                   "body": forms.Textarea(attrs={"rows": 9, "placeholder": "Lo que el grupo sabe o ha oído."}),
+                   "secret": forms.Textarea(attrs={"rows": 4, "placeholder": "Lo que solo sabes tú."}),
+                   "summary": forms.Textarea(attrs={"rows": 2}), "image": PageImageInput,
+                   "sheets": forms.CheckboxSelectMultiple(attrs={"class": "lista-fichas"})}
+        help_texts = {"body": "Para enlazar otra página, escribe su nombre entre dobles corchetes, como [[Puerto Gris]], "
+                              "o [[Puerto Gris|el puerto]] para enlazar otras palabras. Una línea en blanco separa párrafos.",
+                      "revealed": "Si no, los jugadores no la ven: ni en el menú ni en los enlaces.",
+                      "summary": "Se ve en la vista previa al pasar sobre un enlace. Si lo dejas vacío, se usa la primera frase.",
+                      "location": "Solo para lugares.", "parent": "Solo un lugar o una facción.", "secret": "",
+                      "sheets": "Las fichas de esta página: la de su PNJ, las tropas de una facción o de un lugar, un personaje de aquí. "
+                                "La página las enseña con sus números y cada ficha enlaza de vuelta. Los jugadores solo ven las del grupo."}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if not self.instance.pk:
+            self.fields["title"].widget.attrs["autofocus"] = True  # a new page starts by its name
         others = Page.objects.filter(campaign=self.campaign, category__in=Page.PARENT_CATEGORIES)
         if self.instance.pk:
             others = others.exclude(pk=self.instance.pk)
@@ -175,12 +245,24 @@ class PageForm(CampaignFormMixin, forms.ModelForm):
         self.fields["location"].queryset = (MapLocation.objects.filter(map__campaign=self.campaign)
                                             .exclude(page__in=taken).select_related("map").order_by("map__order", "name"))
         self.fields["location"].label_from_instance = lambda loc: f"{loc.map.name} · {loc.name}"
+        # The party and the NPC templates the master can open from this campaign (not the copies of a fight),
+        # the ones already on this page first.
+        templates = npc_templates_for(self.campaign).values("pk")
+        linked = Page.sheets.through.objects.filter(page_id=self.instance.pk, character_id=OuterRef("pk"))
+        self.fields["sheets"].queryset = (Character.objects.filter(Q(campaigns=self.campaign, is_npc=False) | Q(pk__in=templates))
+                                          .distinct().annotate(linked=Exists(linked)).order_by("-linked", "is_npc", "name"))
+        self.fields["sheets"].label_from_instance = sheet_label
 
     def clean(self):
         cleaned = super().clean()
         if cleaned.get("location") and cleaned.get("category") != Page.Category.LUGAR:
             self.add_error("location", "Solo las páginas de lugar pueden tener un lugar del mapa.")
         return cleaned
+
+
+def sheet_label(character):
+    """«Leah · PJ» or «Samurái Takeda · PNJ, nivel 5»: who each box of «Fichas» is."""
+    return f"{character.name} · PNJ, nivel {character.level}" if character.is_npc else f"{character.name} · PJ"
 
 
 class MapForm(CampaignFormMixin, forms.ModelForm):
@@ -280,7 +362,7 @@ class ScoresStepForm(forms.Form):
         if free:
             self.fields["method"].choices = [*self.METHODS, self.FREE]
             for key in rules.ABILITY_KEYS:
-                self.fields[key] = forms.IntegerField(label=self.fields[key].label, min_value=1, max_value=30)
+                self.fields[key] = forms.IntegerField(label=self.fields[key].label, min_value=1, max_value=rules.MASTER_MAX_SCORE)
 
     def scores(self):
         return {key: self.cleaned_data[key] for key in rules.ABILITY_KEYS}
@@ -307,7 +389,7 @@ class ScoresStepForm(forms.Form):
 class IdentityStepForm(forms.Form):
     name = forms.CharField(label="Nombre", max_length=100)
     portrait = forms.ImageField(label="Retrato", required=False)
-    background = forms.CharField(label="Trasfondo", required=False, max_length=5000, widget=forms.Textarea(attrs={"rows": 6}))
+    background = forms.CharField(label="Trasfondo", required=False, max_length=10000, widget=forms.Textarea(attrs={"rows": 6}))
     player = forms.ModelChoiceField(User.objects.none(), label="Jugador", required=False)
     # NPCs only: level, hit points and armor class need not follow the rules (a bestiary entry, a boss...).
     level = forms.IntegerField(label="Nivel", required=False, min_value=1, max_value=rules.MAX_LEVEL, initial=1)
@@ -408,7 +490,7 @@ class EquipmentStepForm(BespokeWeaponFields, BespokeArmorFields):
 
 class CharacterMasterForm(forms.ModelForm):
     """Everything on a sheet, as the master wants it, whatever the rules say: level, hit
-    points, AP, scores up to 30... Only what keeps the data whole is checked (a subrace of
+    points, AP, speed, scores up to 40... Only what keeps the data whole is checked (a subrace of
     its race, a subclass of its class). A race or class can also be written anew."""
     new_race = forms.CharField(label="O una raza nueva", required=False, max_length=100)
     new_race_speed = forms.IntegerField(label="Su velocidad (m)", required=False, min_value=0, max_value=200)
@@ -419,17 +501,21 @@ class CharacterMasterForm(forms.ModelForm):
     class Meta:
         model = Character
         fields = ["name", "player", "status", "portrait", "background", "race", "subrace", "char_class", "subclass",
-                  "level", "xp", "hp", "temp_hp", "ac", "temp_ap", "inspiration", "magic_points", "magic_points_bonus",
-                  *rules.ABILITY_KEYS, "dead"]
+                  "level", "xp", "hp", "temp_hp", "ac", "own_speed", "temp_ap", "inspiration", "magic_points", "magic_points_bonus",
+                  *rules.ABILITY_KEYS, "dead", "acts_with"]
         labels = {"name": "Nombre", "player": "Jugador", "status": "Estado", "portrait": "Retrato", "background": "Trasfondo",
                   "race": "Raza", "subrace": "Linaje", "char_class": "Clase", "subclass": "Subclase", "level": "Nivel",
-                  "xp": "XP", "hp": "Vida máxima", "temp_hp": "Vida actual", "ac": "Clase de armadura", "temp_ap": "AP actuales",
+                  "xp": "XP", "hp": "Vida máxima", "temp_hp": "Vida actual", "ac": "Clase de armadura",
+                  "own_speed": "Velocidad propia (m)", "temp_ap": "AP actuales",
                   "inspiration": "Inspiración", "magic_points": "Puntos de magia actuales",
-                  "magic_points_bonus": "Ajuste de puntos de magia", "dead": "Muerto",
+                  "magic_points_bonus": "Ajuste de puntos de magia", "dead": "Muerto", "acts_with": "Actúa a la vez con",
                   **{key: rules.ABILITY_NAMES[key] for key in rules.ABILITY_KEYS}}
         help_texts = {"magic_points_bonus": "Se suma a lo que da la clase a su nivel (puede ser negativo).",
+                      "own_speed": "Vacía: la de su raza. Para quien corre, vuela o se arrastra a otro paso.",
                       "temp_ap": "El máximo sale de la armadura equipada: cámbialo abajo, en «Armadura equipada».",
-                      "level": "Cambiarlo aquí no aplica lo que da el nivel (subclase, mejoras): es tu decisión."}
+                      "level": "Cambiarlo aquí no aplica lo que da el nivel (subclase, mejoras): es tu decisión.",
+                      "acts_with": "Una pareja que pelea como una sola (Shayne y Aurox): en los turnos, si van seguidos, "
+                                   "tienen un único turno y entran juntos al combate. Vale para los dos."}
         widgets = {"background": forms.Textarea(attrs={"rows": 4})}
 
     def __init__(self, *args, campaign=None, **kwargs):
@@ -444,11 +530,30 @@ class CharacterMasterForm(forms.ModelForm):
         self.fields["subclass"].queryset = Subclass.objects.select_related("char_class").order_by("char_class__name", "name")
         self.fields["subclass"].label_from_instance = lambda s: f"{s.char_class} · {s.name}"
         for key in rules.ABILITY_KEYS:
-            self.fields[key] = forms.IntegerField(label=rules.ABILITY_NAMES[key], min_value=1, max_value=30)
+            self.fields[key] = forms.IntegerField(label=rules.ABILITY_NAMES[key], min_value=1, max_value=rules.MASTER_MAX_SCORE)
         self.fields["level"] = forms.IntegerField(label="Nivel", min_value=1, max_value=rules.MAX_LEVEL,
                                                   help_text=self.Meta.help_texts["level"])
         if self.instance.is_npc:
             del self.fields["player"], self.fields["status"]
+            # Its partner: another NPC template of the campaign (a copy keeps its template's).
+            key = self.instance.template_id or self.instance.pk
+            self.fields["acts_with"].queryset = (npc_templates_for(campaign).exclude(pk=key).order_by("name")
+                                                 if campaign else Character.objects.none())
+            self.fields["acts_with"].empty_label = "Nadie: actúa solo"
+        else:
+            del self.fields["acts_with"]
+
+    def save(self, commit=True):
+        """A pair goes both ways: its new partner acts with it too, and an old one stops."""
+        before = Character.objects.filter(pk=self.instance.pk).values_list("acts_with_id", flat=True).first()
+        character = super().save(commit)
+        if commit and "acts_with" in self.fields and character.template_id is None:
+            partner = character.acts_with_id
+            if before and before != partner:
+                Character.objects.filter(pk=before, acts_with=character).update(acts_with=None)
+            if partner:
+                Character.objects.filter(pk=partner).update(acts_with=character)
+        return character
 
     def clean(self):
         cleaned = super().clean()

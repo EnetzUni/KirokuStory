@@ -244,6 +244,17 @@
     $(this).closest("form").trigger("submit");
   });
 
+  // A list that sends its form as soon as an option is chosen (a state on a combat card); the form's
+  // other inputs (its rounds) wait for it. Its empty first option sends nothing.
+  $(document).on("change", "form[data-ajax] select[data-enviar]", function () {
+    if ($(this).val()) { $(this).closest("form").trigger("submit"); }
+  });
+
+  // A colour palette (forms.ColorPaletteWidget): choosing a colour in the picker of «Otro» ticks «Otro».
+  $(document).on("input change", "[data-color-elegir]", function () {
+    $(this).closest(".paleta").find("[data-color-otro]").prop("checked", true);
+  });
+
   // ---- Vista previa de [[enlaces]] ----
   var $preview = $('<div class="vista-previa" role="tooltip" hidden></div>').appendTo("body");
   var previewCache = {};
@@ -572,6 +583,84 @@
     });
   }
 
+  // ---- Mapa: el camino, a flechas ----
+  // Each stretch of the route (a polyline in % of the image) is drawn as small arrows one after
+  // another: a short rectangle with a slightly pointed tip, in the stretch's colour. They keep the
+  // same size on screen at any zoom, so they are worked out in pixels from the layer's real size,
+  // and drawn again when it changes (zoom, window) or when the master moves a point of the way.
+  // The last arrow of a stretch ends just before its stop.
+  var ARROW = { body: 11, tip: 5, half: 3.5, gap: 7, start: 13, end: 16 }; // px
+  var SVG_NS = "http://www.w3.org/2000/svg";
+
+  function pointsOf(line) {
+    return line.getAttribute("points").trim().split(/\s+/).map(function (pair) {
+      var xy = pair.split(",");
+      return [parseFloat(xy[0]), parseFloat(xy[1])];
+    });
+  }
+
+  // The outline (in % of the image) of the arrows along `pts` (also in %), on a layer of w × h px.
+  function arrowsPath(pts, w, h) {
+    var px = pts.map(function (p) { return [p[0] * w / 100, p[1] * h / 100]; });
+    var at = [0];
+    for (var i = 1; i < px.length; i++) {
+      at.push(at[i - 1] + Math.hypot(px[i][0] - px[i - 1][0], px[i][1] - px[i - 1][1]));
+    }
+    var total = at[at.length - 1], size = ARROW.body + ARROW.tip, period = size + ARROW.gap;
+    var tips = [];
+    if (total - ARROW.start - ARROW.end >= size) {
+      for (var tip = total - ARROW.end; tip - size >= ARROW.start - 0.01; tip -= period) { tips.push(tip); }
+    } else if (total >= size) {
+      tips.push((total + size) / 2); // a short stretch: one arrow in the middle
+    }
+    function f(v) { return Math.round(v * 1000) / 1000; }
+    function pct(x, y) { return f(x / w * 100) + "," + f(y / h * 100); }
+    return tips.map(function (tipAt) {
+      // The arrow lies along the part of the way under its middle.
+      var mid = tipAt - size / 2, k = 1;
+      while (k < at.length - 1 && at[k] < mid) { k++; }
+      var a = px[k - 1], b = px[k], len = Math.max(at[k] - at[k - 1], 1e-6);
+      var ux = (b[0] - a[0]) / len, uy = (b[1] - a[1]) / len, nx = -uy * ARROW.half, ny = ux * ARROW.half;
+      var t = (mid - at[k - 1]) / len;
+      var bx = a[0] + (b[0] - a[0]) * t - ux * size / 2, by = a[1] + (b[1] - a[1]) * t - uy * size / 2; // the tail
+      var sx = bx + ux * ARROW.body, sy = by + uy * ARROW.body; // where the tip starts
+      return "M" + pct(bx + nx, by + ny) + "L" + pct(sx + nx, sy + ny) + "L" + pct(bx + ux * size, by + uy * size)
+        + "L" + pct(sx - nx, sy - ny) + "L" + pct(bx - nx, by - ny) + "Z";
+    }).join("");
+  }
+
+  function drawArrows(line) {
+    var layer = line.closest(".mapa-lienzo");
+    var w = layer && layer.clientWidth, h = layer && layer.clientHeight;
+    if (!w || !h) { return; }
+    var path = line.arrowPath;
+    if (!path) {
+      path = line.arrowPath = document.createElementNS(SVG_NS, "path");
+      path.setAttribute("class", "ruta-flechas");
+      path.setAttribute("vector-effect", "non-scaling-stroke");
+      line.parentNode.insertBefore(path, line.nextSibling);
+    }
+    path.setAttribute("fill", line.getAttribute("stroke"));
+    path.setAttribute("d", arrowsPath(pointsOf(line), w, h));
+  }
+
+  var arrowSizes = window.ResizeObserver ? new ResizeObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (!entry.target.isConnected) { arrowSizes.unobserve(entry.target); return; }
+      entry.target.querySelectorAll("polyline.ruta-tramo").forEach(drawArrows);
+    });
+  }) : null;
+
+  function initRouteArrows(layer) {
+    if (layer.rutaFlechas) { return; }
+    var lines = layer.querySelectorAll("polyline.ruta-tramo");
+    if (!lines.length) { return; }
+    layer.rutaFlechas = true;
+    layer.classList.add("con-flechas");
+    lines.forEach(drawArrows);
+    if (arrowSizes) { arrowSizes.observe(layer); }
+  }
+
   // ---- Editor del camino (máster) ----
   // Each stretch of the route (previous stop → waypoints → stop) is one
   // polyline with data-guardar. Its waypoints get handles to drag; halfway
@@ -602,6 +691,7 @@
 
     function drawLine() {
       line.setAttribute("points", pts.map(function (p) { return p[0] + "," + p[1]; }).join(" "));
+      drawArrows(line);
       if (!arrow) { return; }
       for (var i = pts.length - 1; i > 0; i--) {
         var dx = pts[i][0] - pts[i - 1][0], dy = pts[i][1] - pts[i - 1][1];
@@ -693,6 +783,7 @@
       var h = { kind: kind, i: i, el: el };
       el.type = "button";
       el.className = kind === "punto" ? "ruta-punto" : "ruta-medio";
+      el.style.setProperty("--color", line.getAttribute("stroke")); // the handles take their stretch's colour
       el.setAttribute("aria-label", kind === "punto" ? "Punto del camino: flechas para moverlo, Supr para quitarlo"
                                                       : "Añadir un punto al camino aquí");
       el.title = kind === "punto" ? "Arrastra para moverlo · doble clic para quitarlo" : "Añadir un punto";
@@ -744,7 +835,7 @@
 
   function initWindows(root) {
     $(root).find("[data-zoom]").addBack("[data-zoom]").each(function () { initZoom(this); });
-    $(root).find(".mapa-lienzo").each(function () { initRouteEditor(this); });
+    $(root).find(".mapa-lienzo").each(function () { initRouteArrows(this); initRouteEditor(this); });
   }
   // mesa.js is loaded at the end of <body>: the page is already there, so no need to wait
   // for jQuery's «ready» (which comes a moment later), and a quick first click works.
@@ -1050,6 +1141,291 @@
       $(this).siblings("[data-mod]").text(mod >= 0 ? "+" + mod : "\u2212" + Math.abs(mod));
     });
     $("[data-puntos]").text(parseInt($box.data("total"), 10) - spent);
+  });
+
+  // ---- «Fichas» of a world page: a search over the long list ----
+  // Hides the sheets that do not match (ignoring accents); the ticked ones always stay in sight.
+  function fold(text) { return String(text).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+  $("[data-buscar-fichas]").each(function () {
+    var $search = $(this).prop("hidden", false);
+    var $list = $($search.data("buscar-fichas"));
+    $search.on("input", function () {
+      var query = fold(this.value.trim());
+      $list.children().each(function () {
+        var $row = $(this);
+        $row.prop("hidden", query !== "" && !$row.find("input").prop("checked") && fold($row.text()).indexOf(query) === -1);
+      });
+    });
+  });
+
+  // ---- Editor de páginas del mundo ----
+  // The page as it will look, live (its colour, image and title, whether the group sees it); the map place
+  // only for places; and «Enlazar»: the words chosen in a text become a link to another page, [[Page|words]]
+  // (the button, Ctrl + K, or typing [[). Under each text, its links: one finds it in the text, × unlinks it.
+  // Without JavaScript the form is the same and the links are written by hand.
+  $("[data-editor-pagina]").each(function () { pageEditor($(this)); });
+
+  function pageEditor($form) {
+    var LINK = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
+    var index = [];
+    try { index = JSON.parse($("#indice-enlaces").text() || "[]"); } catch (e) { index = []; }
+    var byName = {};
+    $.each(index, function (i, item) { byName[$.trim(item.t).toLowerCase()] = item; });
+    var $finder = $form.find("[data-buscador-enlace]");
+    var $search = $finder.find("input[type=search]");
+    var $options = $finder.find("[role=listbox]");
+    var state = null;    // the text being linked: its field, the textarea, the words chosen and where they are
+    var active = 0;
+    var dirty = false, sending = false;
+
+    function fill(text, value) { return String(text).replace("%s", value); }
+    function plainText(text) { return text.replace(LINK, function (all, name, words) { return words || name; }); }
+
+    // -- The page as it will look --
+    var $tile = $form.find("[data-vista-portada]"), $initial = $tile.find("[data-vista-inicial]");
+    var $title = $form.find("[name=title]"), $shownTitle = $form.find("[data-vista-titulo]");
+    function showTitle() {
+      var title = $.trim($title.val());
+      $shownTitle.text(title || $shownTitle.data("vacio")).toggleClass("vacio", !title);
+      $initial.text(title ? title.charAt(0).toUpperCase() : "");
+    }
+    $title.on("input", showTitle);
+    showTitle();
+
+    var $place = $form.find("[data-solo-lugar]"), $placeSelect = $place.find("select"), placeKept = "";
+    function showCategory(first) {
+      var $chosen = $form.find("[name=category]:checked"), cat = $chosen.val() || "";
+      $tile.attr("class", $.trim(($tile.attr("class") || "").replace(/\bcat-\S+/g, "")) + " cat-" + cat);
+      $form.find("[data-intro-categoria]").text($chosen.closest("label").data("intro") || "");
+      var place = cat === "lugar";
+      if (!first) {
+        // A map place is only for places: kept aside while it is something else, back if it is a place again.
+        if (!place && $placeSelect.val()) { placeKept = $placeSelect.val(); $placeSelect.val(""); }
+        if (place && placeKept && !$placeSelect.val()) { $placeSelect.val(placeKept); }
+      }
+      $place.prop("hidden", !place && !$placeSelect.val());
+    }
+    $form.on("change", "[name=category]", function () { showCategory(false); });
+    showCategory(true);
+
+    $form.find("[name=revealed]").on("change", function () { $form.find("[data-vista-oculta]").prop("hidden", this.checked); });
+
+    var $image = $form.find("input[type=file][name=image]"), $clear = $form.find("input[name=image-clear]");
+    var savedImage = $tile.children("img").attr("src") || "";
+    function tileImage(src) {
+      var $img = $tile.children("img");
+      if (!src) { $img.remove(); return; }
+      if (!$img.length) { $img = $("<img alt=''>").appendTo($tile); }
+      $img.attr("src", src);
+    }
+    $image.on("change", function () {
+      var file = this.files && this.files[0];
+      $form.find("[data-nombre-imagen]").text(file ? file.name : "");
+      if (file && window.URL && URL.createObjectURL) {
+        tileImage(URL.createObjectURL(file));
+        $clear.prop("checked", false);
+      } else {
+        tileImage($clear.prop("checked") ? "" : savedImage);
+      }
+    });
+    $clear.on("change", function () {
+      if (!($image[0] && $image[0].files && $image[0].files.length)) { tileImage(this.checked ? "" : savedImage); }
+    });
+
+    $form.on("change", ".lista-fichas input", function () {
+      $form.find("[data-cuenta-fichas]").text($form.find(".lista-fichas input:checked").length);
+    });
+
+    // -- Changes not saved yet: said at the foot, and asked before leaving --
+    var $status = $form.find("[data-estado-editor]");
+    $form.on("input change", function (e) {
+      if ($(e.target).closest("[data-buscador-enlace]").length || dirty) { return; }
+      dirty = true;
+      $status.text($status.data("sin-guardar") || "");
+    });
+    $form.on("submit", function () { sending = true; });
+    $("#borrar-pagina").on("submit", function () { sending = true; });
+    $(window).on("beforeunload", function (e) {
+      if (dirty && !sending) { e.preventDefault(); e.originalEvent.returnValue = ""; return ""; }
+    });
+
+    // -- The links of each text --
+    function showLinks($field) {
+      var text = $field.find("textarea").val() || "", seen = {}, match;
+      var $list = $field.find("[data-enlaces-lista]").empty();
+      LINK.lastIndex = 0;
+      while ((match = LINK.exec(text)) !== null) {
+        var markup = match[0];
+        if (seen[markup]) { continue; }
+        seen[markup] = true;
+        var name = $.trim(match[1]), words = match[2], item = byName[name.toLowerCase()];
+        var label = words && words.toLowerCase() !== name.toLowerCase() ? words + " → " + name : (words || name);
+        var $chip = $("<li class='enlace-chip'>").toggleClass("falta", !item);
+        $("<button type='button' class='enlace-ir'>").attr("title", item ? $finder.data("buscar") : $finder.data("falta"))
+          .data("markup", markup)
+          .append($("<i class='punto' aria-hidden='true'>").addClass(item ? "cat-" + item.c : "falta"))
+          .append($("<span>").text(label)).appendTo($chip);
+        $("<button type='button' class='enlace-quitar'>").text("×").attr("aria-label", fill($finder.data("quitar"), name))
+          .data({ markup: markup, words: words || name }).appendTo($chip);
+        $chip.appendTo($list);
+      }
+      $field.find("[data-enlaces]").prop("hidden", !$list.children().length);
+    }
+
+    // The words written in place of others, kept in the browser's undo when it can.
+    function replaceRange(el, start, end, text) {
+      el.focus();
+      el.setSelectionRange(start, end);
+      var done = false;
+      try { done = document.execCommand("insertText", false, text); } catch (e) { done = false; }
+      if (!done) {
+        el.setRangeText(text, start, end, "end");
+        $(el).trigger("input");
+      }
+    }
+
+    $form.on("click", ".enlace-ir", function () {
+      var el = $(this).closest("[data-campo-wiki]").find("textarea")[0], markup = $(this).data("markup");
+      var at = el.value.indexOf(markup);
+      if (at !== -1) { el.focus(); el.setSelectionRange(at, at + markup.length); }
+    });
+    $form.on("click", ".enlace-quitar", function () {
+      var el = $(this).closest("[data-campo-wiki]").find("textarea")[0];
+      var markup = $(this).data("markup"), words = $(this).data("words"), at;
+      while ((at = el.value.indexOf(markup)) !== -1) { replaceRange(el, at, at + markup.length, words); }
+    });
+
+    // -- The link finder --
+    function openFinder($field, start, end, typed) {
+      var el = $field.find("textarea")[0];
+      if (start === undefined) {
+        start = el.selectionStart;
+        end = el.selectionEnd;
+        // Spaces at the edges of what was chosen stay outside the link.
+        while (start < end && /\s/.test(el.value.charAt(start))) { start++; }
+        while (end > start && /\s/.test(el.value.charAt(end - 1))) { end--; }
+      }
+      var words = typed ? "" : plainText(el.value.slice(start, end));
+      if (/\n/.test(words)) { words = ""; start = end; }  // a link stays inside one paragraph
+      if (state) { closeFinder(false); }
+      state = { $field: $field, el: el, start: start, end: end, words: words, typed: !!typed };
+      $field.find("[data-enlazar]").attr("aria-expanded", "true");
+      $finder.find(".buscador-que").text(words ? fill($finder.data("con"), words) : $finder.data("insertar"));
+      $finder.insertAfter($field.children(".campo-wiki-cabeza")).prop("hidden", false);
+      $search.val(words);
+      render();
+      $search.trigger("focus");
+      $search[0].select();
+    }
+
+    function closeFinder(back) {
+      if (!state) { return; }
+      var s = state;
+      state = null;
+      $finder.prop("hidden", true);
+      s.$field.find("[data-enlazar]").attr("aria-expanded", "false");
+      if (back) {
+        s.el.focus();
+        s.el.setSelectionRange(s.typed ? s.end : s.start, s.end);
+      }
+    }
+
+    function render() {
+      var raw = $.trim($search.val()), query = fold(raw), found = [];
+      $.each(index, function (i, item) {
+        var name = fold(item.t), score;
+        if (!query) { score = 2; }
+        else if (name === query) { score = 0; }
+        else if (name.indexOf(query) === 0 || name.indexOf(" " + query) !== -1 || name.indexOf("(" + query) !== -1) { score = 1; }
+        else if (name.indexOf(query) !== -1) { score = 2; }
+        else { return; }
+        found.push({ item: item, score: score });
+      });
+      // Best match first; at the same, pages before sheets, then by name.
+      found.sort(function (a, b) {
+        return a.score - b.score || (a.item.c === "ficha") - (b.item.c === "ficha") || a.item.t.localeCompare(b.item.t, "es");
+      });
+      var shown = $.map(found.slice(0, 8), function (f) { return f.item; });
+      if (raw && !(found.length && found[0].score === 0)) { shown.push({ t: raw, c: "", k: "", nueva: true }); }
+      $options.empty();
+      $.each(shown, function (i, item) {
+        var $option = $("<li role='option' aria-selected='false'>").attr("id", "opcion-enlace-" + i).toggleClass("opcion-nueva", !!item.nueva);
+        $("<i class='punto' aria-hidden='true'>").addClass(item.nueva ? "falta" : "cat-" + item.c).appendTo($option);
+        $("<span class='opcion-titulo'>").text(item.nueva ? fill($finder.data("nueva"), item.t) : item.t).appendTo($option);
+        var kind = (item.k || "") + (item.h ? " · " + $finder.data("oculta") : "");
+        if (kind) { $("<span class='opcion-tipo'>").text(kind).appendTo($option); }
+        $option.data("item", item).appendTo($options);
+      });
+      choose(0);
+    }
+
+    function choose(i) {
+      var $all = $options.children();
+      if (!$all.length) { $search.removeAttr("aria-activedescendant"); return; }
+      active = (i + $all.length) % $all.length;
+      $all.attr("aria-selected", "false");
+      var one = $all.eq(active).attr("aria-selected", "true")[0], box = $options[0];
+      $search.attr("aria-activedescendant", one.id);
+      if (one.offsetTop < box.scrollTop) { box.scrollTop = one.offsetTop; }
+      else if (one.offsetTop + one.offsetHeight > box.scrollTop + box.clientHeight) { box.scrollTop = one.offsetTop + one.offsetHeight - box.clientHeight; }
+    }
+
+    function link(name) {
+      var s = state;
+      if (!s) { return; }
+      var words = s.words, same = !words || words.toLowerCase() === name.toLowerCase();
+      closeFinder(false);
+      replaceRange(s.el, s.start, s.end, same ? "[[" + (words || name) + "]]" : "[[" + name + "|" + words + "]]");
+    }
+
+    $search.on("input", render);
+    $search.on("keydown", function (e) {
+      if (e.key === "ArrowDown") { e.preventDefault(); choose(active + 1); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); choose(active - 1); }
+      else if (e.key === "Enter") {
+        e.preventDefault();  // not the form's submit
+        var item = $options.children().eq(active).data("item");
+        if (item) { link(item.t); }
+      }
+      else if (e.key === "Escape") { e.preventDefault(); closeFinder(true); }
+    });
+    $options.on("mousedown", "[role=option]", function (e) { e.preventDefault(); });  // the search keeps the focus
+    $options.on("click", "[role=option]", function () { link($(this).data("item").t); });
+    $finder.on("focusout", function () {
+      setTimeout(function () {
+        if (state && !$.contains($finder[0], document.activeElement)) { closeFinder(false); }
+      }, 0);
+    });
+
+    $form.find("[data-campo-wiki]").each(function () {
+      var $field = $(this), el = $field.find("textarea")[0];
+      if (!el) { return; }
+      $field.find("[data-herramientas]").prop("hidden", false);
+      showLinks($field);
+      $(el).on("input", function (e) {
+        showLinks($field);
+        var typed = e.originalEvent && e.originalEvent.inputType, at = el.selectionStart;
+        if (typed === "insertText" && el.selectionEnd === at && el.value.slice(at - 2, at) === "[[" && el.value.charAt(at - 3) !== "[") {
+          openFinder($field, at - 2, at, true);
+        }
+      });
+      $(el).on("keydown", function (e) {
+        if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === "k" || e.key === "K")) { e.preventDefault(); openFinder($field); }
+      });
+      $field.find("[data-enlazar]").attr("aria-expanded", "false").on("click", function () {
+        if (state && state.el === el) { closeFinder(true); } else { openFinder($field); }
+      });
+    });
+  }
+
+  // «No»: closes the fold it is in (deleting a page), and so does Escape.
+  $("[data-cerrar-plegable]").prop("hidden", false);
+  $(document).on("click", "[data-cerrar-plegable]", function () {
+    var fold = $(this).closest("details")[0];
+    if (fold) { fold.open = false; $(fold).children("summary").trigger("focus"); }
+  });
+  $(document).on("keydown", "details.borrar-pagina", function (e) {
+    if (e.key === "Escape" && this.open) { this.open = false; $(this).children("summary").trigger("focus"); }
   });
 
   // ---- Refresco periódico (turnos) ----

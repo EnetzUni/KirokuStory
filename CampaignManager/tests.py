@@ -5,6 +5,7 @@ what players may see (spec, section 6).
 """
 import datetime
 import importlib
+import io
 import json
 import re
 import tempfile
@@ -16,14 +17,15 @@ from django.core.cache import cache
 from django.utils import timezone
 
 from django.core.exceptions import ValidationError
+from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from . import rules, weather
 from .models import (
     Rumour, RumourCategory, WeatherRegion,
-    Ability, Armor, ArmorDamage, ArmorType, BoardCard, Campaign, Character, CharacterAbility, CharacterClass,
-    ClassAbility, ClassAddon, Combatant, Encounter, Inventory, Item, Map, MapLocation, Page, PartyMove, Post, Quest, QuestObjective,
+    Ability, ActiveEffect, Armor, ArmorDamage, ArmorType, BoardCard, Campaign, Character, CharacterAbility, CharacterClass,
+    ClassAbility, ClassAddon, Combatant, Effect, Encounter, Inventory, Item, Map, MapLocation, Page, PartyMove, Post, Quest, QuestObjective,
     Race, Session, Spell, Subclass, SubclassAbility, Subrace, TimelineEvent, UniqueSkill, User, Weapon,
 )
 from .views_characters import hit_die, level_up_plan
@@ -1590,6 +1592,23 @@ class MasterEditTests(DemoData):
         self.edit(brom, worn_type="Pesada", worn_ap=12, worn_magic_ap=1)
         self.assertEqual((brom.max_ap, brom.max_magic_ap), (12, 1))
 
+    def test_a_pair_that_acts_at_once_goes_both_ways(self):
+        first, second = Character.objects.filter(campaigns=self.corona, is_npc=True, template__isnull=True)[:2]
+        self.edit(first, acts_with=second.pk)
+        first.refresh_from_db()
+        second.refresh_from_db()
+        self.assertEqual((first.acts_with, second.acts_with), (second, first))
+        self.assertContains(self.client.get(self.url("sheet", second.pk)), "Actúa a la vez con")
+        # Alone again: the partner stops acting with it too.
+        self.edit(first, acts_with="")
+        first.refresh_from_db()
+        second.refresh_from_db()
+        self.assertEqual((first.acts_with, second.acts_with), (None, None))
+        # Player characters have no partner to choose.
+        self.client.force_login(self.carlos)
+        aria = Character.objects.get(name="Aria")
+        self.assertNotIn("acts_with", self.client.get(self.url("character_edit", aria.pk)).context["form"].fields)
+
     def test_data_that_would_break_is_refused(self):
         aria = Character.objects.get(name="Aria")
         other = Subrace.objects.exclude(race=aria.race).first()
@@ -1625,6 +1644,108 @@ class WorldBranchesTests(DemoData):
         self.assertIsNotNone(branch)
         opened = re.findall(r'<details class="rama" open data-aqui[^>]*data-recordar="mundo-\d+-(\d+)"', page)
         self.assertIn(str(parent.pk), opened)
+
+
+class WorldEditorTests(DemoData):
+    """The page editor: a link can show words of its own ([[Page|words]]), the link finder gets every page
+    and sheet but the page itself, visibility is saved with the page (its map place follows), a category's
+    cards start a new page or edit one, and a page can be deleted, leaving what was inside it loose."""
+
+    def page(self, title):
+        return Page.objects.get(campaign=self.corona, title=title)
+
+    def test_a_link_can_show_words_of_its_own(self):
+        from .wiki import WikiResolver, mentions, plain
+        port = self.page("Puerto Gris")
+        text = "Volvieron a [[Puerto Gris|la ciudad]], soñando con [[Santuario hundido|el templo del mar]] y [[Faro|el faro]]."
+        master = WikiResolver(self.corona, self.carlos, True).inline(text)
+        self.assertIn(self.url("world_page", port.slug), master)
+        self.assertIn(">la ciudad</a>", master)
+        self.assertIn(">el templo del mar</a>", master)
+        self.assertIn("?titulo=Faro", master)  # a page to create, under the name it links to
+        self.assertIn(">el faro</a>", master)
+        player = WikiResolver(self.corona, self.lucia, False).inline(text)
+        self.assertIn(">la ciudad</a>", player)
+        self.assertNotIn("Santuario", player)  # a hidden page: its words, no link and no name
+        self.assertIn("el templo del mar", player)
+        self.assertEqual(plain(text), "Volvieron a la ciudad, soñando con el templo del mar y el faro.")
+        self.assertTrue(mentions(text, "puerto gris"))
+        self.assertFalse(mentions(text, "la ciudad"))
+        # «Aparece en» finds it too.
+        Page.objects.filter(pk=self.page("Robleda").pk).update(body="Vende su madera en [[Puerto Gris|la capital]].")
+        refs = self.player().get(self.url("world_page", port.slug)).context["refs"]
+        self.assertIn("Robleda", [ref["label"] for ref in refs])
+
+    def test_the_editor_offers_what_can_be_linked(self):
+        self.assertEqual(self.player().get(self.url("world_new")).status_code, 403)
+        self.client.force_login(self.carlos)
+        response = self.client.get(self.url("world_edit", self.page("Robleda").slug))
+        found = {item["t"]: item for item in response.context["link_index"]}
+        self.assertNotIn("Robleda", found)  # not itself
+        self.assertEqual((found["Santuario hundido"]["c"], found["Santuario hundido"]["h"]), ("lugar", True))
+        party = [c.name for c in self.corona.party]
+        self.assertTrue(party)
+        self.assertTrue(all(found[name]["c"] == "pj" for name in party))
+        self.assertContains(response, 'id="indice-enlaces"')
+        self.assertContains(response, "data-enlazar ", count=2)  # the body and the secret
+        self.assertEqual([c["radio"].data["value"] for c in response.context["category_radios"]],
+                         ["lugar", "pnj", "faccion", "objeto", "historia"])
+
+    def test_visibility_is_saved_with_the_page_and_its_map_place_follows(self):
+        sanctuary = self.page("Santuario hundido")
+        self.client.force_login(self.carlos)
+        fields = {"title": sanctuary.title, "category": "lugar", "parent": sanctuary.parent_id,
+                  "location": sanctuary.location_id, "body": sanctuary.body, "secret": sanctuary.secret}
+        response = self.client.post(self.url("world_edit", sanctuary.slug), {**fields, "revealed": "on"}, follow=True)
+        self.assertContains(response, "Cambios guardados.")
+        sanctuary.refresh_from_db()
+        self.assertTrue(sanctuary.revealed)
+        self.assertEqual(sanctuary.location.status, MapLocation.Status.CONOCIDO)
+        self.client.post(self.url("world_edit", sanctuary.slug), fields)  # hidden again
+        sanctuary.refresh_from_db()
+        self.assertFalse(sanctuary.revealed)
+        self.assertEqual(sanctuary.location.status, MapLocation.Status.OCULTO)
+
+    def test_a_new_page_starts_from_its_category(self):
+        crown = self.page("La Corona de Ceniza")
+        self.client.force_login(self.carlos)
+        cards = self.client.get(self.url("world") + "?cat=objeto")
+        self.assertContains(cards, self.url("world_new") + "?cat=objeto")
+        self.assertContains(cards, self.url("world_edit", crown.slug))
+        self.assertEqual(self.client.get(self.url("world_new") + "?cat=objeto").context["form"]["category"].value(), "objeto")
+        response = self.client.post(self.url("world_new"), {
+            "title": "Llave de hueso", "category": "objeto",
+            "body": "Abre la primera puerta de [[Ruinas de Vel-Ithar|las ruinas]]."}, follow=True)
+        key = self.page("Llave de hueso")
+        self.assertRedirects(response, self.url("world_page", key.slug))
+        self.assertContains(response, "Página creada.")
+        self.assertContains(response, ">las ruinas</a>")
+        self.assertFalse(key.revealed)  # a new page starts hidden from the group
+        cards = self.player().get(self.url("world") + "?cat=objeto")
+        self.assertNotContains(cards, self.url("world_new"))
+        self.assertNotContains(cards, self.url("world_edit", crown.slug))
+
+    def test_deleting_a_page_leaves_what_was_inside_it_loose(self):
+        from .wiki import WikiResolver
+        sanctuary, ithra = self.page("Santuario hundido"), self.page("Ithra")
+        place = sanctuary.location_id
+        self.assertEqual(self.player().post(self.url("world_delete", sanctuary.slug)).status_code, 403)
+        self.client.force_login(self.carlos)
+        shown = self.client.get(self.url("world_page", sanctuary.slug))
+        deletion = shown.context["deletion"]
+        self.assertEqual((deletion["children"], deletion["on_map"]), (1, True))
+        self.assertGreaterEqual(deletion["linked"], 2)  # the ruins' secret and Ithra
+        self.assertContains(shown, "Las páginas que tiene dentro (1) quedarán sueltas.")
+        self.assertContains(self.client.get(self.url("world_edit", sanctuary.slug)), 'form="borrar-pagina"')
+        response = self.client.post(self.url("world_delete", sanctuary.slug), follow=True)
+        self.assertRedirects(response, self.url("world") + "?cat=lugar")
+        self.assertContains(response, "Página «Santuario hundido» borrada.")
+        self.assertFalse(Page.objects.filter(pk=sanctuary.pk).exists())
+        ithra.refresh_from_db()
+        self.assertIsNone(ithra.parent)
+        self.assertTrue(MapLocation.objects.filter(pk=place).exists())
+        # Its links keep their words: for the master, a page to create again.
+        self.assertIn("?titulo=Santuario+hundido", WikiResolver(self.corona, self.carlos, True).inline(ithra.body))
 
 
 class MissionTests(DemoData):
@@ -2216,3 +2337,456 @@ class PortraitCardTests(DemoData):
         self.assertNotIn("Añadir retrato", page)
         Character.objects.filter(pk=aria.pk).update(portrait="")
         self.assertIn("Añadir retrato", self.player().get(self.url("characters")).content.decode())
+
+
+class RouteColourTests(DemoData):
+    """Each stretch of the party's route has its own colour, chosen by the master (mesa.js draws it as small arrows)."""
+
+    def setUp(self):
+        self.moves = list(PartyMove.objects.filter(map__campaign=self.corona).select_related("location", "map"))
+        self.move = self.moves[1]
+
+    def paint(self, user, color):
+        self.client.force_login(user)
+        return self.client.post(self.url("map_move_color", self.move.pk), {"color": color}, **AJAX)
+
+    def test_the_master_gives_a_stretch_its_colour(self):
+        response = self.paint(self.carlos, "#2b6cb0")
+        self.assertFalse(response.json()["error"])
+        self.move.refresh_from_db()
+        self.assertEqual(self.move.color, "#2B6CB0")
+        page = self.player().get(self.url("map") + f"?mapa={self.move.map_id}").content.decode()
+        self.assertIn(f'data-tramo="{self.move.pk}" fill="none" stroke="#2B6CB0"', page)
+        self.assertIn("--color:#2B6CB0", page)  # its arrow head too
+        # The others keep the copper of before.
+        self.assertIn(f'data-tramo="{self.moves[2].pk}" fill="none" stroke="#BC6C25"', page)
+
+    def test_only_a_colour_and_only_the_master(self):
+        self.assertTrue(self.paint(self.carlos, "azul").json()["error"])
+        self.assertEqual(self.paint(self.lucia, "#000000").status_code, 403)
+        self.move.refresh_from_db()
+        self.assertEqual(self.move.color, "#BC6C25")
+
+    def test_the_route_editor_offers_a_colour_for_each_stretch(self):
+        self.client.force_login(self.carlos)
+        page = self.client.get(self.url("map") + f"?mapa={self.move.map_id}&recorrido=1").content.decode()
+        self.assertIn(self.url("map_move_color", self.move.pk), page)
+        self.assertIn('type="color" name="color" value="#bc6c25" list="colores-ruta"', page)
+
+    def test_a_new_stretch_keeps_the_colour_of_the_one_before(self):
+        last = self.moves[-1]
+        PartyMove.objects.filter(pk=last.pk).update(color="#6B46C1")
+        place = MapLocation.objects.filter(map=last.map).exclude(pk=last.location_id).first()
+        self.client.force_login(self.carlos)
+        self.client.post(self.url("map_location_action", place.pk), {"accion": "grupo"}, **AJAX)
+        self.assertEqual(PartyMove.objects.filter(map=last.map).last().color, "#6B46C1")
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp(prefix="kiroku-test-media-"))
+class AdventureLookTests(DemoData):
+    """Adventures and missions can have a colour and a small header image; a mission without
+    a colour takes its adventure's."""
+
+    def setUp(self):
+        self.adventure = Quest.objects.filter(campaign=self.corona, parent__isnull=True, status="activa").first()
+
+    def save(self, quest, **fields):
+        data = {"title": quest.title, "description": quest.description, "status": quest.status,
+                "start_session": quest.start_session_id or "", "end_session": quest.end_session_id or "", "giver": quest.giver_id or "",
+                "parent": quest.parent_id or "", "objectives-TOTAL_FORMS": "0", "objectives-INITIAL_FORMS": "0", **fields}
+        self.client.force_login(self.carlos)
+        return self.client.post(self.url("diary_quest_edit", quest.pk), data)
+
+    def test_a_colour_from_the_palette_another_or_none(self):
+        self.save(self.adventure, color="#2B6CB0")
+        self.adventure.refresh_from_db()
+        self.assertEqual(self.adventure.color, "#2B6CB0")
+        self.save(self.adventure, color="otro", color_otro="#12ab9f")  # «Otro»: the browser's colour picker
+        self.adventure.refresh_from_db()
+        self.assertEqual(self.adventure.color, "#12AB9F")
+        response = self.save(self.adventure, color="otro", color_otro="verde")
+        self.assertEqual(response.status_code, 200)  # the form again, with the error
+        self.save(self.adventure, color="")
+        self.adventure.refresh_from_db()
+        self.assertEqual(self.adventure.color, "")
+
+    def test_a_mission_takes_its_adventures_colour(self):
+        Quest.objects.filter(pk=self.adventure.pk).update(color="#9E2A2B")
+        mission = Quest.objects.create(campaign=self.corona, title="Buscar al traductor", parent=self.adventure)
+        own = Quest.objects.create(campaign=self.corona, title="Pagar la deuda", parent=self.adventure, color="#2F855A")
+        self.assertEqual(Quest.objects.get(pk=mission.pk).shown_color, "#9E2A2B")
+        page = self.player().get(self.url("diary")).content.decode()
+        self.assertIn(f'id="aventura-{mission.pk}" class="mision con-color" style="--aventura:#9E2A2B"', page)
+        self.assertIn(f'id="aventura-{own.pk}" class="mision con-color" style="--aventura:#2F855A"', page)
+        self.assertIn('class="punto-color" style="background:#9E2A2B"', self.player().get(self.url("home")).content.decode())
+
+    def test_a_cover_shows_as_a_header_and_can_be_removed(self):
+        self.save(self.adventure, cover=png_upload("portada.png"))
+        self.adventure.refresh_from_db()
+        self.assertTrue(self.adventure.cover.name.startswith("aventuras/"))
+        page = self.player().get(self.url("diary")).content.decode()
+        self.assertIn(f'<img class="aventura-portada" src="{self.adventure.cover.url}"', page)
+        self.client.force_login(self.carlos)
+        form = self.client.get(self.url("diary_quest_edit", self.adventure.pk)).content.decode()
+        self.assertIn('enctype="multipart/form-data"', form)
+        self.assertIn("Quitar la portada", form)
+        self.save(self.adventure, **{"cover-clear": "on"})
+        self.adventure.refresh_from_db()
+        self.assertEqual(self.adventure.cover.name, "")
+
+
+class BattleTableTests(DemoData):
+    """«Turnos» as a table of cards: the party on one side, those who fight it on the other,
+    with whose turn it is and who comes next; the master can move a card to the other side."""
+
+    def setUp(self):
+        self.encounter = Encounter.objects.get(campaign=self.corona, active=True)
+        self.orc = Combatant.objects.filter(encounter=self.encounter, character__is_npc=True).first()
+
+    def test_two_sides_of_cards(self):
+        self.client.force_login(self.carlos)
+        response = self.client.get(self.url("turns"))
+        party = {r["c"].pk for r in response.context["party_rows"]}
+        enemies = {r["c"].pk for r in response.context["enemy_rows"]}
+        combatants = list(self.encounter.combatants.select_related("character"))
+        self.assertEqual(party, {c.pk for c in combatants if c.character and not c.character.is_npc})
+        self.assertEqual(enemies, {c.pk for c in combatants} - party)
+        page = response.content.decode()
+        actor = combatants[self.encounter.turn_index]
+        after = combatants[(self.encounter.turn_index + 1) % len(combatants)]
+        self.assertIn(f'id="combatiente-{actor.pk}" class="carta actual"', page)
+        self.assertIn(f'id="combatiente-{after.pk}" class="carta siguiente', page)
+        self.assertIn('class="campo-batalla"', page)
+        # Writing a number and pressing Enter deals damage: «Daño» is the form's first button.
+        card = page[page.index(f'id="combatiente-{actor.pk}"'):]
+        self.assertLess(card.index('value="dano"'), card.index('value="vida_menos"'))
+
+    def test_the_master_moves_a_card_to_the_other_side(self):
+        self.client.force_login(self.carlos)
+        response = self.client.post(self.url("turns_action"), {"accion": "lado", "combatiente": self.orc.pk}, **AJAX)
+        self.assertIn("lucha ahora con el grupo", response.json()["msg"])
+        self.orc.refresh_from_db()
+        self.assertEqual(self.orc.side, Combatant.Side.GRUPO)
+        self.assertIn(self.orc.pk, {r["c"].pk for r in self.client.get(self.url("turns")).context["party_rows"]})
+        self.assertEqual(self.player().post(self.url("turns_action"), {"accion": "lado", "combatiente": self.orc.pk}, **AJAX).status_code, 403)
+
+    def test_players_see_the_enemy_cards_without_their_numbers(self):
+        html = self.player().get(self.url("turns"), **AJAX).json()["html"]
+        self.assertIn(f'id="combatiente-{self.orc.pk}"', html)
+        self.assertNotIn(f'data-valor="vida-{self.orc.pk}"', html)
+        card = html[html.index(f'id="combatiente-{self.orc.pk}"'):html.index("</article>", html.index(f'id="combatiente-{self.orc.pk}"'))]
+        self.assertNotIn('value="dano"', card)
+
+    def test_the_master_decides_who_acts(self):
+        self.client.force_login(self.carlos)
+        combatants = list(self.encounter.combatants.all())
+        actor = combatants[self.encounter.turn_index]
+        chosen = next(c for c in combatants if c != actor)
+        response = self.client.post(self.url("turns_action"), {"accion": "turno", "combatiente": chosen.pk}, **AJAX)
+        self.assertEqual(response.json()["msg"], f"Turno de {chosen.display_name}.")
+        self.encounter.refresh_from_db()
+        self.assertEqual(list(self.encounter.combatants.all())[self.encounter.turn_index], chosen)
+        # Moving a card in the order keeps the turn with whoever has it.
+        first = combatants[0]
+        self.client.post(self.url("turns_action"), {"accion": "despues", "combatiente": first.pk}, **AJAX)
+        order = list(self.encounter.combatants.all())
+        self.assertEqual(order[1], first)
+        self.encounter.refresh_from_db()
+        self.assertEqual(order[self.encounter.turn_index], chosen)
+        # A new round when the master says so: the first of the order acts.
+        round_before = self.encounter.round
+        self.client.post(self.url("turns_action"), {"accion": "ronda"}, **AJAX)
+        self.encounter.refresh_from_db()
+        self.assertEqual((self.encounter.round, self.encounter.turn_index), (round_before + 1, 0))
+        for action in ("turno", "antes", "ronda"):
+            self.assertEqual(self.player().post(self.url("turns_action"), {"accion": action, "combatiente": first.pk},
+                                                **AJAX).status_code, 403)
+
+    def test_a_red_veil_tells_how_wounded_a_fighter_looks(self):
+        from .views_turns import wound_level
+        self.assertEqual([wound_level(hp, 100) for hp in (100, 90, 75, 60, 30, 10, 0, -5)], [0, 1, 1, 2, 3, 4, 4, 4])
+        self.assertEqual(wound_level(None, None), 0)
+        character = self.orc.character
+        Character.objects.filter(pk=character.pk).update(temp_hp=max(1, character.hp // 3))
+        html = self.player().get(self.url("turns"), **AJAX).json()["html"]
+        card = html[html.index(f'id="combatiente-{self.orc.pk}"'):]
+        self.assertIn('class="carta-retrato herida-3"', card)  # the player sees how it looks...
+        self.assertNotIn(f'data-valor="vida-{self.orc.pk}"', html)  # ...not its hit points
+
+    def template(self, name):
+        """An NPC template of the campaign, made from the orc's sheet."""
+        sheet = Character.objects.get(pk=self.orc.character_id)
+        sheet.pk, sheet.template, sheet.name = None, None, name
+        sheet._state.adding = True
+        sheet.save()
+        sheet.campaigns.set([self.corona])
+        return sheet
+
+    def test_a_pair_takes_one_turn(self):
+        shayne, aurox = self.template("Shayne"), self.template("Aurox")
+        shayne.acts_with = aurox
+        shayne.save()
+        aurox.acts_with = shayne
+        aurox.save()
+        self.client.force_login(self.carlos)
+        act = self.url("turns_action")
+        response = self.client.post(act, {"accion": "anadir", "plantilla": shayne.pk}, **AJAX)
+        self.assertEqual(response.json()["msg"], "Shayne 1 y Aurox 1 entran en el combate: actúan a la vez.")
+        order = list(self.encounter.combatants.select_related("character"))
+        self.assertEqual([c.display_name for c in order[-2:]], ["Shayne 1", "Aurox 1"])
+        pair = order[-2:]
+        # The turn to one of them is the turn to both.
+        response = self.client.post(act, {"accion": "turno", "combatiente": pair[1].pk}, **AJAX)
+        self.assertEqual(response.json()["msg"], "Turno de Shayne 1 y Aurox 1.")
+        context = self.client.get(self.url("turns")).context
+        self.assertEqual([r["c"] for r in context["actor_rows"]], pair)
+        self.assertEqual(context["actor_names"], "Shayne 1 y Aurox 1")
+        self.assertContains(self.client.get(self.url("turns")), "A la vez con Aurox 1")
+        # «Siguiente» passes both: a new round, since they were last.
+        round_before = Encounter.objects.get(pk=self.encounter.pk).round
+        self.client.post(act, {"accion": "siguiente"}, **AJAX)
+        self.encounter.refresh_from_db()
+        self.assertEqual((self.encounter.round, self.encounter.turn_index), (round_before + 1, 0))
+        # ‹ moves the pair as one; by initiative, the partner goes right behind the first of the two.
+        self.client.post(act, {"accion": "antes", "combatiente": pair[0].pk}, **AJAX)
+        names = [c.display_name for c in self.encounter.combatants.all()]
+        self.assertEqual(names[-3:][:2], ["Shayne 1", "Aurox 1"])
+        Combatant.objects.filter(pk=pair[0].pk).update(initiative=30)
+        Combatant.objects.filter(pk=pair[1].pk).update(initiative=-5)
+        self.client.post(act, {"accion": "ordenar"}, **AJAX)
+        names = [c.display_name for c in self.encounter.combatants.all()]
+        self.assertEqual(names[:2], ["Shayne 1", "Aurox 1"])
+
+    def test_states_go_on_the_cards(self):
+        from .views_turns import effect_kind
+        self.assertEqual([effect_kind(n) for n in ("Quemado", "Sangrando", "Congelado", "Envenenado", "Cansancio")],
+                         ["quemado", "sangrado", "helado", "envenenado", ""])
+        burning = Effect.objects.get(name="Quemado")
+        act = self.url("turns_action")
+        self.client.force_login(self.carlos)
+        response = self.client.post(act, {"accion": "estado_anadir", "combatiente": self.orc.pk, "efecto": burning.pk,
+                                          "rondas": 2}, **AJAX)
+        self.assertEqual(response.json()["msg"], f"{self.orc.display_name}: Quemado durante 2 rondas.")
+        self.client.post(act, {"accion": "estado_anadir", "combatiente": self.orc.pk, "efecto": burning.pk, "rondas": 1}, **AJAX)
+        row = ActiveEffect.objects.get(character=self.orc.character, effect=burning)  # not doubled; the longer stays
+        self.assertEqual(row.remaining_turns, 2)
+        self.assertIn("Elige un estado", self.client.post(act, {"accion": "estado_anadir", "combatiente": self.orc.pk,
+                                                                "efecto": ""}, **AJAX).json()["msg"])
+        # The list offers states, not the traits of weapons and armor.
+        conditions = self.client.get(self.url("turns")).context["conditions"]
+        self.assertIn(burning, conditions)
+        self.assertFalse([e for e in conditions if e.name.isupper()])
+        # Everyone sees it burn; only the master, how long, and the × that puts it out.
+        html = self.player().get(self.url("turns"), **AJAX).json()["html"]
+        card = html[html.index(f'id="combatiente-{self.orc.pk}"'):html.index("</article>", html.index(f'id="combatiente-{self.orc.pk}"'))]
+        self.assertIn('class="fx fx-quemado"', card)
+        self.assertIn("Quemado", card)
+        self.assertNotIn("estado_quitar", card)
+        self.assertNotIn('name="efecto"', card)
+        self.assertEqual(self.player().post(act, {"accion": "estado_anadir", "combatiente": self.orc.pk,
+                                                  "efecto": burning.pk}, **AJAX).status_code, 403)
+        self.client.force_login(self.carlos)
+        html = self.client.get(self.url("turns"), **AJAX).json()["html"]
+        self.assertIn(f'name="estado" value="{row.pk}"', html)
+        self.client.post(act, {"accion": "estado_quitar", "combatiente": self.orc.pk, "estado": row.pk}, **AJAX)
+        self.assertFalse(ActiveEffect.objects.filter(pk=row.pk).exists())
+        # A player puts states on their own character.
+        mine = Combatant.objects.get(encounter=self.encounter, character__player=self.lucia)
+        self.player().post(act, {"accion": "estado_anadir", "combatiente": mine.pk, "efecto": burning.pk}, **AJAX)
+        self.assertTrue(ActiveEffect.objects.filter(character=mine.character, effect=burning).exists())
+
+    def test_an_enemy_without_a_sheet_suffers_states_too(self):
+        self.client.force_login(self.carlos)
+        act = self.url("turns_action")
+        self.client.post(act, {"accion": "anadir", "nombre": "Bandido", "vida": 12}, **AJAX)
+        bandit = Combatant.objects.get(encounter=self.encounter, name="Bandido")
+        frozen = Effect.objects.get(name="Congelado")
+        self.client.post(act, {"accion": "estado_anadir", "combatiente": bandit.pk, "efecto": frozen.pk, "rondas": 1}, **AJAX)
+        self.assertEqual(bandit.effects.get().effect, frozen)
+        self.assertIn('class="fx fx-helado"', self.client.get(self.url("turns"), **AJAX).json()["html"])
+        self.client.post(act, {"accion": "ronda"}, **AJAX)  # its round is over: it thaws
+        self.assertFalse(bandit.effects.exists())
+
+    def test_only_the_master_sees_the_numbers_of_the_enemy_side(self):
+        # Two party members turned against the group: hers and another player's.
+        mine = Combatant.objects.get(encounter=self.encounter, character__player=self.lucia)
+        other = (Combatant.objects.filter(encounter=self.encounter, character__is_npc=False)
+                 .exclude(character__player=self.lucia).first())
+        Combatant.objects.filter(pk__in=[mine.pk, other.pk]).update(side=Combatant.Side.ENEMIGOS)
+        html = self.player().get(self.url("turns"), **AJAX).json()["html"]
+        for value in ("vida", "ap"):
+            self.assertNotIn(f'data-valor="{value}-{other.pk}"', html)
+        self.assertIn(f'data-valor="vida-{mine.pk}"', html)  # her own character, wherever it stands
+        self.client.force_login(self.carlos)
+        self.assertIn(f'data-valor="vida-{other.pk}"', self.client.get(self.url("turns"), **AJAX).json()["html"])
+
+
+class WorldSheetsTests(RulesData):
+    """World pages and character sheets point to each other (Page.sheets): the page shows its sheets
+    with their numbers (players only the party's), each sheet its pages under «En el mundo», and in
+    the diary [[Name]] opens an NPC's sheet for masters."""
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.page = Page.objects.create(campaign=cls.campaign, title="Shogunato Takeda", category="faccion", revealed=True)
+        cls.secret = Page.objects.create(campaign=cls.campaign, title="La red", category="faccion")
+
+    def setUp(self):
+        self.hero = self.character("Thalion", campaigns=[self.campaign])
+        self.samurai = self.character("Samurái Takeda", campaigns=[self.campaign], player=None, is_npc=True,
+                                      hp=45, temp_hp=45, ac=13)
+        self.page.sheets.add(self.hero, self.samurai)
+        self.secret.sheets.add(self.hero)
+
+    def get(self, user, name, *args):
+        self.client.force_login(user)
+        return self.client.get(reverse(name, args=[self.campaign.pk, *args]))
+
+    def test_the_page_shows_its_sheets_and_npcs_only_to_masters(self):
+        npc_sheet = reverse("sheet", args=[self.campaign.pk, self.samurai.pk])
+        page = self.get(self.master, "world_page", self.page.slug).content.decode()
+        self.assertIn(npc_sheet, page)
+        self.assertIn("PV 45 · CA 13 · AP 0", page)
+        page = self.get(self.player, "world_page", self.page.slug).content.decode()
+        self.assertNotIn(npc_sheet, page)
+        self.assertIn(reverse("sheet", args=[self.campaign.pk, self.hero.pk]), page)
+
+    def test_the_sheet_shows_its_pages_of_the_world(self):
+        response = self.get(self.player, "sheet", self.hero.pk)
+        self.assertEqual(response.context["world_pages"], [self.page])  # not the hidden one
+        self.assertContains(response, reverse("world_page", args=[self.campaign.pk, self.page.slug]))
+        response = self.get(self.master, "sheet", self.hero.pk)
+        self.assertEqual(set(response.context["world_pages"]), {self.page, self.secret})
+
+    def test_the_master_links_sheets_from_the_page_form(self):
+        self.samurai.make_copy(campaigns=[self.campaign])
+        url = reverse("world_edit", args=[self.campaign.pk, self.secret.slug])
+        response = self.get(self.master, "world_edit", self.secret.slug)
+        # The party and the NPC templates; not the copies made for a fight.
+        self.assertEqual(set(response.context["form"].fields["sheets"].queryset), {self.hero, self.samurai})
+        self.client.post(url, {"title": self.secret.title, "category": "faccion", "sheets": [self.samurai.pk]})
+        self.assertEqual(set(self.secret.sheets.all()), {self.samurai})
+
+    def test_wiki_links_open_npc_sheets_only_for_masters(self):
+        from .wiki import WikiResolver
+        text = "Les cortó el paso un [[Samurái Takeda]]."
+        self.assertIn(reverse("sheet", args=[self.campaign.pk, self.samurai.pk]),
+                      WikiResolver(self.campaign, self.master, True).inline(text))
+        self.assertNotIn("href", WikiResolver(self.campaign, self.player, False).inline(text))
+
+    def test_an_npc_runs_at_its_own_speed(self):
+        self.assertEqual(self.samurai.speed, 10)  # its race's
+        self.samurai.own_speed = 12
+        self.assertEqual(self.samurai.speed, 12)
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp(prefix="kiroku-test-media-"))
+class LoadSokokuTests(TestCase):
+    """«cargar_sokoku»: the 82 NPCs of the bestiary and the sheets of Zarek, Leah, Thalion and Balasar,
+    with their numbers and their pages of the world. A second run keeps them; --actualizar rewrites them."""
+    fixtures = ["datos_iniciales_srd", "armas_caseras", "clases_aegis"]
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.campaign = Campaign.objects.create(name="Infinity Blade", start_date=datetime.date(2026, 1, 1))
+        for title, category in (("Shogunato Takeda", "faccion"), ("Thane", "pnj"), ("Eldran", "lugar")):
+            Page.objects.create(campaign=cls.campaign, title=title, category=category)
+
+    def load(self, *args):
+        out = io.StringIO()
+        call_command("cargar_sokoku", *args, stdout=out)
+        return out.getvalue()
+
+    def sheet(self, name, npc=True):
+        return Character.objects.get(campaigns=self.campaign, name=name, is_npc=npc, template__isnull=True)
+
+    def test_the_bestiary_and_the_party(self):
+        out = self.load()
+        self.assertIn("82 PNJ y 4 personajes", out)
+        self.assertIn("Páginas del mundo que no existen", out)  # this campaign has only three
+        self.assertEqual(Character.objects.filter(campaigns=self.campaign, is_npc=True).count(), 82)
+        samurai = self.sheet("Samurái Takeda")
+        self.assertEqual((samurai.level, samurai.hp, samurai.ac, samurai.speed, samurai.max_ap), (5, 45, 13, 10, 5))
+        katana = Weapon.objects.get(item__inventory__character=samurai, item__name="Katana a dos manos")
+        self.assertEqual(katana.item.template.name, "Katana")  # a copy of the house weapon, with its numbers
+        self.assertEqual(katana.to_hit_bonus(samurai), 5)
+        self.assertEqual(katana.attacks.get().damage_text(samurai), "2d10 + 8")
+        self.assertEqual({(e.effect.name, e.value) for e in katana.item.itemeffect_set.select_related("effect")},
+                         {("IAIDO", None), ("SANGRADO", 3), ("ESGRIMA", None)})
+        self.assertTrue(CharacterAbility.objects.filter(character=samurai, ability__name="Iaido", max_uses=1).exists())
+        self.assertEqual(list(samurai.world_pages.values_list("title", flat=True)), ["Shogunato Takeda"])
+        self.assertIn("Thane", self.sheet("Thane, señor de la Casa Ix").world_pages.values_list("title", flat=True))
+
+        thalion = self.sheet("Thalion", npc=False)
+        self.assertEqual((thalion.char_class.name, thalion.subclass.name, thalion.temp_hp, thalion.hp),
+                         ("Paladín", "Juramento de entrega", 107, 110))
+        self.assertEqual((thalion.temp_ap, thalion.max_ap, thalion.max_magic_ap, thalion.magic_points), (7, 11, 5, 16))
+        self.assertEqual(thalion.spells.count(), 23)
+        self.assertTrue(thalion.portrait.name.endswith("thalion.jpg"))
+        zarek = self.sheet("Zarek", npc=False)
+        self.assertEqual((zarek.char_class.name, zarek.subclass.name, zarek.subrace.name),
+                         ("Artífice", "Artillero", "Legado infernal: infernal"))
+        self.assertEqual(zarek.unique_skill.status, UniqueSkill.Status.APROBADA)
+        leah = self.sheet("Leah", npc=False)
+        self.assertEqual(leah.magic_points_max, 28)  # the Arcane Warrior's «a»: 10 + 2 × level
+        bow = Weapon.objects.get(item__inventory__character=leah, item__name="Arco largo")
+        self.assertEqual(bow.to_hit_bonus(leah), 8)
+        balasar = self.sheet("Balasar", npc=False)
+        self.assertEqual((balasar.subclass.name, balasar.subrace.name, balasar.speed, balasar.magic_points),
+                         ("Círculo de la Luna", "Linaje élfico: elfo de los bosques", 12, 41))
+        self.assertTrue(balasar.spells.filter(name="Curación dañina").exists())  # his house spell
+        self.assertTrue(CharacterAbility.objects.filter(character=balasar, ability__name="Forma salvaje", max_uses=2).exists())
+
+    def test_a_second_run_keeps_the_sheets_and_actualizar_rewrites_them(self):
+        self.load()
+        samurai = self.sheet("Samurái Takeda")
+        carried = samurai.inventory_set.count()
+        Character.objects.filter(pk=samurai.pk).update(temp_hp=3)
+        self.assertIn("86 ya estaban", self.load())
+        self.assertEqual(Character.objects.filter(campaigns=self.campaign).count(), 86)
+        self.assertEqual(self.sheet("Samurái Takeda").temp_hp, 3)
+        self.load("--actualizar")
+        samurai = self.sheet("Samurái Takeda")
+        self.assertEqual((samurai.temp_hp, samurai.inventory_set.count()), (45, carried))
+        self.assertEqual(Character.objects.filter(campaigns=self.campaign).count(), 86)
+        self.assertEqual(UniqueSkill.objects.filter(character__name="Zarek").count(), 1)
+
+    def test_shayne_and_aurox_act_as_one(self):
+        self.load()
+        shayne, aurox = self.sheet("Shayne"), self.sheet("Aurox")
+        self.assertEqual((shayne.acts_with, aurox.acts_with), (aurox, shayne))
+        self.assertEqual((aurox.race.name, aurox.char_class.name, aurox.hp, aurox.ac, aurox.max_ap), ("Constructo", "Jefe", 360, 13, 8))
+        self.assertEqual((shayne.level, shayne.hp, shayne.ac, shayne.speed), (12, 90, 17, 12))
+        both = {"Cómo pelean juntos"}
+        for one in (shayne, aurox):
+            self.assertTrue(both <= set(one.abilities.values_list("name", flat=True)))
+            self.assertIn("Lo que se cuenta", one.background)
+        # Shayne's orders, each with its limit; Aurox's grab is a roll, not a weapon.
+        held = {row.ability.name: row for row in shayne.characterability_set.select_related("ability")}
+        self.assertTrue({"Órdenes", "¡Ahí!", "¡Trae!", "¡Cúbreme!", "¡Ruge!", "Lánzame", "Juntos"} <= set(held))
+        self.assertEqual((held["¡Trae!"].cooldown_rounds, held["Juntos"].max_uses), (2, 1))
+        self.assertTrue(aurox.abilities.filter(name="Agarrar").exists())
+        self.assertFalse(Weapon.objects.filter(item__inventory__character=aurox, item__name="Agarrar").exists())
+        claws = Weapon.objects.get(item__inventory__character=aurox, item__name="Garras")
+        self.assertEqual((claws.to_hit_bonus(aurox), claws.attacks.get().damage_text(aurox)), (12, "2d10 + 16"))
+
+    def test_a_sheet_loaded_under_an_older_name_is_renamed_everywhere(self):
+        old_name = "Tokiasa Yarikawa (otro nombre)"
+        template = Character.objects.create(
+            name=old_name, is_npc=True, race=Race.objects.first(), char_class=CharacterClass.objects.first(),
+            hp=10, temp_hp=10, ac=10, strength=10, dexterity=10, constitution=10, intelligence=10, wisdom=10, charisma=10)
+        template.campaigns.add(self.campaign)
+        copy = template.make_copy(campaigns=[self.campaign])
+        stale = Ability.objects.create(name="Rasgo viejo", description="Lo que ya no está en el bestiario.")
+        CharacterAbility.objects.create(character=template, ability=stale)
+        self.assertIn("Renombradas y reescritas: Tokiasa Yarikawa.", self.load())
+        tokiasa = self.sheet("Tokiasa Yarikawa")
+        self.assertEqual(tokiasa.pk, template.pk)
+        self.assertEqual(Character.objects.get(pk=copy.pk).name, "Tokiasa Yarikawa 1")
+        self.assertEqual((tokiasa.level, tokiasa.hp), (16, 290))
+        self.assertFalse(Ability.objects.filter(pk=stale.pk).exists())  # nobody holds it any more
+        self.assertFalse(Character.objects.filter(campaigns=self.campaign, name__startswith=old_name).exists())
+        self.assertNotIn("Hattori", tokiasa.background)
+        self.assertFalse(tokiasa.abilities.filter(name="Nombre verdadero").exists())
+        self.assertTrue(tokiasa.abilities.filter(name="Resistencia legendaria").exists())

@@ -67,6 +67,7 @@ Use Django's authentication system: a custom user model `class User(AbstractUser
 | hp | int | Maximum hit points |
 | temp_hp | int | Current hit points |
 | ac | int | Armor class |
+| own_speed | int | **Optional.** In meters. Only when it is not the race's: an NPC of the bestiary that runs, flies or crawls |
 | temp_ap | int | Current armor points (see game rules) |
 | inspiration | int | |
 | strength | int | |
@@ -82,6 +83,7 @@ Use Django's authentication system: a custom user model `class User(AbstractUser
 | subrace_id | FK → Subrace | **Optional.** Must be a subrace of the character's race |
 | is_npc | bool | True for NPCs (see NPCs below) |
 | template_id | FK → Character | **Optional.** Only for NPC copies: the NPC template it was made from |
+| acts_with_id | FK → Character | **Optional.** `SET_NULL`. Only for NPCs: the NPC template it acts with in one activation (a pair of the bestiary, Shayne and Aurox). Each of the two templates points to the other (the master's editor keeps it both ways); copies keep their template's |
 | status | string | `aprobado` (default) or `pendiente`: a player's new character waits for the master's approval |
 | portrait | image | **Optional.** (`retratos/`) |
 | background | text | **Optional.** The character's background (*trasfondo*) |
@@ -99,7 +101,7 @@ Use Django's authentication system: a custom user model `class User(AbstractUser
 
 Not stored, calculated when needed:
 
-- **speed**: from the character's Race. Subraces have no speed of their own.
+- **speed**: its `own_speed` if it has one, else from the character's Race. Subraces have no speed of their own.
 - **maximum AP and maximum magic AP**: from the equipped armor (see game rules).
 - **initiative**: from dexterity.
 - **passive perception**: from wisdom.
@@ -117,6 +119,7 @@ NPCs are Characters with `is_npc = true`. There can be many of the same NPC (fou
 - Deleting a template also deletes all its copies.
 - Deleting a copy also deletes the item copies in its inventory (its individual weapons and armor). Item templates carried directly (gold, potions…) are shared with other characters, so they are kept; so is any item another character also holds.
 - An NPC with a unique ability cannot have copies (see game rules).
+- **Pairs** (*actúa con*, Character → Character): two templates that fight as one point to each other (`acts_with`). A copy of one of them that goes into a fight brings a copy of the other right behind it, and two partners side by side in the order take one turn (see «Turnos»).
 
 ### Race
 
@@ -346,17 +349,18 @@ An attack is in one of four armor-damage cases. Only two of them are values of `
 | description | text | |
 | duration | string | **Optional.** Conditions such as Agarrado or Cegado have no duration of their own |
 
-Applied (*aplica*, many-to-many) by Spells, Abilities, Attacks, Items and ArmorTypes. Weapon and armor effects are attached through their Item, in ItemEffect, which also stores each effect's value. The weapon traits (BARRIDO, SANGRADO, EMPUJE…) are Effects.
+Applied (*aplica*, many-to-many) by Spells, Abilities, Attacks, Items and ArmorTypes. Weapon and armor effects are attached through their Item, in ItemEffect, which also stores each effect's value. The weapon traits (BARRIDO, SANGRADO, EMPUJE…) are Effects, written in capitals; the states a fighter can suffer (the SRD's conditions and the house's Aterrado, Atado, Congelado, Quemado, Sangrando and Suspendido) are the others: `Effect.objects.conditions()`, the list offered on a sheet and on each combat card.
 
 ### ActiveEffect (link table)
 
 | Field | Type | Notes |
 |---|---|---|
-| character_id | FK → Character | |
+| character_id | FK → Character | **Optional.** The character that suffers it |
+| combatant_id | FK → Combatant | **Optional.** `CASCADE`. Only for an enemy without a sheet, in its fight. An active effect is on a character or on a combatant, never both (`CheckConstraint`) |
 | effect_id | FK → Effect | |
 | remaining_turns | int | |
 
-The effects currently on a character. In combat, the end of each round takes 1 from `remaining_turns`, and the effects that reach 0 are removed.
+The effects currently on a character (or on an enemy without a sheet). A state already there is not doubled: putting it on again keeps the longer of the two. In combat, the end of each round takes 1 from `remaining_turns`, and the effects that reach 0 are removed.
 
 ---
 
@@ -492,11 +496,12 @@ Everything that belongs to one campaign: its diary, its world wiki, its board, i
 | category | string | `lugar`, `pnj`, `faccion`, `objeto` or `historia` |
 | parent_id | FK → Page | **Optional.** `SET_NULL`. Only a place or a faction of the same campaign, never forming a cycle |
 | summary | text | Shown in the floating preview of `[[links]]` |
-| body | text | `[[Name]]` links to another page |
-| secret | text | Only masters see it |
+| body | text | `[[Name]]` links to another page; `[[Name|other words]]` shows those words, linked to the page called Name |
+| secret | text | Only masters see it. Links as in `body` |
 | image | image | **Optional.** (`mundo/`) |
 | revealed | bool | A page that is not revealed does not exist for players: 404, no preview, its links become plain text |
 | location_id | One-to-one → MapLocation | **Optional.** `SET_NULL`. Only for places. Revealing or hiding the page moves its location between `oculto` and `conocido`, and the other way round |
+| sheets | Many-to-many → Character | **Optional.** The sheets of the page (`world_pages` from the character): its NPC, the troops of a faction or a place, a character from here. The page shows them with their numbers and each sheet links back to its pages. Masters see every one; players only the party's |
 
 ### Quest and QuestObjective
 
@@ -507,6 +512,9 @@ Everything that belongs to one campaign: its diary, its world wiki, its board, i
 | description | text | |
 | status | string | `activa`, `completada` or `fallida` |
 | giver_id | FK → Page | **Optional.** `SET_NULL`. Who gave it |
+| parent_id | FK → Quest | **Optional.** `SET_NULL`. The adventure a mission belongs to; empty for an adventure (one level deep) |
+| color | string | **Optional.** `#RRGGBB`, chosen by the master to tell adventures apart. A mission without one takes its adventure's (`shown_color`) |
+| cover | image | **Optional.** (`aventuras/`) A small header image, shown over the adventure in «Aventuras», folded too |
 
 | QuestObjective field | Type | Notes |
 |---|---|---|
@@ -569,7 +577,7 @@ BoardLink joins two notes with red thread (`card_a`, `card_b`, both `CASCADE`). 
 | status | string | `oculto` (not sent to players), `conocido` or `visitado` |
 | importance | string | `principal` (capitals and key places, drawn bigger) or `secundario`. The map can hide the secondary places, or all of them |
 
-PartyMove is one step of the party's route: `map`, `location` (both `CASCADE`), `session` (optional, `SET_NULL`) and `order`. Moving the party marks the location as `visitado`. The map's session slider shows the route up to a session.
+PartyMove is one step of the party's route: `map`, `location` (both `CASCADE`), `session` (optional, `SET_NULL`), `order`, `path` (the waypoints the master draws from the stop before) and `color` (`#RRGGBB`, copper by default). Moving the party marks the location as `visitado`, and the new stretch keeps the colour of the one before. The map's session slider shows the route up to a session. Each stretch is drawn as small arrows in its colour, the same size on screen at any zoom (`mesa.js`); without JavaScript, as a dashed line with an arrow head at its stop.
 
 ### WeatherRegion (the map's weather layer)
 
@@ -627,8 +635,13 @@ A region of a map linked to a real place, whose live weather the map shows (rule
 | initiative | int | **Optional.** Typed by the master |
 | hp, hp_max | int | **Optional.** Only for enemies without a character |
 | order | int | Turn order; «Ordenar por iniciativa» rewrites it |
+| side | string | **Optional.** `grupo` or `enemigos`: the side of the table its card goes to. Empty: the party's characters with the group, everyone else against it. The master moves a card to the other side (an NPC ally) |
 
-Players see the order and whose turn it is; they never receive the hit points of enemies or NPCs. When «Siguiente» closes a round, cooldowns and active effects of the characters in the fight lose 1 round.
+«Turnos» is a table of cards: the party's on one side and those who fight it on the other, with the round, whose turn it is, who comes next and the order of the fight above. The master decides who acts: the order can follow the initiative («Ordenar por iniciativa») or be set by hand (‹ › on each card move it one place, which rewrites `order`), and «Le toca» gives the turn to any card (`turn_index`), whatever the order says. Players see the order and whose turn it is; only the master gets the hit points, AP and states of the enemy side and of NPCs. Everyone sees how wounded each fighter looks: a red veil over its picture that thickens by quarters of hit points lost (`views_turns.wound_level`, four steps, never solid), so players judge a fight without numbers. When «Siguiente» closes a round, or the master starts one with «Nueva ronda», cooldowns and active effects of everyone in the fight lose 1 round.
+
+States go on the cards: a list at the foot of each card puts one on for some rounds (the master on any card, a player on their own character's), and it shows as a tag under the name, with a × that takes it off. Everyone sees the states each fighter suffers, as tags and as an animation over its picture by kind (it bleeds, burns, is frozen, poisoned, stunned, paralysed, blinded, terrified, tied, held in the air, charmed, asleep, invisible or turned to stone: `views_turns.effect_kind`, CSS only, still for those who prefer less motion); how many rounds they last, only where the numbers show.
+
+A pair that acts at once (`Character.acts_with`), side by side in the order, takes one turn: both cards are «Su turno», «Turno de» names the two, «Siguiente» passes both, «Le toca» on either gives it to both, ‹ › move the pair as one, and «Ordenar por iniciativa» puts each partner right behind the first of the two.
 
 ---
 
@@ -653,7 +666,7 @@ python manage.py populate                       # the sample campaign on top of 
 ```
 
 - **`CampaignManager/fixtures/datos_iniciales_srd.json`**: the official SRD 5.2.1 in Spanish, adapted to this model. It holds 9 races and 24 subraces, 12 classes and 12 subclasses, 286 abilities, 339 spells, 97 attacks (all of them from spells), 86 items (item templates without a price) and the 15 conditions as Effects. It has no weapons, armor or armor types. Its primary keys are fixed and start at 1, so it must be loaded into empty tables: rows with the same ids would be overwritten. Distances already follow rule 10 (6 ft = 2 m).
-- **`CampaignManager/fixtures/armas_caseras.json`**: our homemade weapons, which replace the SRD's. It holds 32 weapon item templates (melee weapons, shields, bows, firearms and bombs) with their Weapon rows and 99 attacks, the 23 weapon traits as Effects (BARRIDO, SANGRADO…), 52 ItemEffects with the value of each trait, 12 ArmorDamages and 2 DiceRolls. Its primary keys start above the SRD's, so it overwrites none of them.
+- **`CampaignManager/fixtures/armas_caseras.json`**: our homemade weapons, which replace the SRD's. It holds 32 weapon item templates (melee weapons, shields, bows, firearms and bombs) with their Weapon rows and 99 attacks, the 23 weapon traits as Effects (BARRIDO, SANGRADO…), the 6 house states as Effects (Aterrado, Atado, Congelado, Quemado, Sangrando, Suspendido; migration 0035 adds them to a database that already has the catalog), 52 ItemEffects with the value of each trait, 12 ArmorDamages and 2 DiceRolls. Its primary keys start above the SRD's, so it overwrites none of them.
 - **`python manage.py populate`**: adds the test user, the Alforge campaign and Balasar, linked to the SRD rows by name. It also adds what neither fixture includes: the druid subclass Círculo de la Luna, the spells Escudo de piedra and Tierra en erupción, a "Dardo" weapon template (the homemade weapons have no dart), the other traits on Balasar's sheet and his items. It stops with an error if either fixture is not loaded, and it can be run again without duplicating anything.
 - **The order matters:** `populate` creates rows with the next free ids, the same ones the fixtures use, so a fixture loaded after `populate` would overwrite them. To load the fixtures again on a database that already has data, start again from empty tables.
 - **License:** the SRD is published under CC-BY-4.0, which requires its attribution statement on the website. It is in the footer of `base.html`, on every page.
@@ -700,7 +713,7 @@ These are house rules or constraints the diagram cannot express.
      - The `clean()` of RaceAbility, SubraceAbility, ClassAbility and SubclassAbility: a race, subrace, class or subclass cannot grant a unique ability that would leave two characters in a campaign with it.
 7. **Ability levels:** a character gets a race, subrace, class or subclass ability only once their level is at least `level_required`.
 8. **One class per character:** no multiclassing. A character has at most one subclass and at most one subrace.
-9. **Calculated, not stored:** speed comes from the race (subraces have no speed); maximum AP and magic AP come from the equipped armor; initiative and passive perception come from the ability scores. The level is stored (rule 16); the level the XP is enough for is calculated with the SRD table (`rules.XP_THRESHOLDS`).
+9. **Calculated, not stored:** speed comes from the race (subraces have no speed), unless the character has its own (`own_speed`, for NPCs); maximum AP and magic AP come from the equipped armor; initiative and passive perception come from the ability scores. The level is stored (rule 16); the level the XP is enough for is calculated with the SRD table (`rules.XP_THRESHOLDS`).
 10. **Units:** distances (race speed, spell and attack range, attack area) are in meters; in melee, 1 square = 1 m. Attack cooldown is in rounds. A spell's or attack's range is empty when it is not a distance. Distances in feet (D&D books, character sheets) are converted with 6 ft = 2 m, rounded to the nearest meter: 30 ft = 10 m, 35 ft = 12 m, 25 ft = 8 m.
 11. **NPCs:**
    - Only NPCs can have a template (checked by a database constraint).
@@ -800,7 +813,7 @@ The two User ↔ Campaign relationships need different `related_name` values, ot
 - `CheckConstraint` on ClassAddon: `max_cost` is empty or above `cost`.
 - `CheckConstraint` on Character: `template` is empty or `is_npc` is true; death saves up to 3. `magic_points` up to the calculated maximum is checked in `Character.clean()`.
 - `CheckConstraint` on CharacterAbility: `uses_left` up to `max_uses`, `cooldown_left` up to `cooldown_rounds`.
-- Campaign models: `UniqueConstraint` on Session (`campaign`, `number`), Page (`campaign`, `slug`), BoardLink (`card_a`, `card_b`) and one active Encounter per campaign; `CheckConstraint` on BoardLink (`card_a` < `card_b`) and Combatant (a character or a name).
+- Campaign models: `UniqueConstraint` on Session (`campaign`, `number`), Page (`campaign`, `slug`), BoardLink (`card_a`, `card_b`) and one active Encounter per campaign; `CheckConstraint` on BoardLink (`card_a` < `card_b`) and Combatant (a character or a name). The colours of rumour categories, stretches of the route and adventures are `#RRGGBB` (`validate_color`).
 - `Campaign.status`: use `TextChoices` with `activa`, `pausada`, `terminada`.
 - `ArmorDamage.type`: use `TextChoices` with `penetrating` (Penetrante) and `shredding` (Triturante). "None" and "both" are not choices: they are zero, or more than one, ArmorDamages linked to the attack.
 - `Attack.stat_bonus`: choices `str` (Fuerza) and `dex` (Destreza), from the `Stat` TextChoices; empty means no ability modifier.

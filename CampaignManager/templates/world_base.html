@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load i18n mesa %}
 {% block content %}
-<section class="fila" style="gap:24px" aria-label="{% translate 'Mundo' %}">
+<section class="fila{% block world_section_class %}{% endblock %}" style="gap:24px" aria-label="{% translate 'Mundo' %}">
     <aside class="tarjeta compacta" style="flex:1 1 250px;min-width:0">
         <form method="get" action="{% url 'world' campaign.pk %}" role="search" class="campo">
             <label for="buscar-mundo" class="rotulo">{% translate "Buscar en el mundo" %}</label>
@@ -38,7 +38,8 @@
             {% endfor %}
         </nav>
         {% if no_results %}<p class="pequeno atenuado">{% translate "No hay nada con ese nombre." %}</p>{% endif %}
-        {% if is_master %}<a class="btn btn-discreto" href="{% url 'world_new' campaign.pk %}">+ {% translate "Nueva página" %}</a>{% endif %}
+        {# A new page starts in the category being read. #}
+        {% if is_master %}<a class="btn btn-discreto" href="{% url 'world_new' campaign.pk %}{% if current_page %}?cat={{ current_page.category }}{% elif category and category != 'pj' %}?cat={{ category }}{% endif %}">+ {% translate "Nueva página" %}</a>{% endif %}
     </aside>
     <div class="ancho pila">
         {% block world %}{% endblock %}

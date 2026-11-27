@@ -8,7 +8,7 @@ sessions none of its missions covers. Each mission, opened: its objectives and w
     <span class="rotulo">{% blocktranslate count n=item.missions|length %}{{ n }} misión{% plural %}{{ n }} misiones{% endblocktranslate %}</span>
     {% for m in item.missions %}
     {% with quest=m.q.quest %}
-    <details id="aventura-{{ quest.pk }}" class="mision{% if quest.hidden %} oculta{% endif %}" data-recordar="aventura-{{ campaign.pk }}-{{ quest.pk }}">
+    <details id="aventura-{{ quest.pk }}" class="mision{% if quest.hidden %} oculta{% endif %}{% if quest.shown_color %} con-color{% endif %}"{% if quest.shown_color %} style="--aventura:{{ quest.shown_color }}"{% endif %} data-recordar="aventura-{{ campaign.pk }}-{{ quest.pk }}">
         {% include "partials/quest_summary.html" %}
         <div class="pila-s" style="gap:8px;padding:6px 0 4px 22px">
             {% include "partials/quest_card.html" with q=m.q %}

@@ -109,11 +109,17 @@ route and its controls: that view is about the weather, not about where the part
             </form>
             {% elif editing_route %}
             <h2 style="font-size:22px">{% translate "Tramos del camino" %}</h2>
-            <p class="ayuda">{% translate "Quita un tramo añadido por error: el camino irá directo de la parada anterior a la siguiente." %}</p>
+            <p class="ayuda">{% translate "Dale a cada tramo su color para distinguirlos en el mapa: los nuevos siguen con el del anterior. Quita un tramo añadido por error: el camino irá directo de la parada anterior a la siguiente." %}</p>
+            <datalist id="colores-ruta">{% for value, label in route_palette %}<option value="{{ value|lower }}">{% translate label %}</option>{% endfor %}</datalist>
             <ol class="lista-limpia pila-s" style="gap:6px">
                 {% for seg in md.segments %}
                 <li class="fila-s" style="justify-content:space-between;flex-wrap:nowrap">
-                    <span class="pequeno">{{ seg.start.name }} → <b>{{ seg.move.location.name }}</b>{% if seg.move.session %} <span class="atenuado">· {% translate "Sesión" %} {{ seg.move.session.number }}</span>{% endif %}</span>
+                    <form method="post" action="{% url 'map_move_color' campaign.pk seg.move.pk %}" data-ajax data-auto data-target="#mapa-seccion" class="fila-s" style="gap:4px;flex-wrap:nowrap">{% csrf_token %}
+                        <label class="sr-only" for="color-tramo-{{ seg.move.pk }}">{% blocktranslate with a=seg.start.name b=seg.move.location.name %}Color del tramo {{ a }} → {{ b }}{% endblocktranslate %}</label>
+                        <input id="color-tramo-{{ seg.move.pk }}" class="color-tramo" type="color" name="color" value="{{ seg.move.color|lower }}" list="colores-ruta">
+                        <button class="btn btn-pequeno sin-js">{% translate "Guardar" %}</button>
+                    </form>
+                    <span class="pequeno" style="flex:1 1 auto;min-width:0">{{ seg.start.name }} → <b>{{ seg.move.location.name }}</b>{% if seg.move.session %} <span class="atenuado">· {% translate "Sesión" %} {{ seg.move.session.number }}</span>{% endif %}</span>
                     <form method="post" action="{% url 'map_move_delete' campaign.pk seg.move.pk %}" data-ajax data-target="#mapa-seccion" class="en-linea">{% csrf_token %}
                         <button type="submit" class="btn btn-texto" style="color:var(--danger-text)" data-confirmar="{% blocktranslate with a=seg.start.name b=seg.move.location.name %}¿Quitar el tramo {{ a }} → {{ b }}?{% endblocktranslate %}">{% translate "Quitar" %}</button>
                     </form>

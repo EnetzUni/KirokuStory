@@ -1,14 +1,93 @@
 {% extends "world_base.html" %}
-{% load i18n %}
+{% load i18n mesa %}
+{% comment %}
+The page editor. On the left what is read: title, category (one click) and the two texts, each with «Enlazar»
+to link its words to another page. On the right the page as it will look (its colour, its image, whether the
+group sees it) and the rest of its details. Save, cancel and delete stay at hand at the foot.
+Without JavaScript it is a plain form; mesa.js («Editor de páginas del mundo») adds the live preview and the links.
+{% endcomment %}
+{% block title %}{% if object %}{% blocktranslate with title=object.title %}Editar «{{ title }}»{% endblocktranslate %}{% else %}{% translate "Nueva página" %}{% endif %} · {{ campaign.name }}{% endblock %}
+{% block world_section_class %} editor-primero{% endblock %}
 {% block world %}
-<form method="post" enctype="multipart/form-data" class="tarjeta">
+<nav class="migas" aria-label="{% translate 'Ruta' %}">
+    <a href="{% url 'world' campaign.pk %}">{% translate "Mundo" %}</a><span aria-hidden="true">›</span>
+    {% if object %}<a href="{% url 'world_page' campaign.pk object.slug %}">{{ object.title }}</a><span aria-hidden="true">›</span><span style="color:var(--text)">{% translate "Editar" %}</span>
+    {% else %}<span style="color:var(--text)">{% translate "Nueva página" %}</span>{% endif %}
+</nav>
+<form method="post" enctype="multipart/form-data" class="editor-pagina" data-editor-pagina>
     {% csrf_token %}
-    <h1 style="font-size:26px">{% if object %}{% translate "Editar página" %}{% else %}{% translate "Nueva página" %}{% endif %}</h1>
-    {{ form.non_field_errors }}
-    {% for field in form %}{% include "partials/field.html" %}{% endfor %}
-    <div class="fila-s">
-        <button type="submit" class="btn btn-principal">{% translate "Guardar" %}</button>
-        <a class="btn" href="{% if object %}{% url 'world_page' campaign.pk object.slug %}{% else %}{% url 'world' campaign.pk %}{% endif %}">{% translate "Cancelar" %}</a>
+    {% if form.non_field_errors %}<div class="aviso">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="editor-rejilla">
+        <div class="editor-principal tarjeta">
+            <div class="editor-titulo-campo">
+                <label class="rotulo" for="{{ form.title.id_for_label }}">{% if object %}{% translate "Título" %}{% else %}{% translate "Nueva página" %}{% endif %}</label>
+                {{ form.title }}
+                {{ form.title.errors }}
+            </div>
+            <fieldset class="editor-categorias">
+                <legend class="etiqueta">{% translate "Categoría" %}</legend>
+                <div class="fila-s">
+                    {% for c in category_radios %}
+                    {% translate c.intro as intro %}{% translate c.radio.choice_label as kind %}
+                    <label class="chip chip-cat" for="{{ c.radio.id_for_label }}" data-intro="{{ intro }}">{{ c.radio.tag }}<i class="punto cat-{{ c.radio.data.value }}" aria-hidden="true"></i>{{ kind }}</label>
+                    {% endfor %}
+                </div>
+                <p class="ayuda" data-intro-categoria>{% for c in category_radios %}{% if c.radio.data.value == form.category.value %}{% translate c.intro %}{% endif %}{% endfor %}</p>
+                {{ form.category.errors }}
+            </fieldset>
+            {% include "partials/wiki_field.html" with field=form.body %}
+            {% include "partials/wiki_field.html" with field=form.secret secret=True %}
+        </div>
+
+        <aside class="editor-lateral tarjeta sin-relleno" aria-label="{% translate 'Cómo se verá y otros detalles' %}">
+            <div class="ficha-pagina cat-{{ form.category.value }}" data-vista-portada>
+                <span data-vista-inicial>{% if form.title.value %}{{ form.title.value|initial }}{% endif %}</span>
+                {% if object.image %}<img src="{{ object.image.url }}" alt="">{% endif %}
+            </div>
+            <div class="editor-lateral-cuerpo">
+                <div class="vista-cabeza">
+                    <b data-vista-titulo data-vacio="{% translate 'Sin título' %}">{{ form.title.value|default_if_none:""|default:_("Sin título") }}</b>
+                    <span class="pastilla p-morado" data-vista-oculta {% if form.revealed.value %}hidden{% endif %}>{% translate "Oculta para el grupo" %}</span>
+                </div>
+                <div class="campo">
+                    <label class="interruptor">{{ form.revealed }}<span>{{ form.revealed.label }}</span></label>
+                    <span class="ayuda">{{ form.revealed.help_text }}</span>
+                    {{ form.revealed.errors }}
+                </div>
+                {% include "partials/field.html" with field=form.image %}
+                {% include "partials/field.html" with field=form.parent %}
+                <div data-solo-lugar>{% include "partials/field.html" with field=form.location %}</div>
+                {% include "partials/field.html" with field=form.summary %}
+                <details class="editor-fichas" {% if form.sheets.errors %}open{% endif %}>
+                    <summary><span class="flecha" aria-hidden="true">›</span>{% translate "Fichas" %}<span class="pastilla" data-cuenta-fichas>{{ form.sheets.value|length }}</span></summary>
+                    {% include "partials/sheets_field.html" with field=form.sheets %}
+                </details>
+            </div>
+        </aside>
+    </div>
+
+    <div class="editor-pie">
+        <button type="submit" class="btn btn-principal">{% if object %}{% translate "Guardar cambios" %}{% else %}{% translate "Crear página" %}{% endif %}</button>
+        <a class="btn" href="{% if object %}{% url 'world_page' campaign.pk object.slug %}{% else %}{% url 'world' campaign.pk %}?cat={{ form.category.value }}{% endif %}">{% translate "Cancelar" %}</a>
+        <span class="pequeno atenuado" data-estado-editor data-sin-guardar="{% translate 'Cambios sin guardar' %}" aria-live="polite"></span>
+        {% if object %}{% include "partials/page_delete.html" with page=object in_form=True %}{% endif %}
+    </div>
+
+    {# The link finder: one for the editor, placed under the text being linked (mesa.js). #}
+    <div class="buscador-enlace" data-buscador-enlace role="dialog" aria-labelledby="buscador-enlace-que" hidden
+         data-con="{% translate 'Enlazar «%s» con:' %}" data-insertar="{% translate 'Insertar un enlace a:' %}"
+         data-nueva="{% translate '«%s»: una página nueva' %}" data-oculta="{% translate 'Oculta' %}"
+         data-quitar="{% translate 'Quitar el enlace a %s (las palabras se quedan)' %}"
+         data-buscar="{% translate 'Ver dónde está en el texto' %}"
+         data-falta="{% translate 'Todavía no existe: el enlace te dejará crearla' %}">
+        <p class="buscador-que" id="buscador-enlace-que"></p>
+        <input type="search" class="entrada" role="combobox" aria-expanded="true" aria-controls="buscador-enlace-opciones"
+               aria-autocomplete="list" autocomplete="off" placeholder="{% translate 'Busca una página…' %}"
+               aria-label="{% translate 'Busca la página que quieres enlazar' %}">
+        <ul class="lista-limpia buscador-opciones" id="buscador-enlace-opciones" role="listbox" aria-label="{% translate 'Páginas' %}"></ul>
+        <p class="ayuda">{% translate "↑ ↓ para elegir · Intro para enlazar · Esc para cerrar" %}</p>
     </div>
 </form>
+{% if object %}<form id="borrar-pagina" method="post" action="{% url 'world_delete' campaign.pk object.slug %}" hidden>{% csrf_token %}</form>{% endif %}
+{{ link_index|json_script:"indice-enlaces" }}
 {% endblock %}

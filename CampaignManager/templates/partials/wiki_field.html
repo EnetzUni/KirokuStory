@@ -1,0 +1,24 @@
+{% load i18n %}{% comment %}
+A text with [[links]] (the body or the secret of a page): its label, «Enlazar» (only with JavaScript, mesa.js:
+it links the words chosen to another page; Ctrl + K or typing [[ open it too), the text, and the links it holds,
+each one a chip that finds it in the text, with a × that takes the link away and keeps the words.
+{% endcomment %}
+<div class="campo campo-wiki{% if secret %} campo-secreto{% endif %}" data-campo-wiki>
+    <div class="campo-wiki-cabeza">
+        <label for="{{ field.id_for_label }}">{{ field.label }}{% if secret %} <span class="pastilla p-morado">{% translate "Solo lo ves tú" %}</span>{% endif %}</label>
+        <span class="campo-wiki-herramientas" data-herramientas hidden>
+            <span class="pequeno atenuado">{% translate "o escribe [[" %}</span>
+            <button type="button" class="btn btn-pequeno btn-enlazar" data-enlazar aria-haspopup="dialog" aria-keyshortcuts="Control+K"
+                    title="{% translate 'Elige unas palabras del texto y enlázalas con otra página (Ctrl + K)' %}">
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.2 1.2M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.2-1.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                {% translate "Enlazar" %}</button>
+        </span>
+    </div>
+    {{ field }}
+    <div class="enlaces-texto" data-enlaces hidden>
+        <span class="pequeno atenuado">{% translate "Enlaces" %}</span>
+        <ul class="lista-limpia enlaces-lista" data-enlaces-lista></ul>
+    </div>
+    {% if field.help_text %}<span class="ayuda">{{ field.help_text }}</span>{% endif %}
+    {{ field.errors }}
+</div>

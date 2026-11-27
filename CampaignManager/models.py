@@ -5,6 +5,7 @@ from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models, transaction
+from django.db.models.functions import Upper
 from django.db.models.signals import m2m_changed, post_delete, pre_delete
 from django.dispatch import receiver
 from django.utils.translation import gettext_noop
@@ -132,6 +133,9 @@ class Character(models.Model):
     hp = models.IntegerField(help_text="Maximum hit points")
     temp_hp = models.IntegerField(help_text="Current hit points")
     ac = models.IntegerField(help_text="Armor class")
+    # The speed comes from the race; an NPC that runs, flies or crawls has its own.
+    own_speed = models.PositiveSmallIntegerField(
+        null=True, blank=True, help_text="In meters. Only when it is not the race's (an NPC of the bestiary); empty: the race's")
     temp_ap = models.IntegerField(default=0, help_text="Current armor points")
     inspiration = models.IntegerField(default=0)
     strength = models.IntegerField()
@@ -185,6 +189,17 @@ class Character(models.Model):
         limit_choices_to={"is_npc": True, "template__isnull": True},
         help_text="Only for NPC copies: the NPC template this character was made from",
     )
+    # A pair of the bestiary that acts in one activation (Shayne and Aurox): each template points to
+    # the other, and their copies keep it. In «Turnos» two partners side by side take one turn.
+    acts_with = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        limit_choices_to={"is_npc": True, "template__isnull": True},
+        help_text="Only for NPCs: the NPC template it acts with, in one activation",
+    )
 
     # posee (with uses, through CharacterAbility), conoce, lleva, sufre
     abilities = models.ManyToManyField("Ability", through="CharacterAbility", blank=True)
@@ -226,7 +241,8 @@ class Character(models.Model):
 
     @property
     def speed(self):
-        return self.race.speed
+        """In meters: its own (an NPC of the bestiary) or its race's."""
+        return self.race.speed if self.own_speed is None else self.own_speed
 
     @property
     def initiative(self):
@@ -909,23 +925,45 @@ class ArmorDamage(models.Model):
 # Effects
 # ---------------------------------------------------------------------------
 
+class EffectQuerySet(models.QuerySet):
+    def conditions(self):
+        """The states a fighter can suffer (Agarrado, Quemado...): not the traits of weapons and armor
+        (SANGRADO, PESADA...), which the house writes in capitals."""
+        return (self.filter(itemeffect__isnull=True, armortype__isnull=True).exclude(name=Upper("name"))
+                .distinct().order_by("name"))
+
+
 class Effect(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     # Optional: conditions such as "Agarrado" have no duration of their own.
     duration = models.CharField(max_length=50, blank=True)
 
+    objects = EffectQuerySet.as_manager()
+
     def __str__(self):
         return self.name
 
 
 class ActiveEffect(models.Model):
-    character = models.ForeignKey("Character", on_delete=models.CASCADE)
+    """A state on a character for some rounds; or, in a fight, on an enemy without a sheet (its combatant)."""
+    character = models.ForeignKey("Character", on_delete=models.CASCADE, null=True, blank=True)
+    combatant = models.ForeignKey("Combatant", on_delete=models.CASCADE, null=True, blank=True, related_name="effects",
+                                  help_text="Only for an enemy without a sheet, in its fight")
     effect = models.ForeignKey("Effect", on_delete=models.CASCADE)
     remaining_turns = models.IntegerField()
 
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(character__isnull=False, combatant__isnull=True)
+                | models.Q(character__isnull=True, combatant__isnull=False),
+                name="active_effect_on_character_or_combatant",
+            ),
+        ]
+
     def __str__(self):
-        return f"{self.character} - {self.effect} ({self.remaining_turns} turns)"
+        return f"{self.character or self.combatant} - {self.effect} ({self.remaining_turns} turns)"
 
 
 # ---------------------------------------------------------------------------

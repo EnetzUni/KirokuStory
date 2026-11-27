@@ -12,8 +12,19 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.text import slugify
+from django.utils.translation import gettext_noop
 
 from .models import Campaign, Character, User
+
+# A colour the master chooses: a rumour category's, a stretch of the route's, an adventure's.
+validate_color = RegexValidator(r"^#[0-9A-Fa-f]{6}$", "Write a colour as #RRGGBB.")
+# The colours offered first when the master picks one (any other can be chosen too), with their names.
+COLOR_PALETTE = [
+    ("#BC6C25", gettext_noop("Cobre")), ("#9E2A2B", gettext_noop("Granate")), ("#2B6CB0", gettext_noop("Azul")),
+    ("#2F855A", gettext_noop("Verde")), ("#6B46C1", gettext_noop("Violeta")), ("#1D6158", gettext_noop("Verde azulado")),
+    ("#B7791F", gettext_noop("Ocre")), ("#B83280", gettext_noop("Rosa")), ("#4A5568", gettext_noop("Gris pizarra")),
+    ("#283618", gettext_noop("Verde bosque")),
+]
 
 
 class CampaignQuerySet(models.QuerySet):
@@ -146,6 +157,13 @@ class Page(models.Model):
         "MapLocation", on_delete=models.SET_NULL, null=True, blank=True, related_name="page",
         help_text="Only for places: the map location of this page",
     )
+    # The character sheets of this page: an NPC's own page, the troops of a faction or a place, a
+    # character from here. The page shows them with their numbers and each sheet links back to it.
+    # Masters see every one; players, only the party's (NPC sheets are the master's).
+    sheets = models.ManyToManyField(
+        Character, blank=True, related_name="world_pages",
+        help_text="Sheets of this page: its NPC, the troops of a faction or a place, a character from here",
+    )
 
     objects = PageQuerySet.as_manager()
 
@@ -249,6 +267,10 @@ class Quest(models.Model):
     # An adventure (an arc) holds missions: quests with a parent. Only one level deep.
     parent = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True, related_name="missions",
                                help_text="The adventure this mission belongs to; empty for an adventure")
+    # To tell them apart at a glance, as the master likes: a colour, a small header image, or both.
+    color = models.CharField(max_length=7, blank=True, validators=[validate_color],
+                             help_text="Empty: no colour, or for a mission its adventure's")
+    cover = models.ImageField(upload_to="aventuras/", blank=True, help_text="A small header image, like the campaign's cover")
 
     objects = QuestQuerySet.as_manager()
 
@@ -281,6 +303,13 @@ class Quest(models.Model):
                 raise ValidationError({"start_session": "Di en qué sesión empezó."})
             if self.end_session.number < self.start_session.number:
                 raise ValidationError({"end_session": "No puede terminar antes de empezar."})
+
+    @property
+    def shown_color(self):
+        """Its colour; a mission without one takes its adventure's. "" when neither has one."""
+        if self.color:
+            return self.color
+        return self.parent.color if self.parent_id else ""
 
     def covers(self, session_number, last_number):
         """Whether the session with this number is part of the adventure."""
@@ -505,6 +534,9 @@ class MapLocation(models.Model):
         return self.name
 
 
+ROUTE_COLOR = "#BC6C25"  # copper: a stretch's colour until the master chooses another
+
+
 class PartyMove(models.Model):
     """One step of the party's route on a map."""
 
@@ -515,6 +547,8 @@ class PartyMove(models.Model):
     # The way followed from the previous stop to this one: [[x, y], ...] in % of the
     # image, without the two stops. Empty means a straight line.
     path = models.JSONField(default=list, blank=True)
+    # The colour of the stretch's arrows on the map, so the master can tell stretches apart.
+    color = models.CharField(max_length=7, default=ROUTE_COLOR, validators=[validate_color])
 
     class Meta:
         ordering = ["map", "order", "id"]
@@ -565,7 +599,6 @@ class WeatherRegion(models.Model):
 # ---------------------------------------------------------------------------
 
 DEFAULT_RUMOUR_CATEGORIES = [("Rumor", "#6B6B5E"), ("Comunicado oficial", "#9A6B00"), ("Noticia", "#1F4E89"), ("Leyenda", "#5B3E96")]
-validate_color = RegexValidator(r"^#[0-9A-Fa-f]{6}$", "Write a colour as #RRGGBB.")
 
 
 class RumourCategory(models.Model):
@@ -677,6 +710,10 @@ class Encounter(models.Model):
 
 
 class Combatant(models.Model):
+    class Side(models.TextChoices):
+        GRUPO = "grupo", "Con el grupo"
+        ENEMIGOS = "enemigos", "Contra el grupo"
+
     encounter = models.ForeignKey(Encounter, on_delete=models.CASCADE, related_name="combatants")
     character = models.ForeignKey(Character, on_delete=models.CASCADE, null=True, blank=True, related_name="combatants")
     name = models.CharField(max_length=100, blank=True, help_text="For enemies without a character")
@@ -685,6 +722,10 @@ class Combatant(models.Model):
     hp = models.IntegerField(null=True, blank=True)
     hp_max = models.IntegerField(null=True, blank=True)
     order = models.PositiveIntegerField(default=0)
+    # The side of the table its card goes to. Empty: the party's characters fight with the group and
+    # everyone else against it; the master can move a card to the other side (an NPC ally).
+    side = models.CharField(max_length=10, choices=Side.choices, blank=True,
+                            help_text="Empty: player characters with the group, the rest against it")
 
     class Meta:
         ordering = ["encounter", "order", "id"]
@@ -709,3 +750,10 @@ class Combatant(models.Model):
     @property
     def max_hp(self):
         return self.character.hp if self.character_id else self.hp_max
+
+    @property
+    def with_party(self):
+        """Whether its card goes on the party's side of the table."""
+        if self.side:
+            return self.side == self.Side.GRUPO
+        return self.character_id is not None and not self.character.is_npc

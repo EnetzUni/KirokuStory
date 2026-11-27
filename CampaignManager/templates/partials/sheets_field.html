@@ -1,0 +1,12 @@
+{% load i18n %}{% comment %}
+«Fichas» of a world page: a long list of boxes, one per sheet the master can link (the party and
+the NPCs), in a box that scrolls. The search box only appears with JavaScript (mesa.js): it hides
+the sheets that do not match and always keeps the ticked ones in sight.
+{% endcomment %}
+<div class="campo">
+    <span class="etiqueta" id="etiqueta-{{ field.auto_id }}">{{ field.label }}</span>
+    <input type="search" class="entrada" data-buscar-fichas="#{{ field.auto_id }}" placeholder="{% translate 'Buscar una ficha' %}" aria-label="{% translate 'Buscar una ficha' %}" autocomplete="off" hidden>
+    <div role="group" aria-labelledby="etiqueta-{{ field.auto_id }}">{{ field }}</div>
+    {% if field.help_text %}<span class="ayuda">{{ field.help_text }}</span>{% endif %}
+    {{ field.errors }}
+</div>

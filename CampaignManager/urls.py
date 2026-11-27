@@ -45,6 +45,7 @@ urlpatterns = [
     path(campaign + "mundo/<slug:slug>/", views_world.PageDetailView.as_view(), name="world_page"),
     path(campaign + "mundo/<slug:slug>/editar/", views_world.PageUpdateView.as_view(), name="world_edit"),
     path(campaign + "mundo/<slug:slug>/visibilidad/", views_world.page_toggle, name="world_toggle"),
+    path(campaign + "mundo/<slug:slug>/borrar/", views_world.page_delete, name="world_delete"),
     path(campaign + "mundo/<slug:slug>/resumen/", views_world.page_preview, name="world_preview"),
 
     # Rumores
@@ -62,6 +63,7 @@ urlpatterns = [
     path(campaign + "mapa/lugar/<int:pk>/", views_map.location_action, name="map_location_action"),
     path(campaign + "mapa/tramo/<int:pk>/", views_map.move_path, name="map_move_path"),
     path(campaign + "mapa/tramo/<int:pk>/quitar/", views_map.move_delete, name="map_move_delete"),
+    path(campaign + "mapa/tramo/<int:pk>/color/", views_map.move_color, name="map_move_color"),
     path(campaign + "mapa/<int:map_id>/tiempo/", views_map.map_weather, name="map_weather"),
     path(campaign + "mapa/<int:map_id>/tiempo/region/", views_map.weather_region_add, name="map_weather_add"),
     path(campaign + "mapa/tiempo/region/<int:pk>/quitar/", views_map.weather_region_delete, name="map_weather_delete"),

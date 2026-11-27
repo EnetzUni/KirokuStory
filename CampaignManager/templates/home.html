@@ -100,7 +100,7 @@
                 <h2 class="rotulo">{% translate "Aventuras en curso" %}</h2>
                 {% for q in quests %}
                 <div class="pila-s" style="gap:6px">
-                    <div class="fila-s" style="justify-content:space-between;font-size:14px"><b>{% if q.quest.parent %}<span class="atenuado" style="font-weight:400">{{ q.quest.parent.title }} › </span>{% endif %}{{ q.quest.title }}{% if q.quest.hidden %} <span class="pastilla p-morado" style="font-size:10px">{% translate "OCULTA" %}</span>{% endif %}</b><span class="atenuado">{{ q.done }} {% translate "de" %} {{ q.total }}</span></div>
+                    <div class="fila-s" style="justify-content:space-between;font-size:14px"><b>{% if q.quest.shown_color %}<span class="punto-color" style="background:{{ q.quest.shown_color }}" aria-hidden="true"></span>{% endif %}{% if q.quest.parent %}<span class="atenuado" style="font-weight:400">{{ q.quest.parent.title }} › </span>{% endif %}{{ q.quest.title }}{% if q.quest.hidden %} <span class="pastilla p-morado" style="font-size:10px">{% translate "OCULTA" %}</span>{% endif %}</b><span class="atenuado">{{ q.done }} {% translate "de" %} {{ q.total }}</span></div>
                     <span class="barra"><span style="width:{% pct q.done q.total %}%"></span></span>
                 </div>
                 {% empty %}<p class="atenuado">{% translate "No hay aventuras en curso." %}</p>{% endfor %}

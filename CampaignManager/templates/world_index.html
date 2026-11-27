@@ -5,6 +5,13 @@
 <h1>{% translate category_label %}</h1>
 <p class="atenuado">{% translate category_intro %}</p>
 <div class="rejilla" style="grid-template-columns:repeat(auto-fill,minmax(min(240px,100%),1fr))">
+    {% if is_master and category != "pj" %}
+    <a class="tarjeta tarjeta-nueva" href="{% url 'world_new' campaign.pk %}?cat={{ category }}">
+        <span class="tarjeta-nueva-mas" aria-hidden="true">+</span>
+        <b>{% translate "Nueva página" %}</b>
+        <span class="pequeno atenuado">{% blocktranslate with label=category_label|lower %}en {{ label }}{% endblocktranslate %}</span>
+    </a>
+    {% endif %}
     {% for card in cards %}
     {% if card.character %}
     <a class="tarjeta sin-relleno tarjeta-enlace" href="{% url 'sheet' campaign.pk card.character.pk %}">
@@ -12,15 +19,23 @@
         <span class="pila-s" style="padding:12px 14px 14px;gap:4px"><b style="font-size:18px">{{ card.character.name }}</b><span class="pequeno atenuado">{{ card.character.race }} · {{ card.character.char_class }}</span></span>
     </a>
     {% else %}
-    <a class="tarjeta sin-relleno tarjeta-enlace" href="{% url 'world_page' campaign.pk card.page.slug %}">
-        <span class="ficha-pagina cat-{{ card.page.category }}">{% if card.page.image %}<img src="{{ card.page.image.url }}" alt="">{% else %}{{ card.page.title|initial }}{% endif %}</span>
-        <span class="pila-s" style="padding:12px 14px 14px;gap:4px">
-            <span class="fila-s" style="justify-content:space-between"><b style="font-size:18px">{{ card.page.title }}</b>{% if not card.page.revealed %}<span class="pastilla p-morado" style="font-size:10px">{% translate "OCULTO" %}</span>{% endif %}</span>
-            {% if card.page.parent %}<span class="pequeno" style="color:var(--link);font-weight:700">{% translate "En" %} {{ card.page.parent.title }}</span>{% endif %}
-            <span class="pequeno atenuado">{{ card.summary|plain }}</span>
-        </span>
-    </a>
+    {# The master's cards carry a pencil to edit the page straight away (a link of its own, beside the card's). #}
+    <div class="tarjeta-con-accion">
+        <a class="tarjeta sin-relleno tarjeta-enlace" href="{% url 'world_page' campaign.pk card.page.slug %}">
+            <span class="ficha-pagina cat-{{ card.page.category }}">{% if card.page.image %}<img src="{{ card.page.image.url }}" alt="">{% else %}{{ card.page.title|initial }}{% endif %}</span>
+            <span class="pila-s" style="padding:12px 14px 14px;gap:4px">
+                <span class="fila-s" style="justify-content:space-between"><b style="font-size:18px">{{ card.page.title }}</b>{% if not card.page.revealed %}<span class="pastilla p-morado" style="font-size:10px">{% translate "OCULTO" %}</span>{% endif %}</span>
+                {% if card.page.parent %}<span class="pequeno" style="color:var(--link);font-weight:700">{% translate "En" %} {{ card.page.parent.title }}</span>{% endif %}
+                <span class="pequeno atenuado">{{ card.summary|plain }}</span>
+            </span>
+        </a>
+        {% if is_master %}
+        <a class="accion-tarjeta" href="{% url 'world_edit' campaign.pk card.page.slug %}" title="{% translate 'Editar' %}"
+           aria-label="{% blocktranslate with title=card.page.title %}Editar «{{ title }}»{% endblocktranslate %}">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg></a>
+        {% endif %}
+    </div>
     {% endif %}
-    {% empty %}<p class="atenuado">{% translate "Todavía no hay nada en esta categoría." %}</p>{% endfor %}
+    {% empty %}{% if not is_master or category == "pj" %}<p class="atenuado">{% translate "Todavía no hay nada en esta categoría." %}</p>{% endif %}{% endfor %}
 </div>
 {% endblock %}

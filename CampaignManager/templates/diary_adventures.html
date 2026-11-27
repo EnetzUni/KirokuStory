@@ -26,7 +26,7 @@
         <div class="rejilla-aventuras">
             {% for item in group.items %}
             {% with quest=item.q.quest %}
-            <details id="aventura-{{ quest.pk }}" class="aventura-plegada tarjeta compacta{% if quest.hidden %} oculta{% endif %}" data-recordar="aventura-{{ campaign.pk }}-{{ quest.pk }}">
+            <details id="aventura-{{ quest.pk }}" class="aventura-plegada tarjeta compacta{% if quest.hidden %} oculta{% endif %}{% if quest.shown_color %} con-color{% endif %}"{% if quest.shown_color %} style="--aventura:{{ quest.shown_color }}"{% endif %} data-recordar="aventura-{{ campaign.pk }}-{{ quest.pk }}">
                 {% include "partials/quest_summary.html" %}
                 <div class="pila-s" style="gap:10px;padding-top:10px">
                     {% include "partials/adventure_body.html" %}
@@ -40,9 +40,13 @@
     <div class="pila-s" style="gap:16px">
         <h2 style="font-size:22px">{% translate group.label %}</h2>
         {% for item in group.items %}
-        <section id="aventura-{{ item.q.quest.pk }}" class="tarjeta pila-s aventura-abierta" style="gap:10px" aria-label="{{ item.q.quest.title }}">
+        {% with quest=item.q.quest %}
+        {# Its colour on the left edge and its cover as a header (QuestForm: «Color», «Portada»). #}
+        <section id="aventura-{{ quest.pk }}" class="tarjeta pila-s aventura-abierta{% if quest.shown_color %} con-color{% endif %}{% if quest.cover %} con-portada{% endif %}" style="gap:10px{% if quest.shown_color %};--aventura:{{ quest.shown_color }}{% endif %}" aria-label="{{ quest.title }}">
+            {% if quest.cover %}<img class="aventura-portada" src="{{ quest.cover.url }}" alt="" loading="lazy" decoding="async">{% endif %}
             {% include "partials/adventure_body.html" %}
         </section>
+        {% endwith %}
         {% endfor %}
     </div>
     {% endif %}

@@ -1,15 +1,16 @@
 """Mundo: the campaign's wiki of places, NPCs, factions, objects and stories."""
+from django.contrib import messages
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
-from django.utils.translation import gettext_noop
+from django.utils.translation import gettext, gettext_noop
 from django.views.generic import CreateView, DetailView, TemplateView, UpdateView
 
 from .ajax import respond
 from .forms import PageForm
-from .models import Page, Post, Scene, Session, TimelineEvent
-from .permissions import CampaignMemberMixin, MasterRequiredMixin, campaign_member, master_only
+from .models import Character, Page, Post, Scene, Session, TimelineEvent
+from .permissions import CampaignMemberMixin, MasterRequiredMixin, campaign_member, master_only, npc_templates_for
 from .wiki import WikiResolver, first_sentence, mentions
 
 CATEGORIES = [
@@ -21,6 +22,35 @@ CATEGORIES = [
     ("pj", gettext_noop("Personajes jugadores"), gettext_noop("El grupo. Abre la ficha de cada uno.")),
 ]
 CATEGORY_INFO = {key: (label, intro) for key, label, intro in CATEGORIES}
+
+
+def link_index(campaign, page=None):
+    """Everything [[Name]] can open, for the link finder of the page editor: the pages (but the one
+    being edited), the party's sheets and the NPC templates (which only the master gets as links).
+    A sheet named like a page is left out: the page is what the link opens."""
+    kinds = dict(Page.Category.choices)
+    pages = Page.objects.filter(campaign=campaign).only("title", "category", "revealed").order_by("title")
+    if page is not None and page.pk:
+        pages = pages.exclude(pk=page.pk)
+    out = [{"t": p.title, "c": p.category, "k": gettext(kinds.get(p.category, "")), "h": not p.revealed} for p in pages]
+    taken = {p.title.lower() for p in Page.objects.filter(campaign=campaign).only("title")}
+    sheets = [(c, "pj", gettext("Personaje jugador")) for c in campaign.party]
+    sheets += [(c, "ficha", gettext("Ficha de PNJ · solo tú")) for c in npc_templates_for(campaign).order_by("name")]
+    for character, kind, label in sheets:
+        if character.name.lower() not in taken:
+            taken.add(character.name.lower())
+            out.append({"t": character.name, "c": kind, "k": label, "h": False})
+    return out
+
+
+def deletion_summary(page):
+    """What deleting a page leaves behind, for the master to read before saying yes."""
+    others = Page.objects.filter(campaign=page.campaign).exclude(pk=page.pk).only("body", "secret")
+    linked = sum(1 for other in others if mentions(other.body, page.title) or mentions(other.secret, page.title))
+    linked += sum(1 for session in Session.objects.filter(campaign=page.campaign).only("body", "master_notes")
+                  if mentions(session.body, page.title) or mentions(session.master_notes, page.title))
+    return {"children": page.children.count(), "linked": linked, "sheets": page.sheets.count(),
+            "on_map": bool(page.location_id)}
 
 
 def tree(pages, category, current=None):
@@ -138,21 +168,30 @@ class PageDetailView(WorldMixin, DetailView):
         if page.location_id:
             for event in TimelineEvent.objects.visible_for(user, campaign).filter(location=page.location):
                 refs.append({"label": f"Suceso: {event.title}", "url": reverse("diary_timeline", args=[campaign.pk]) + f"?evento={event.pk}"})
+        # Its sheets, with their numbers. NPC sheets are the master's: players only see the party's.
+        sheets = page.sheets.select_related("race", "char_class").order_by("is_npc", "name")
+        if not is_master:
+            sheets = sheets.filter(is_npc=False, status=Character.Status.APROBADO, campaigns=campaign)
         context.update(
             self.sidebar(current=page),
+            deletion=deletion_summary(page) if is_master else None,
             category_label=CATEGORY_INFO.get(page.category, ("", ""))[0],
             ancestors=[a for a in page.ancestors() if a.pk in visible_ids],
             children=[c for c in page.children.order_by("title") if c.pk in visible_ids],
             refs=refs,
             location_visible=bool(page.location_id) and (is_master or page.location.status != "oculto"),
+            sheets=[{"character": c, "max_ap": c.max_ap, "url": reverse("sheet", args=[campaign.pk, c.pk])} for c in sheets],
         )
         return context
 
 
 class PageFormMixin:
+    """The page editor: title and category, the two texts with a finder to link other pages, and the rest
+    (visibility, image, where it is, its sheets) to one side. world_edit.html lays it out."""
     model = Page
     form_class = PageForm
     template_name = "world_edit.html"
+    saved_msg = ""
 
     def get_form_kwargs(self):
         return {**super().get_form_kwargs(), "campaign": self.campaign}
@@ -162,14 +201,33 @@ class PageFormMixin:
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context.update(self.sidebar(current=getattr(self, "object", None)))
+        page = getattr(self, "object", None)
+        form = context["form"]
+        context.update(
+            self.sidebar(current=page),
+            # Each category as a choice to click, with what goes in it.
+            category_radios=[{"radio": radio, "intro": CATEGORY_INFO[radio.data["value"]][1]} for radio in form["category"]],
+            link_index=link_index(self.campaign, page),
+            deletion=deletion_summary(page) if page is not None else None,
+        )
         return context
+
+    def form_valid(self, form):
+        was_revealed = bool(form.initial.get("revealed", False))
+        response = super().form_valid(form)
+        page = self.object
+        if page.location_id and page.revealed != was_revealed:
+            page.set_revealed(page.revealed)  # its map location shows as known, or hides, as with «Revelar al grupo»
+        messages.success(self.request, gettext(self.saved_msg))
+        return response
 
     def get_success_url(self):
         return reverse("world_page", args=[self.campaign.pk, self.object.slug])
 
 
 class PageCreateView(MasterRequiredMixin, PageFormMixin, WorldMixin, CreateView):
+    saved_msg = gettext_noop("Página creada.")
+
     def get_initial(self):
         category = self.request.GET.get("cat", "lugar")
         return {"title": self.request.GET.get("titulo", ""),
@@ -177,7 +235,7 @@ class PageCreateView(MasterRequiredMixin, PageFormMixin, WorldMixin, CreateView)
 
 
 class PageUpdateView(MasterRequiredMixin, PageFormMixin, WorldMixin, UpdateView):
-    pass
+    saved_msg = gettext_noop("Cambios guardados.")
 
 
 @require_POST
@@ -190,6 +248,18 @@ def page_toggle(request, campaign, slug):
     if page.location_id:
         msg += f" Su lugar del mapa está ahora «{page.location.get_status_display().lower()}»."
     return respond(request, redirect_to=reverse("world_page", args=[campaign.pk, page.slug]), msg=msg)
+
+
+@require_POST
+@campaign_member
+def page_delete(request, campaign, slug):
+    """The page goes; what was inside it stays, loose, and its links show as a page to create."""
+    master_only(request)
+    page = get_object_or_404(Page, campaign=campaign, slug=slug)
+    title, category = page.title, page.category
+    page.delete()
+    return respond(request, redirect_to=reverse("world", args=[campaign.pk]) + f"?cat={category}",
+                   msg=f"Página «{title}» borrada.")
 
 
 @require_GET

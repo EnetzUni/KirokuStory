@@ -27,16 +27,17 @@ from .forms import (
 )
 from .models import (
     Ability, ActiveEffect, Armor, ArmorDamage, ArmorType, Character, CharacterAbility, CharacterClass, ClassAbility, ClassAddon,
-    Combatant, Effect, Inventory,
-    Item, Race, RaceAbility, Spell, SubclassAbility, Subrace, SubraceAbility, UniqueSkill, User, Weapon,
+    Effect, Inventory,
+    Item, Page, Race, RaceAbility, Spell, SubclassAbility, Subrace, SubraceAbility, UniqueSkill, User, Weapon,
     unique_ability_conflicts,
 )
 from .permissions import (
     CampaignMemberMixin, campaign_member, can_edit_character, character_in_campaign, master_only, npc_templates_for,
 )
-from .services import active_encounter, current_combatant
+from .services import active_encounter, add_condition, copy_into_fight, current_combatant
 
 GOLD = "Pieza de oro (po)"
+BACKGROUND_MAX = 10000
 SHEET_TABS = [("res", gettext_noop("Resumen")), ("act", gettext_noop("Acciones")), ("spells", gettext_noop("Conjuros")), ("inv", gettext_noop("Inventario")),
               ("feats", gettext_noop("Rasgos")), ("bio", gettext_noop("Biografía"))]
 # Aegis combat magic: the «Conjuros» tab of a class with add-ons (the Arcane Warrior) shows them.
@@ -101,22 +102,26 @@ def character_review(request, campaign, pk):
 def character_copy(request, campaign, pk):
     """Copy an NPC template into the campaign, or straight into the turns."""
     master_only(request)
-    template = get_object_or_404(npc_templates_for(campaign), pk=pk)
+    template = get_object_or_404(npc_templates_for(campaign).select_related("acts_with"), pk=pk)
     to_turns = bool(request.POST.get("turnos"))
     back = reverse("turns" if to_turns else "characters", args=[campaign.pk])
+    encounter = active_encounter(campaign) if to_turns else None
     try:
-        copy = template.make_copy(campaigns=[campaign])
+        if encounter is not None:
+            # Into the fight: a template that acts with another brings its partner (Shayne and Aurox).
+            copies = copy_into_fight(template, campaign, encounter)
+        else:
+            copies = [template.make_copy(campaigns=[campaign])]
     except ValueError:
         return respond(request, redirect_to=back, error=True,
                        msg=f"{template.name} tiene una habilidad única: no se puede copiar.")
-    msg = f"Creado {copy.name}, con su propio equipo."
+    names = " y ".join(c.name for c in copies)
+    msg = f"Creado {names}, con su propio equipo." if len(copies) == 1 else f"Creados {names}, con su propio equipo."
     if to_turns:
-        encounter = active_encounter(campaign)
         if encounter is None:
             return respond(request, redirect_to=reverse("characters", args=[campaign.pk]),
                            msg=msg + " No hay combate en marcha: queda en la campaña.")
-        Combatant.objects.create(encounter=encounter, character=copy, order=encounter.combatants.count())
-        msg += " Ya está en los turnos."
+        msg += " Ya está en los turnos." if len(copies) == 1 else " Ya están en los turnos: actúan a la vez."
     return respond(request, redirect_to=back, msg=msg)
 
 
@@ -381,7 +386,7 @@ def sheet_context(request, campaign, character):
         "spell_catalog": _spell_catalog(character) if is_master and tab == "spells" else [],
         "effects": list(character.activeeffect_set.select_related("effect").order_by("effect__name")),
         # States to add: the effects that are not weapon or armor traits.
-        "effect_catalog": Effect.objects.filter(itemeffect__isnull=True, armortype__isnull=True).distinct().order_by("name") if can_edit else [],
+        "effect_catalog": Effect.objects.conditions() if can_edit else [],
         "abilities": abilities, "tracked": [a for a in abilities if a.tracked],
         # «Habilidades propias» without the unique skill, which has its own card.
         "own_abilities": [a for a in abilities if not (skill and a.ability_id == skill.ability_id)],
@@ -395,6 +400,8 @@ def sheet_context(request, campaign, character):
                     if can_edit else []),
         "granted": granted,
         "history": history.select_related("session").order_by("session__number", "id"),
+        # «En el mundo»: the pages of this sheet the reader can see (its own page, its faction, its place).
+        "world_pages": list(Page.objects.visible_for(user, campaign).filter(sheets=character).order_by("category", "title")),
         "my_turn": bool(actor and actor.character_id == character.pk), "encounter": encounter,
     }
     if sheet_view == User.SheetView.FICHA:
@@ -796,10 +803,10 @@ def _apply(request, character, action, arg):
         row.save(update_fields=["quantity"])
         return f"{name} {'recibe' if action == 'recibir' else 'paga'} {amount} po. Tiene {row.quantity} po."
     if action == "estado_anadir":
-        effect = get_object_or_404(Effect, pk=post.get("efecto"))
+        effect = get_object_or_404(Effect.objects.conditions(), pk=post.get("efecto"))
         rounds = _positive(post.get("rondas")) or 1
-        ActiveEffect.objects.create(character=character, effect=effect, remaining_turns=rounds)
-        return f"{name}: {effect.name} durante {rounds} rondas."
+        add_condition(effect, rounds, character=character)  # one it already has lasts the longer of the two
+        return f"{name}: {effect.name} durante {rounds} {'ronda' if rounds == 1 else 'rondas'}."
     if action in ("estado_menos", "estado_mas", "estado_quitar"):
         row = get_object_or_404(ActiveEffect.objects.select_related("effect"), pk=post.get("valor"), character=character)
         if action == "estado_quitar" or (action == "estado_menos" and row.remaining_turns <= 1):
@@ -810,7 +817,8 @@ def _apply(request, character, action, arg):
         return ""
     if action == "notas":
         character.notes = post.get("notas", "")[:5000]
-        character.background = post.get("trasfondo", character.background)[:5000]
+        # A long backstory fits (Thalion's is over 5,000 characters); the notes stay shorter.
+        character.background = post.get("trasfondo", character.background)[:BACKGROUND_MAX]
         return "Notas guardadas."
     raise Http404("Acción desconocida.")
 
@@ -895,9 +903,10 @@ def character_edit(request, campaign, pk):
         "campaign": campaign, "is_master": True, "character": character, "form": form, "weapon_form": weapon_form,
         "armor_form": armor_form, "worn_form": worn_form, "worn": worn,
         "groups": [
-            ("Identidad", ["name", "player", "status", "portrait", "background", "dead"]),
+            ("Identidad", ["name", "player", "status", "portrait", "background", "acts_with", "dead"]),
             ("Raza y clase", ["race", "new_race", "new_race_speed", "subrace", "char_class", "new_class", "new_class_magic", "subclass"]),
-            ("Nivel y números", ["level", "xp", "hp", "temp_hp", "ac", "temp_ap", "inspiration", "magic_points", "magic_points_bonus"]),
+            ("Nivel y números", ["level", "xp", "hp", "temp_hp", "ac", "own_speed", "temp_ap", "inspiration", "magic_points",
+                                 "magic_points_bonus"]),
             ("Características", list(rules.ABILITY_KEYS)),
         ],
     })

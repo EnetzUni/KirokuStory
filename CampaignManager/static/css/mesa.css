@@ -221,6 +221,8 @@ form.en-linea{display:inline}
 /* Still going on: an open, dashed bar that runs into «Próxima». */
 .tl-aventura.abierta{background:var(--surface);color:#7A4A12;border-style:dashed;border-radius:13px 0 0 13px}
 .tl-aventura:hover,.tl-aventura:focus-visible{filter:brightness(1.1);outline:2px solid var(--text);outline-offset:1px}
+/* The adventure's own colour (Quest.color) on the bar's left end. */
+.tl-aventura.con-color{box-shadow:inset 8px 0 0 var(--aventura);padding-left:16px}
 .tl-estado{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;background:#B7791F}
 .tl-estado.completada{background:#2F855A}
 .tl-estado.fallida{background:#C53030}
@@ -325,6 +327,31 @@ form:has(input[data-tipo-nota][value="pista"]:checked) [data-solo-persona]{displ
 .mision[open]>summary .flecha{transform:rotate(90deg)}
 @media (prefers-reduced-motion:reduce){.mision .flecha{transition:none}}
 @media (prefers-reduced-motion:reduce){.aventura-plegada .flecha{transition:none}}
+/* Adventures and missions: their colour on the left edge (Quest.color; a mission without one takes its
+   adventure's) and their cover as a header, over the folded ones too. */
+.aventura-abierta.con-color,.aventura-plegada.con-color,.mision.con-color{border-left:6px solid var(--aventura)}
+.aventura-portada{display:block;width:calc(100% + 40px);max-width:none;height:130px;margin:-18px -20px 0;object-fit:cover;
+  border-radius:var(--r-card) var(--r-card) 0 0}
+.con-color>.aventura-portada{border-top-left-radius:0}
+.aventura-plegada>summary,.mision>summary{flex-wrap:wrap}
+.aventura-cabecera{flex:0 0 calc(100% + 28px);width:calc(100% + 28px);max-width:none;height:72px;margin:-14px -14px 2px;object-fit:cover;
+  border-radius:var(--r-card) var(--r-card) 0 0}
+.mision .aventura-cabecera{flex-basis:calc(100% + 20px);width:calc(100% + 20px);height:54px;margin:-2px -10px 2px;border-radius:var(--r-ctl) var(--r-ctl) 0 0}
+.con-color>summary>.aventura-cabecera{border-top-left-radius:0}
+.punto-color{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle;flex:none}
+/* The colour picker of a form (forms.ColorPaletteWidget): swatches, «Sin color» and «Otro». */
+.paleta{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.muestra{position:relative;width:34px;height:34px;border-radius:50%;background:var(--muestra);border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line);cursor:pointer;flex:none}
+.muestra input,.muestra-otra input{position:absolute;opacity:0;width:1px;height:1px}
+.muestra:has(input:checked){box-shadow:0 0 0 3px var(--text)}
+.muestra:has(input:focus-visible),.muestra-otra:has(input:focus-visible){outline:3px solid var(--accent);outline-offset:3px}
+.muestra.ninguna{background:var(--surface) linear-gradient(to top right,transparent calc(50% - 1.5px),var(--danger-text) calc(50% - 1.5px),var(--danger-text) calc(50% + 1.5px),transparent calc(50% + 1.5px))}
+.muestra-otra{position:relative;min-height:34px;padding:0 12px;border-radius:var(--r-ctl);border:1px solid var(--line);display:inline-flex;align-items:center;font-size:14px;cursor:pointer}
+.muestra-otra:has(input:checked){background:var(--accent-soft);border-color:var(--accent);font-weight:700}
+.campo .paleta input.color-tramo[type=color]{width:44px;min-height:36px;height:36px;padding:2px;background:var(--surface)}
+/* A cover in a form (forms.CoverInput): the picture now, small, over its controls. */
+.portada-campo{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.portada-actual{width:min(100%,320px);height:90px;object-fit:cover;border-radius:var(--r-ctl);border:1px solid var(--line)}
 /* Branches inside a section of the world menu: each level indented, folded by its arrow. */
 .arbol .rama-lista{gap:0;padding-left:10px}
 .arbol .seccion-arbol>.rama-lista{padding-left:4px}
@@ -346,6 +373,9 @@ form:has(input[data-tipo-nota][value="pista"]:checked) [data-solo-persona]{displ
 .seccion-arbol>summary:hover{background:var(--surface2)}
 .seccion-arbol>summary:focus-visible{outline:2px solid var(--text);outline-offset:1px}
 .seccion-arbol .flecha{display:inline-block;width:12px;transition:transform .15s}
+/* A long section name («Personajes no jugadores») wraps beside its arrow; the count and ↗ keep to the right. */
+.seccion-arbol>summary>span:first-child{flex-wrap:nowrap;align-items:baseline;min-width:0}
+.seccion-arbol>summary>span:last-child{flex-wrap:nowrap;flex:none}
 .seccion-arbol[open] .flecha{transform:rotate(90deg)}
 .seccion-arbol .ver-todo{min-height:0;min-width:28px;justify-content:center;padding:4px 6px;font-size:13px;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){.seccion-arbol .flecha{transition:none}}
@@ -355,9 +385,143 @@ form:has(input[data-tipo-nota][value="pista"]:checked) [data-solo-persona]{displ
 .ficha-pagina img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .tarjeta-enlace{text-decoration:none;color:var(--text)}
 .tarjeta-enlace:hover{border-color:var(--accent)}
+/* A page's sheets (Page.sheets): portrait, name and numbers, each row a link to the sheet. */
+.ficha-mini{display:flex;align-items:center;gap:10px;min-height:var(--tap);padding:6px 8px;margin:0 -8px;border-radius:var(--r-ctl);color:var(--text);text-decoration:none}
+.ficha-mini:hover{background:var(--surface2)}
+.ficha-mini:focus-visible{outline:3px solid var(--text);outline-offset:-3px}
+.ficha-mini img{width:100%;height:100%;object-fit:cover}
+.ficha-mini-datos{display:flex;flex-direction:column;min-width:0;line-height:1.35}
+.ficha-mini:hover b{text-decoration:underline;text-underline-offset:3px}
+/* «Fichas» in the page form: a long list of boxes that scrolls, one row per sheet. */
+div.lista-fichas{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:var(--r-ctl);background:var(--surface2)}
+div.lista-fichas>div+div{border-top:1px solid var(--line)}
+div.lista-fichas>[hidden]{display:none}
+div.lista-fichas label{display:flex;align-items:center;gap:10px;min-height:var(--tap);padding:0 12px;font-weight:400;cursor:pointer}
+div.lista-fichas input{width:20px;height:20px;flex:none;accent-color:var(--accent)}
 .cat-lugar{background:#5E7A5B} .cat-pnj{background:#7A4F2A} .cat-faccion{background:#3F5873}
 .cat-objeto{background:#7A6230} .cat-historia{background:#4A4640} .cat-pj{background:#9E2A2B}
 .vista-previa{position:absolute;z-index:60;max-width:320px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:12px 14px;font-size:14px;display:flex;flex-direction:column;gap:4px}
+
+/* ---------- Editor de páginas del mundo ---------- */
+/* What is read on the left (title, category, the two texts), the page as it will look and its details on the
+   right; save, cancel and delete at the foot, which stays in sight while the texts scroll. */
+.editor-pagina{display:flex;flex-direction:column;gap:12px}
+.editor-rejilla{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.editor-principal{flex:999 1 440px;min-width:0;gap:16px}
+.editor-lateral{flex:1 1 260px;min-width:0;position:sticky;top:12px}
+.editor-titulo-campo{display:flex;flex-direction:column;gap:2px}
+.editor-titulo{width:100%;min-height:52px;padding:2px 0;border:none;border-bottom:2px solid var(--line);border-radius:0;background:transparent;
+  font-size:28px;font-weight:700;line-height:1.2}
+.editor-titulo::placeholder{color:#8C8A63}
+.editor-titulo:focus{outline:none;border-bottom-color:var(--accent)}
+.editor-titulo:focus-visible{outline:none;box-shadow:0 2px 0 0 var(--accent)}
+.editor-categorias{border:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;min-width:0}
+.editor-categorias legend{padding:0;margin-bottom:6px}
+.chip-cat{gap:8px;cursor:pointer;padding:0 12px}
+.punto{display:inline-block;flex:none;width:12px;height:12px;border-radius:50%;transform:translateY(-2px)}  /* on Cardo's line */
+.chip-cat:has(input:checked) .punto{box-shadow:0 0 0 2px var(--surface),0 0 0 3px currentColor}
+
+/* A text with [[links]]: label and «Enlazar» on one line, the text, then its links as chips. */
+.campo-wiki{position:relative}
+.campo-wiki-cabeza{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 8px;min-height:40px}
+.campo-wiki-herramientas{display:inline-flex;align-items:center;gap:8px}
+.btn-enlazar{min-height:36px;padding:0 10px;color:var(--link);font-weight:700}
+.btn-enlazar[aria-expanded="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-soft-text)}
+.campo-wiki textarea{font-size:16px}
+.campo-secreto>.campo-wiki-cabeza label{color:var(--secret-text)}
+.campo-secreto textarea{background:var(--secret-bg);border:1px dashed var(--secret-text)}
+.enlaces-texto{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.enlaces-lista{display:flex;flex-direction:row;flex-wrap:wrap;gap:6px}
+.enlace-chip{display:inline-flex;align-items:stretch;max-width:100%;border:1px solid var(--line);border-radius:999px;background:var(--surface);font-size:13px;overflow:hidden}
+.enlace-chip button{border:none;background:none;min-height:34px;display:inline-flex;align-items:center;gap:6px;color:var(--text)}
+.enlace-chip .enlace-ir{padding:0 4px 0 10px;min-width:0}
+.enlace-chip .enlace-ir span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.enlace-chip .enlace-ir:hover span{text-decoration:underline;text-underline-offset:3px}
+.enlace-chip .enlace-quitar{padding:0 10px 0 6px;color:var(--muted);font-size:16px;font-weight:700}
+.enlace-chip .enlace-quitar:hover{color:var(--danger-text);background:var(--danger-bg)}
+.enlace-chip button:focus-visible{outline:3px solid var(--accent);outline-offset:-3px}
+.enlace-chip.falta{border-style:dashed;background:transparent}
+.enlace-chip.falta .enlace-ir{color:var(--muted)}
+.enlace-flecha{color:var(--muted)}
+
+/* The link finder, under the text being linked. */
+.buscador-enlace{position:absolute;z-index:30;right:0;top:44px;width:min(420px,100%);background:var(--surface);border:1px solid var(--accent);
+  border-top:4px solid var(--accent);border-radius:var(--r-card);padding:10px;display:flex;flex-direction:column;gap:8px}
+.buscador-que{font-size:14px;font-weight:700;color:var(--accent-soft-text);overflow-wrap:anywhere}
+.buscador-opciones{position:relative;display:flex;flex-direction:column;gap:0;max-height:300px;overflow:auto}
+.buscador-opciones [role=option]{display:flex;align-items:center;gap:10px;min-height:var(--tap);padding:4px 10px;border-radius:var(--r-ctl);cursor:pointer}
+.buscador-opciones [role=option][aria-selected="true"]{background:var(--accent-soft);color:var(--accent-soft-text)}
+.buscador-opciones [role=option]:hover{background:var(--surface2)}
+.buscador-opciones [role=option][aria-selected="true"]:hover{background:var(--accent-soft)}
+.opcion-titulo{flex:1 1 auto;min-width:0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.opcion-tipo{flex:none;font-size:12px;color:var(--muted)}
+.opcion-nueva .opcion-titulo{font-weight:400;font-style:italic}
+.punto.cat-ficha{background:#6A4A62}
+.punto.falta{background:transparent;border:1.5px dashed var(--muted)}
+.buscador-enlace .ayuda{font-size:12px}
+
+/* The page as it will look: its colour or image, its title and whether the group sees it. */
+.editor-lateral .ficha-pagina{height:132px;font-size:56px}
+.editor-lateral .ficha-pagina img{z-index:1}
+.editor-lateral-cuerpo{display:flex;flex-direction:column;gap:14px;padding:14px 16px 16px}
+.vista-cabeza{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.vista-cabeza b{font-size:19px;line-height:1.25;overflow-wrap:anywhere}
+.vista-cabeza b.vacio{color:var(--muted);font-weight:400;font-style:italic}
+.editor-lateral .portada-actual{display:none}  /* the picture above already shows it */
+.editor-lateral .campo textarea{min-height:72px}
+/* The image: a button that opens the file box (hidden over it), the name of the file chosen, «Quitar». */
+.imagen-campo{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+.elegir-imagen{position:relative;overflow:hidden;cursor:pointer}
+.elegir-imagen input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.elegir-imagen:has(input:focus-visible){outline:3px solid var(--accent);outline-offset:2px}
+.imagen-campo [data-nombre-imagen]{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.editor-fichas>summary{list-style:none;display:flex;align-items:center;gap:8px;min-height:var(--tap);font-size:14px;font-weight:700;cursor:pointer}
+.editor-fichas>summary::-webkit-details-marker{display:none}
+.editor-fichas .flecha{display:inline-block;transition:transform .15s}
+.editor-fichas[open] .flecha{transform:rotate(90deg)}
+.editor-fichas[open]>summary{margin-bottom:6px}
+
+/* An on/off switch (a checkbox with role=switch). */
+.interruptor{display:flex;align-items:center;gap:10px;min-height:var(--tap);font-size:14px;font-weight:700;cursor:pointer}
+.interruptor input{appearance:none;-webkit-appearance:none;flex:none;position:relative;width:44px;height:26px;margin:0;border-radius:999px;
+  border:1px solid var(--line);background:var(--track);cursor:pointer;transition:background-color .15s,border-color .15s}
+.interruptor input::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--surface);
+  border:1px solid var(--line);transition:transform .15s}
+.interruptor input:checked{background:var(--accent);border-color:var(--accent)}
+.interruptor input:checked::after{transform:translateX(18px);border-color:var(--accent)}
+.interruptor input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* The foot: save and cancel, what is going on, and delete at the far end. */
+.editor-pie{position:sticky;bottom:0;z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 14px;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card)}
+.editor-pie .borrar-pagina{margin-left:auto;position:relative}
+.editor-pie .borrar-confirmar{position:absolute;right:0;bottom:calc(100% + 12px);width:min(380px,calc(100vw - 32px))}
+
+/* Deleting a page: a fold that says what it leaves behind. */
+.borrar-pagina>summary{list-style:none;color:var(--danger-text);font-weight:700}
+.borrar-pagina>summary::-webkit-details-marker{display:none}
+.borrar-pagina>summary:hover{text-decoration:underline;text-underline-offset:3px}
+.borrar-pagina[open]>summary{text-decoration:underline;text-underline-offset:3px}
+.borrar-confirmar{display:flex;flex-direction:column;gap:8px;margin-top:6px;padding:12px 14px;border:1px solid var(--danger-text);border-radius:var(--r-card);
+  background:var(--danger-bg);color:var(--danger-text)}
+.borrar-confirmar ul{padding-left:18px;display:flex;flex-direction:column;gap:2px}
+.borrar-confirmar .btn:not(.btn-peligro){background:var(--surface)}
+
+/* The category's cards: a dashed one to start a new page, and the master's pencil on each card. */
+.tarjeta-nueva{min-height:170px;align-items:center;justify-content:center;gap:2px;text-align:center;border-style:dashed;border-width:2px;
+  background:transparent;color:var(--link);text-decoration:none}
+.tarjeta-nueva:hover{border-color:var(--accent);background:var(--surface)}
+.tarjeta-nueva-mas{font-size:40px;line-height:1;font-weight:400}
+.tarjeta-con-accion{position:relative;display:flex;flex-direction:column}
+.tarjeta-con-accion>.tarjeta{flex:1 1 auto}
+.accion-tarjeta{position:absolute;top:8px;right:8px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;
+  border-radius:50%;background:var(--surface);color:var(--text);border:1px solid var(--line)}
+.accion-tarjeta:hover{border-color:var(--accent);color:var(--accent)}
+/* On a narrow screen the editor comes before the world's menu, which would push it far down. */
+@media (max-width:865px){.editor-primero>aside{order:2}}
+@media (prefers-reduced-motion:reduce){
+  .interruptor input,.interruptor input::after,.editor-fichas .flecha{transition:none}
+}
 
 /* ---------- Mapa ---------- */
 .mapa{position:relative;width:100%;border-radius:var(--r-card);overflow:hidden;border:1px solid var(--line);background:#BCC6B0}
@@ -396,18 +560,26 @@ html.pantalla-abierta,html.pantalla-abierta body{overflow:hidden}
 .ruta-flecha{position:absolute;width:0;height:0;pointer-events:none;
   transform:rotate(atan2(calc(var(--dy) * 1cqh), calc(var(--dx) * 1cqw)))
             translateX(calc(-1 * min(24px, .5 * hypot(calc(var(--dx) * 1cqw), calc(var(--dy) * 1cqh)))))}
-.ruta-flecha::before{content:"";position:absolute;left:-9px;top:-9px;width:18px;height:18px;background:#BC6C25;
+.ruta-flecha::before{content:"";position:absolute;left:-9px;top:-9px;width:18px;height:18px;background:var(--color,#BC6C25);
   clip-path:polygon(0 0,100% 50%,0 100%,28% 50%);filter:drop-shadow(0 0 1px #FEFAE0)}
 .ruta-flecha[hidden]{display:none}
+/* The route as small arrows (mesa.js, PartyMove.color): drawn over the stretch's line, which then hides, as do
+   the arrow heads. While the master shapes the route, the line shows through, thin, to see the exact way. */
+.mapa svg.ruta path.ruta-flechas{stroke:#FEFAE0;stroke-opacity:.9;stroke-width:1;stroke-linejoin:round}
+.con-flechas .ruta-tramo{visibility:hidden}
+.con-flechas .ruta-flecha{display:none}
+.mapa.editando-ruta .con-flechas .ruta-tramo{visibility:visible;stroke-dasharray:none;stroke-width:2px;stroke-opacity:.45}
+/* The colour of each stretch, in «Tramos del camino». */
+.color-tramo{width:44px;height:36px;padding:2px;border:1px solid var(--line);border-radius:var(--r-ctl);background:var(--surface);cursor:pointer;flex:none}
 
 /* Route editor (master): waypoints to drag and "+" handles halfway along each part to add one. */
 .ruta-punto,.ruta-medio{position:absolute;z-index:3;width:28px;height:28px;margin:-14px 0 0 -14px;padding:0;border:none;
   background:transparent;display:flex;align-items:center;justify-content:center;cursor:move;touch-action:none}
-.ruta-punto::before{content:"";width:14px;height:14px;border-radius:50%;background:#FEFAE0;border:3px solid #BC6C25;box-shadow:0 1px 3px rgba(0,0,0,.4)}
-.ruta-medio::before{content:"+";width:16px;height:16px;border-radius:50%;background:rgba(254,250,224,.85);border:1px solid #BC6C25;
+.ruta-punto::before{content:"";width:14px;height:14px;border-radius:50%;background:#FEFAE0;border:3px solid var(--color,#BC6C25);box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.ruta-medio::before{content:"+";width:16px;height:16px;border-radius:50%;background:rgba(254,250,224,.85);border:1px solid var(--color,#BC6C25);
   color:#7A4A12;font-size:14px;font-weight:700;line-height:14px;text-align:center;opacity:.8}
 .ruta-medio{cursor:copy}
-.ruta-punto:hover::before,.ruta-punto:focus-visible::before,.ruta-punto.activo::before{background:#BC6C25;border-color:#FEFAE0}
+.ruta-punto:hover::before,.ruta-punto:focus-visible::before,.ruta-punto.activo::before{background:var(--color,#BC6C25);border-color:#FEFAE0}
 .ruta-medio:hover::before,.ruta-medio:focus-visible::before{opacity:1;background:#FEFAE0}
 .ruta-punto:focus-visible,.ruta-medio:focus-visible{outline:none}
 .mapa.editando-ruta{outline:3px dashed #BC6C25;outline-offset:-3px}
@@ -473,6 +645,12 @@ html.pantalla-abierta,html.pantalla-abierta body{overflow:hidden}
 .ficha-cabeza{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px 20px;padding:0 20px 18px;margin-top:-52px}
 .ficha-franja{height:92px}
 .ficha-datos{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:4px;padding-top:56px}
+/* «En el mundo»: the world pages of the sheet (its own page, its faction or its place). */
+.en-el-mundo{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.en-el-mundo .chip{min-height:32px;padding:0 10px;font-size:13px}
+/* A weapon's description under its name (its effects: «Si impacta, …»). */
+.arma-nota{padding:10px 16px 2px;white-space:pre-line}
+.hoja-campo b a{color:inherit}
 .contador{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .numero-grande{font-size:30px;font-weight:700;line-height:1.1}
 .numero-medio{font-size:24px;font-weight:700}
@@ -520,10 +698,226 @@ html.pantalla-abierta,html.pantalla-abierta body{overflow:hidden}
 .eleccion:has(input:focus-visible){outline:3px solid var(--accent);outline-offset:2px}
 .eleccion strong{font-size:17px}
 
-/* Turnos */
-.turno{border-radius:var(--r-card);padding:10px 14px;display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;background:var(--surface);border:1px solid var(--line)}
-.turno.actual{background:var(--accent-soft);border:2px solid var(--accent)}
+/* Turnos: the fight as a table of cards. Above, the round, whose turn it is and the order of the fight;
+   below, the party's cards on one side and those of who fights against it on the other. */
+.combate-cabeza{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding:14px 18px;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
+.combate-ronda{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:76px;padding:6px 12px;border-radius:10px;background:var(--text);color:var(--surface)}
+.combate-ronda span{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;opacity:.85}
+.combate-ronda b{font-size:34px;line-height:1}
+.combate-actor{display:flex;align-items:center;gap:12px;flex:1 1 240px;min-width:0}
+.avatar.grande-m{width:56px;height:56px;font-size:24px;box-shadow:0 0 0 3px var(--surface),0 0 0 6px var(--copper)}
+.combate-nombre{font-size:22px;line-height:1.15;overflow-wrap:anywhere}
+.combate-mandos{display:flex;flex-wrap:wrap;gap:8px;margin-left:auto}
+.combate-mandos .btn-principal{min-height:52px;padding:0 22px;font-size:17px}
+/* The order of the fight: a circle per combatant with its initiative; a green ring with the party, red against it. */
+.pista-turnos{list-style:none;margin:0;padding:8px 4px;display:flex;align-items:center;gap:6px;overflow-x:auto}
+.pista-turnos li{flex:none;display:flex;align-items:center;gap:6px}
+.pista-turnos li+li::before{content:"›";color:var(--muted);font-weight:700}
+.pista-turnos a{display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;color:var(--text);padding:3px;border-radius:var(--r-ctl)}
+.pista-turnos .avatar{width:40px;height:40px;font-size:16px;box-shadow:0 0 0 3px var(--lado)}
+.pista-turnos .del-grupo{--lado:#606C38}
+.pista-turnos .contra{--lado:#9E2A2B}
+.pista-turnos .actual .avatar{width:52px;height:52px;font-size:20px;box-shadow:0 0 0 3px var(--surface),0 0 0 6px var(--copper)}
+.pista-turnos .fuera .avatar{filter:grayscale(1);opacity:.55}
+.pista-ini{font-size:12px;font-weight:700;line-height:1}
+/* The table and its two sides. */
+.campo-batalla{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:14px;align-items:start}
+.bando{display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:12px;border:1px solid var(--lado-borde);background:var(--lado-fondo);min-width:0}
+.bando.grupo{--lado:#606C38;--lado-fondo:rgba(96,108,56,.08);--lado-borde:rgba(96,108,56,.35)}
+.bando.enemigos{--lado:#9E2A2B;--lado-fondo:rgba(158,42,43,.06);--lado-borde:rgba(158,42,43,.3)}
+.bando-titulo{display:flex;align-items:center;gap:8px;font-size:18px;color:var(--lado)}
+.bando-titulo span{min-width:24px;height:24px;border-radius:12px;padding:0 7px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;background:var(--lado);color:#FFFFFF}
+.versus{align-self:center;width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;letter-spacing:.06em;
+  color:var(--surface);background:var(--text);box-shadow:0 0 0 4px var(--bg)}
+.cartas{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr));gap:12px}
+/* A card: its picture on top (place in the order, whose turn, knocked down or dead), its numbers and quick actions under it. */
+.carta{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-top:5px solid var(--lado);border-radius:10px;overflow:hidden;
+  box-shadow:0 1px 3px rgba(40,54,24,.12);transition:transform .15s,box-shadow .15s}
+.carta.actual{border:2px solid var(--copper);border-top:5px solid var(--lado);box-shadow:0 0 0 3px rgba(188,108,37,.35),0 8px 18px rgba(40,54,24,.22);transform:translateY(-3px)}
+.carta.siguiente{border-style:dashed;border-top-style:solid}
+.carta-retrato{position:relative;height:118px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.92);overflow:hidden;flex:none}
+.carta-retrato img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 20%}
+.carta-inicial{font-size:56px;font-weight:700;line-height:1}
+.carta-orden{position:absolute;right:8px;top:8px;min-width:26px;height:26px;border-radius:13px;padding:0 6px;display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;background:rgba(0,0,0,.6);color:#FFFFFF}
+.carta-turno{position:absolute;left:0;top:10px;padding:3px 12px 3px 10px;border-radius:0 13px 13px 0;font-size:13px;font-weight:700;background:var(--copper);color:#FFFFFF;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.carta-turno.despues{background:rgba(0,0,0,.6);font-weight:400}
+.carta-sello{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-12deg);padding:4px 14px;border:3px solid #FFFFFF;border-radius:6px;
+  font-size:20px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;color:#FFFFFF;background:rgba(138,58,16,.85)}
+.carta.muerta .carta-retrato img,.carta.muerta .carta-inicial{filter:grayscale(1);opacity:.5}
+/* Wounds: a red veil over the picture that thickens as the fighter loses hit points (herida-1 to herida-4,
+   a step per quarter lost), on its card, in the order strip and on «Turno de». Never solid: the face shows. */
+.herida-1,.herida-2,.herida-3,.herida-4{position:relative}
+.herida-1::after,.herida-2::after,.herida-3::after,.herida-4::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  background:radial-gradient(ellipse at 50% 42%,rgba(205,25,25,.42) 0%,rgba(175,10,10,.62) 55%,rgba(110,0,0,.92) 100%)}
+.herida-1::after{opacity:.3} .herida-2::after{opacity:.48} .herida-3::after{opacity:.66} .herida-4::after{opacity:.82}
+.carta-orden,.carta-turno,.carta-sello{z-index:1}
+.carta.derribada .carta-retrato img{filter:grayscale(.6)}
+.carta-cuerpo{display:flex;flex-direction:column;gap:8px;padding:10px 12px 12px;min-width:0}
+.carta-titulo{display:flex;align-items:flex-start;gap:10px}
+.carta-nombre{font-size:19px;line-height:1.2;overflow-wrap:anywhere}
+.carta-nombre a{color:var(--text)}
+.carta-iniciativa{display:flex;align-items:center;gap:4px;flex:none}
+.carta-acciones{display:flex;flex-direction:column;gap:6px}
+.carta-fila{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.carta-fila .entrada-num{width:70px;padding:0 8px;font-size:15px}
+.carta-fila .btn{padding:0 12px}
+.carta-armadura summary{cursor:pointer;color:var(--muted);min-height:32px;display:flex;align-items:center}
+.carta-maestro{display:flex;flex-wrap:wrap;gap:4px;justify-content:space-between;border-top:1px solid var(--line);padding-top:6px}
+/* ‹ › move the card in the order: two buttons joined. */
+.carta-maestro .chips-unidos .btn{border-radius:0;min-width:40px;padding:0 10px;font-size:18px}
+.carta-maestro .chips-unidos .btn+.btn{margin-left:-1px}
+.carta-maestro .chips-unidos .btn:first-child{border-radius:var(--r-ctl) 0 0 var(--r-ctl)}
+.carta-maestro .chips-unidos .btn:last-child{border-radius:0 var(--r-ctl) var(--r-ctl) 0}
+@media (prefers-reduced-motion:reduce){.carta{transition:none}.carta.actual{transform:none}}
+/* Narrower screens: the sides one under the other; on a phone each card lies down, its picture on the left. */
+@media (max-width:900px){.campo-batalla{grid-template-columns:minmax(0,1fr)}.versus{justify-self:center}}
+@media (max-width:560px){
+  .carta,.carta.actual{flex-direction:row;border-top-width:1px;border-left:5px solid var(--lado)}
+  .carta.actual{border-top-color:var(--copper)}
+  .carta-retrato{flex:0 0 92px;height:auto;min-height:124px}
+  .carta-inicial{font-size:40px}
+  .carta-sello{font-size:12px;padding:2px 6px;border-width:2px}
+  .carta-turno{font-size:12px;padding:2px 8px 2px 6px}
+  .carta-orden{top:auto;bottom:8px}
+  .carta-cuerpo{flex:1 1 auto}
+}
 .iniciativa{width:56px;height:var(--tap);border-radius:var(--r-ctl);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;flex:none;border:1px solid var(--line);text-align:center}
+
+/* A pair that acts at once (Shayne and Aurox): its pill, and the two pictures of «Turno de». */
+.pastilla.p-pareja{background:#E7DCEF;color:#4A2E5C}
+.avatares-turno{display:flex;flex:none}
+.avatares-turno .avatar+.avatar{margin-left:-12px}
+/* States: a tag each under the name (its colour, by kind; how many rounds are left, for whoever sees the
+   numbers), with the × that takes it off; and at the foot of the card, the list that puts one on. */
+.estados{display:flex;flex-wrap:wrap;gap:4px;margin:0;padding:0;list-style:none}
+.estado-tag{--tono:#7A7150;display:inline-flex;align-items:center;gap:2px;min-height:28px;padding:0 2px 0 9px;border-radius:14px;
+  border:1px solid var(--tono);background:color-mix(in srgb,var(--tono) 13%,var(--surface));color:var(--text);font-size:13px;line-height:1.1}
+.estado-tag>span{padding:2px 0}
+.estado-tag b{display:inline-block;min-width:18px;padding:0 4px;margin-left:2px;border-radius:9px;background:var(--tono);color:#FFFFFF;font-size:11px;text-align:center}
+.estado-tag:not(:has(form)){padding-right:9px}
+.estado-tag form{display:contents}
+.estado-quitar{width:24px;height:24px;margin-left:2px;border:0;border-radius:50%;background:transparent;color:var(--text);font-size:17px;line-height:1;
+  cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.estado-quitar:hover{background:var(--tono);color:#FFFFFF}
+.estado-quitar:focus-visible{outline:2px solid var(--text);outline-offset:1px}
+.tono-sangrado{--tono:#A3161C}.tono-quemado{--tono:#C25A0B}.tono-helado{--tono:#2D78A8}.tono-envenenado{--tono:#4B7F1E}
+.tono-aturdido{--tono:#9A7A06}.tono-paralizado{--tono:#8C7A00}.tono-cegado{--tono:#3B3B44}.tono-aterrado{--tono:#5E2D7A}
+.tono-atado{--tono:#7A5530}.tono-suspendido{--tono:#6B4FB8}.tono-hechizado{--tono:#A33A7C}.tono-dormido{--tono:#3E4A8C}
+.tono-invisible{--tono:#6E7480}.tono-petrificado{--tono:#5F5F5F}
+.carta-estado{display:flex;flex-wrap:wrap;align-items:center;gap:6px;border-top:1px solid var(--line);padding-top:6px}
+.carta-estado select{flex:1 1 150px;width:auto;min-width:0;min-height:40px;font-size:14px}
+.carta-estado-rondas{display:inline-flex;align-items:center;gap:4px}
+.carta-estado .entrada-num.corta{width:58px;min-height:40px;padding:0 6px}
+
+/* What a fighter suffers, over its picture: under the badges, over the veil of wounds. Each kind its own
+   animation, by CSS (no images); five <i> per layer for drops, flames, bubbles or stars. */
+.fx{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+.fx::before,.fx::after{content:"";position:absolute}
+.fx i{position:absolute;display:block}
+.carta.muerta .fx{display:none}
+/* Sangrado: drops that run down from the top. */
+.fx-sangrado::before{left:0;right:0;top:0;height:16px;background:linear-gradient(rgba(130,6,12,.85),rgba(130,6,12,0))}
+.fx-sangrado i{top:-14px;width:7px;height:12px;background:#B0101A;border-radius:50% 50% 50% 50%/62% 62% 38% 38%;
+  box-shadow:inset -1px -2px 0 rgba(0,0,0,.25);animation:fx-gota 2.4s cubic-bezier(.5,0,.9,.6) infinite}
+.fx-sangrado i:nth-child(1){left:12%;animation-delay:-.3s}.fx-sangrado i:nth-child(2){left:31%;animation-delay:-1.5s}
+.fx-sangrado i:nth-child(3){left:52%;animation-delay:-.9s}.fx-sangrado i:nth-child(4){left:71%;animation-delay:-2s}
+.fx-sangrado i:nth-child(5){left:88%;animation-delay:-1.1s}
+@keyframes fx-gota{0%{transform:translateY(0) scaleY(.5);opacity:0}12%{transform:translateY(10px) scaleY(1);opacity:1}100%{transform:translateY(150px) scaleY(1.3);opacity:.15}}
+/* Quemado: flames that rise from the bottom and an orange glow. */
+.fx-quemado::before{left:0;right:0;bottom:0;height:62%;background:linear-gradient(to top,rgba(255,110,0,.7),rgba(255,70,0,.3) 45%,rgba(255,70,0,0));
+  animation:fx-brasa 1.3s ease-in-out infinite alternate}
+.fx-quemado i{bottom:-10px;width:26%;height:52px;border-radius:50% 50% 22% 22%;transform-origin:50% 100%;
+  background:radial-gradient(ellipse at 50% 100%,#FFE27A 0%,#FF9A1F 38%,rgba(255,60,0,.55) 58%,rgba(255,60,0,0) 72%);
+  animation:fx-llama .9s ease-in-out infinite alternate}
+.fx-quemado i:nth-child(1){left:-6%;animation-delay:-.2s}.fx-quemado i:nth-child(2){left:16%;animation-delay:-.6s;height:64px}
+.fx-quemado i:nth-child(3){left:38%;animation-delay:-.4s}.fx-quemado i:nth-child(4){left:60%;animation-delay:-.8s;height:60px}
+.fx-quemado i:nth-child(5){left:80%;animation-delay:-.1s}
+@keyframes fx-llama{from{transform:scaleY(.78) skewX(-5deg);opacity:.75}to{transform:scaleY(1.22) skewX(5deg);opacity:1}}
+@keyframes fx-brasa{from{opacity:.65}to{opacity:1}}
+/* Helado (congelado): a frosted edge, a cold tint and sparkles of ice. */
+.fx-helado::before{inset:0;background:radial-gradient(ellipse at 50% 45%,rgba(200,235,255,0) 38%,rgba(170,215,255,.55) 78%,rgba(235,250,255,.9) 100%);
+  box-shadow:inset 0 0 16px rgba(255,255,255,.85)}
+.fx-helado::after{inset:0;background:rgba(110,180,240,.24)}
+.fx-helado i{width:7px;height:7px;background:#FFFFFF;box-shadow:0 0 6px #CFEFFF;transform:rotate(45deg) scale(.4);opacity:0;z-index:1;
+  animation:fx-brillo 1.9s ease-in-out infinite}
+.fx-helado i:nth-child(1){left:14%;top:18%}.fx-helado i:nth-child(2){left:78%;top:26%;animation-delay:-.7s}
+.fx-helado i:nth-child(3){left:30%;top:72%;animation-delay:-1.3s}.fx-helado i:nth-child(4){left:62%;top:64%;animation-delay:-.4s}
+.fx-helado i:nth-child(5){left:88%;top:80%;animation-delay:-1s}
+@keyframes fx-brillo{0%,100%{opacity:0;transform:rotate(45deg) scale(.4)}50%{opacity:1;transform:rotate(45deg) scale(1)}}
+/* Envenenado: a sick green that comes and goes, and bubbles. */
+.fx-envenenado::before{inset:0;background:radial-gradient(ellipse at 50% 70%,rgba(110,210,60,.4),rgba(40,120,20,.6));animation:fx-nausea 2.2s ease-in-out infinite alternate}
+.fx-envenenado i{bottom:-14px;width:11px;height:11px;border-radius:50%;border:2px solid rgba(180,255,130,.9);background:rgba(120,220,80,.35);
+  animation:fx-burbuja 2.7s ease-in infinite}
+.fx-envenenado i:nth-child(1){left:15%}.fx-envenenado i:nth-child(2){left:36%;animation-delay:-1.1s;width:8px;height:8px}
+.fx-envenenado i:nth-child(3){left:55%;animation-delay:-2s}.fx-envenenado i:nth-child(4){left:72%;animation-delay:-.5s;width:14px;height:14px}
+.fx-envenenado i:nth-child(5){left:88%;animation-delay:-1.6s;width:7px;height:7px}
+@keyframes fx-nausea{from{opacity:.75}to{opacity:1}}
+@keyframes fx-burbuja{0%{transform:translateY(0) scale(.6);opacity:0}15%{opacity:1}100%{transform:translateY(-125px) scale(1.15);opacity:0}}
+/* Aturdido: stars that circle over its head. */
+.fx-aturdido i{left:50%;top:16%;margin-left:-8px;color:#FFE066;font-size:17px;line-height:1;font-style:normal;text-shadow:0 0 3px #000,0 0 6px rgba(0,0,0,.6);
+  transform:translateX(var(--x,0));animation:fx-orbita 1.8s linear infinite}
+.fx-aturdido i::before{content:"★"}
+.fx-aturdido i:nth-child(1){--x:-30px}.fx-aturdido i:nth-child(2){--x:0px;animation-delay:-.6s}.fx-aturdido i:nth-child(3){--x:30px;animation-delay:-1.2s}
+.fx-aturdido i:nth-child(n+4){display:none}
+@keyframes fx-orbita{0%{transform:translate(34px,0) scale(.9)}25%{transform:translate(0,9px) scale(1.15)}50%{transform:translate(-34px,0) scale(.9)}
+  75%{transform:translate(0,-9px) scale(.7)}100%{transform:translate(34px,0) scale(.9)}}
+/* Paralizado: sparks run over it, and its colours go dull. */
+.fx-paralizado::before{inset:0;background:repeating-linear-gradient(115deg,rgba(255,240,140,0) 0 16px,rgba(255,236,110,.6) 16px 18px,rgba(255,240,140,0) 18px 36px);
+  animation:fx-chispa .5s steps(2,jump-none) infinite}
+.fx-paralizado::after{inset:0;box-shadow:inset 0 0 14px rgba(255,230,90,.8)}
+.carta-retrato:has(.fx-paralizado) img{filter:saturate(.35)}
+@keyframes fx-chispa{0%{opacity:.25;background-position:0 0}100%{opacity:.95;background-position:14px 0}}
+/* Cegado: a band over its eyes and a darkness that closes in. */
+.fx-cegado::before{inset:0;background:radial-gradient(ellipse at 50% 32%,rgba(0,0,0,0) 0%,rgba(0,0,0,.72) 72%);animation:fx-ceguera 3s ease-in-out infinite alternate}
+.fx-cegado::after{left:-10%;right:-10%;top:22%;height:17%;background:rgba(18,18,24,.88);transform:rotate(-4deg);box-shadow:0 2px 4px rgba(0,0,0,.4)}
+@keyframes fx-ceguera{from{opacity:.7}to{opacity:1}}
+/* Aterrado (asustado): it trembles, and a dark violet beats around it. */
+.fx-aterrado::before{inset:0;background:radial-gradient(ellipse at center,rgba(60,0,90,0) 32%,rgba(60,0,90,.65));animation:fx-latido 1.1s ease-in-out infinite}
+.carta-retrato:has(.fx-aterrado) :is(img,.carta-inicial){animation:fx-temblor .28s linear infinite}
+@keyframes fx-latido{0%,100%{opacity:.5}50%{opacity:1}}
+@keyframes fx-temblor{0%,100%{transform:translate(0,0)}25%{transform:translate(-1.5px,1px)}50%{transform:translate(1px,-1px)}75%{transform:translate(-1px,-1.5px)}}
+/* Atado (apresado, agarrado): two ropes across it that pull tight. */
+.fx-atado::before,.fx-atado::after{left:-12%;right:-12%;top:44%;height:9px;border-radius:4px;
+  background:repeating-linear-gradient(90deg,#9A7442 0 9px,#5E4526 9px 13px);box-shadow:0 2px 3px rgba(0,0,0,.45);animation:fx-tensar 1.6s ease-in-out infinite alternate}
+.fx-atado::before{transform:rotate(17deg)}
+.fx-atado::after{transform:rotate(-17deg);animation-delay:-.8s}
+@keyframes fx-tensar{from{height:8px}to{height:11px}}
+/* Suspendido: it floats, held by threads of light. */
+.fx-suspendido::before{inset:0;background:radial-gradient(ellipse at 50% 62%,rgba(150,95,255,.32),rgba(150,95,255,0) 72%)}
+.fx-suspendido i{top:0;width:1px;height:46%;background:linear-gradient(rgba(225,200,255,.95),rgba(225,200,255,0))}
+.fx-suspendido i:nth-child(1){left:22%}.fx-suspendido i:nth-child(2){left:41%;height:38%}.fx-suspendido i:nth-child(3){left:59%}
+.fx-suspendido i:nth-child(4){left:77%;height:40%}.fx-suspendido i:nth-child(5){display:none}
+.carta-retrato:has(.fx-suspendido) :is(img,.carta-inicial){animation:fx-flotar 2.4s ease-in-out infinite alternate}
+@keyframes fx-flotar{from{transform:translateY(2px) scale(1.07)}to{transform:translateY(-6px) scale(1.07)}}
+/* Hechizado: a pink glow that beats, and hearts that rise. */
+.fx-hechizado::before{inset:0;background:radial-gradient(ellipse at center,rgba(255,130,205,.12),rgba(200,60,160,.42));animation:fx-latido 1.8s ease-in-out infinite}
+.fx-hechizado i{bottom:-16px;color:#FF8FCB;font-size:15px;line-height:1;font-style:normal;text-shadow:0 0 3px rgba(90,0,50,.7);animation:fx-burbuja 3s ease-in infinite}
+.fx-hechizado i::before{content:"♥"}
+.fx-hechizado i:nth-child(1){left:18%}.fx-hechizado i:nth-child(2){left:46%;animation-delay:-1s}.fx-hechizado i:nth-child(3){left:74%;animation-delay:-2s}
+.fx-hechizado i:nth-child(n+4){display:none}
+/* Dormido (inconsciente): it fades, and its «z» float away. */
+.carta-retrato:has(.fx-dormido) :is(img,.carta-inicial){filter:brightness(.55) saturate(.7)}
+.fx-dormido i{left:58%;top:52%;color:#FFFFFF;font-weight:700;font-style:normal;line-height:1;text-shadow:0 0 4px rgba(0,0,40,.8);
+  transform:translate(var(--x,0),var(--y,0));animation:fx-sueno 2.7s ease-out infinite}
+.fx-dormido i::before{content:"z"}
+.fx-dormido i:nth-child(1){font-size:14px;--x:0px;--y:0px}.fx-dormido i:nth-child(2){font-size:18px;animation-delay:-.9s;--x:14px;--y:-16px}
+.fx-dormido i:nth-child(3){font-size:22px;animation-delay:-1.8s;--x:28px;--y:-34px}.fx-dormido i:nth-child(n+4){display:none}
+@keyframes fx-sueno{0%{transform:translate(0,0);opacity:0}20%{opacity:1}100%{transform:translate(32px,-48px);opacity:0}}
+/* Invisible: it fades in and out, like a mirage. */
+.carta-retrato:has(.fx-invisible) :is(img,.carta-inicial){opacity:.4;animation:fx-espejismo 2.6s ease-in-out infinite}
+@keyframes fx-espejismo{0%,100%{opacity:.22}50%{opacity:.55}}
+/* Petrificado: grey stone with cracks (still: stone does not move). */
+.carta-retrato:has(.fx-petrificado) :is(img,.carta-inicial){filter:grayscale(1) contrast(1.15) brightness(.85)}
+.fx-petrificado::before{inset:0;background:linear-gradient(135deg,rgba(150,150,140,.35),rgba(70,70,65,.4))}
+.fx-petrificado::after{inset:0;background:linear-gradient(112deg,transparent 47%,rgba(25,25,25,.7) 47.6%,transparent 48.4%),
+  linear-gradient(58deg,transparent 63%,rgba(25,25,25,.6) 63.5%,transparent 64.2%),linear-gradient(160deg,transparent 30%,rgba(25,25,25,.5) 30.5%,transparent 31.2%)}
+/* Without motion: the colours of each state stay and the drops, flames and bubbles go; stars and «z» sit still. */
+@media (prefers-reduced-motion:reduce){
+  .fx::before,.fx::after,.fx i,.carta-retrato:has(.fx) :is(img,.carta-inicial){animation:none!important}
+  .fx-sangrado i,.fx-quemado i,.fx-envenenado i,.fx-hechizado i{display:none}
+  .fx-helado i{opacity:1;transform:rotate(45deg) scale(.8)}
+}
 
 /* ---------- Pie ---------- */
 .pie{border-top:1px solid var(--line);background:var(--surface2)}

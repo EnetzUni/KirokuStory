@@ -1,4 +1,5 @@
 """Mapa: the campaign's maps, their locations, the party's route and the weather layer."""
+import re
 import zoneinfo
 
 from django.db.models import Max
@@ -12,11 +13,14 @@ from django.views.generic import TemplateView
 
 from . import weather
 from .ajax import is_ajax, respond
+from .campaign_models import COLOR_PALETTE, ROUTE_COLOR
 from .forms import LocationForm, MapForm, WeatherRegionForm
 from .mapping import clean_path, map_data, parse_path
 from .models import Map, MapLocation, Page, PartyMove, Session, TimelineEvent, WeatherRegion
 from .permissions import CampaignMemberMixin, campaign_member, master_only
 from .wiki import first_sentence
+
+COLOR_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
 
 
 def map_context(request, campaign, is_master, map_id=None, location_id=None, draft=None, editing=None, weather_mode=None):
@@ -89,6 +93,7 @@ def map_context(request, campaign, is_master, map_id=None, location_id=None, dra
         "map_form": MapForm(instance=current, campaign=campaign) if is_master else None,
         "location_form": LocationForm(initial={"status": "conocido", "importance": "principal", "x": 50, "y": 50}),
         # The list beside the map: the main places, then the secondary ones (which fold).
+        "route_palette": COLOR_PALETTE,  # suggested colours for the stretches (the master picks any)
         "places": [loc for loc in md["locations"] if loc.importance == MapLocation.Importance.PRINCIPAL],
         "minor_places": [loc for loc in md["locations"] if loc.importance == MapLocation.Importance.SECUNDARIO],
         "route_query": route_query,
@@ -197,7 +202,10 @@ def location_action(request, campaign, pk):
     elif action == "grupo":
         last = Session.objects.filter(campaign=campaign).order_by("-number").first()
         order = (location.map.moves.aggregate(m=Max("order"))["m"] or 0) + 1
-        PartyMove.objects.create(map=location.map, location=location, session=last, order=order)
+        # The new stretch keeps the colour of the one before: the same journey, until the master changes it.
+        previous = location.map.moves.last()
+        PartyMove.objects.create(map=location.map, location=location, session=last, order=order,
+                                 color=previous.color if previous else ROUTE_COLOR)
         location.status = MapLocation.Status.VISITADO
         location.save(update_fields=["status"])
         Page.objects.filter(location=location).update(revealed=True)
@@ -219,6 +227,20 @@ def move_path(request, campaign, pk):
     move.path = path
     move.save(update_fields=["path"])
     return respond(request, redirect_to=_map_url(campaign, move.map_id), msg="Camino guardado.")
+
+
+@require_POST
+@campaign_member
+def move_color(request, campaign, pk):
+    """The master gives a stretch of the route its own colour, to tell it from the others."""
+    master_only(request)
+    move = get_object_or_404(PartyMove.objects.select_related("location"), pk=pk, map__campaign=campaign)
+    color = request.POST.get("color", "").strip()
+    if not COLOR_RE.match(color):
+        return _map_response(request, campaign, move.map_id, msg="Elige un color (#RRGGBB).", error=True, editing=True)
+    move.color = color.upper()
+    move.save(update_fields=["color"])
+    return _map_response(request, campaign, move.map_id, msg=f"Tramo a {move.location.name}: color cambiado.", editing=True)
 
 
 @require_POST

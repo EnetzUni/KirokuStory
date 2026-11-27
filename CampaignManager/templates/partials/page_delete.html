@@ -1,0 +1,27 @@
+{% load i18n %}{% comment %}
+Deleting a page (masters): a fold that says what the page leaves behind and asks to confirm. Inside the editor
+(in_form) its button sends the form #borrar-pagina, which sits after the editor: a form cannot hold another.
+{% endcomment %}
+<details class="borrar-pagina">
+    <summary class="btn btn-texto btn-borrar">{% translate "Borrar página" %}</summary>
+    <div class="borrar-confirmar">
+        <p><b>{% blocktranslate with title=page.title %}¿Borrar «{{ title }}»?{% endblocktranslate %}</b> {% translate "No se puede deshacer." %}</p>
+        {% if deletion.children or deletion.linked or deletion.sheets or deletion.on_map %}
+        <ul class="pequeno">
+            {% if deletion.children %}<li>{% blocktranslate with n=deletion.children %}Las páginas que tiene dentro ({{ n }}) quedarán sueltas.{% endblocktranslate %}</li>{% endif %}
+            {% if deletion.linked %}<li>{% blocktranslate with n=deletion.linked %}Los textos que la enlazan ({{ n }}) conservan sus palabras; el enlace queda como página por crear.{% endblocktranslate %}</li>{% endif %}
+            {% if deletion.sheets %}<li>{% translate "Sus fichas no se borran: solo dejan de estar enlazadas." %}</li>{% endif %}
+            {% if deletion.on_map %}<li>{% translate "Su lugar sigue en el mapa, sin página." %}</li>{% endif %}
+        </ul>
+        {% endif %}
+        <div class="fila-s">
+            {% if in_form %}
+            <button type="submit" form="borrar-pagina" class="btn btn-peligro">{% translate "Sí, borrarla" %}</button>
+            {% else %}
+            <form method="post" action="{% url 'world_delete' campaign.pk page.slug %}">{% csrf_token %}
+                <button type="submit" class="btn btn-peligro">{% translate "Sí, borrarla" %}</button></form>
+            {% endif %}
+            <button type="button" class="btn" data-cerrar-plegable hidden>{% translate "No, dejarla" %}</button>
+        </div>
+    </div>
+</details>

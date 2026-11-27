@@ -1,7 +1,9 @@
-{% load i18n %}{% comment %}The folded line of an adventure or a mission: title, sessions and status.{% endcomment %}
+{% load i18n %}{% comment %}The folded line of an adventure or a mission: its cover as a small header (seen folded too),
+title, sessions and status.{% endcomment %}
 <summary>
+    {% if quest.cover %}<img class="aventura-cabecera" src="{{ quest.cover.url }}" alt="" loading="lazy" decoding="async">{% endif %}
     <span class="flecha" aria-hidden="true">›</span>
-    <span class="pila-s" style="gap:2px;flex:1 1 auto;min-width:0">
+    <span class="pila-s" style="gap:2px;flex:1 1 0;min-width:0">
         <b>{{ quest.title }}</b>
         {% if quest.start_session %}<span class="pequeno atenuado">{% translate "Sesión" %} {{ quest.start_session.number }}{% if quest.end_session %} → {{ quest.end_session.number }}{% elif quest.status == "activa" %} → {% translate "en curso" %}{% endif %}</span>{% endif %}
     </span>

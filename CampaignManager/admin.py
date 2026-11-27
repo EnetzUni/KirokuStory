@@ -314,6 +314,7 @@ class ActiveEffectInline(admin.TabularInline):
     model = ActiveEffect
     extra = 0
     autocomplete_fields = ["effect"]
+    exclude = ["combatant"]  # a character's own states; an enemy without a sheet has its own in its fight
 
 
 @admin.register(Character)
@@ -368,9 +369,10 @@ class InventoryAdmin(admin.ModelAdmin):
 
 @admin.register(ActiveEffect)
 class ActiveEffectAdmin(admin.ModelAdmin):
-    list_display = ("character", "effect", "remaining_turns")
-    list_select_related = ["character", "effect"]
+    list_display = ("character", "combatant", "effect", "remaining_turns")
+    list_select_related = ["character", "combatant", "effect"]
     autocomplete_fields = ["character", "effect"]
+    raw_id_fields = ["combatant"]  # only for an enemy without a sheet, in its fight
 
 
 @admin.register(Session)
@@ -397,7 +399,7 @@ class PageAdmin(admin.ModelAdmin):
     list_filter = ("campaign", "category", "revealed")
     search_fields = ["title", "summary", "body", "secret"]
     list_select_related = ["campaign", "parent"]
-    autocomplete_fields = ["parent"]
+    autocomplete_fields = ["parent", "sheets"]
 
 
 class QuestObjectiveInline(admin.TabularInline):

@@ -4,7 +4,7 @@
     <div class="fila-s" role="group" aria-label="{% translate 'Filtrar por aventura' %}">
         <span class="pequeno atenuado">{% translate "Aventuras" %}</span>
         <a class="chip{% if not adventure %} on{% endif %}" href="{{ all_adventures_link }}" {% if not adventure %}aria-current="true"{% endif %}>{% translate "Todas" %}</a>
-        {% for a in adventure_links %}<a class="chip{% if a.on %} on{% endif %}" href="{{ a.href }}" {% if a.on %}aria-current="true"{% endif %}><span class="tl-estado {{ a.status }}" aria-hidden="true"></span>{{ a.label }}</a>{% endfor %}
+        {% for a in adventure_links %}<a class="chip{% if a.on %} on{% endif %}" href="{{ a.href }}" {% if a.on %}aria-current="true"{% endif %}><span class="tl-estado {{ a.status }}" aria-hidden="true"></span>{{ a.label }}{% if a.color %}<span class="punto-color" style="background:{{ a.color }};margin:0 0 0 6px" aria-hidden="true"></span>{% endif %}</a>{% endfor %}
     </div>
     {% endif %}
     <div class="fila-s" role="group" aria-label="{% translate 'Filtrar por personaje' %}">
@@ -58,8 +58,8 @@
             {# The general path: one bar per adventure, from the session it starts in to the one it ends in. #}
             <span class="tl-carril-titulo" style="top:{{ bars.0.top|add:-20 }}px">{% translate "Aventuras" %}</span>
             {% for b in bars %}
-            <a class="tl-aventura {{ b.quest.status }}{% if b.open %} abierta{% endif %}{% if b.quest.hidden %} oculta{% endif %}" href="{% url 'diary' campaign.pk %}#aventura-{{ b.quest.pk }}"
-               style="left:{{ b.left }}px;top:{{ b.top }}px;width:{{ b.width }}px"
+            <a class="tl-aventura {{ b.quest.status }}{% if b.open %} abierta{% endif %}{% if b.quest.hidden %} oculta{% endif %}{% if b.quest.color %} con-color{% endif %}" href="{% url 'diary' campaign.pk %}#aventura-{{ b.quest.pk }}"
+               style="left:{{ b.left }}px;top:{{ b.top }}px;width:{{ b.width }}px{% if b.quest.color %};--aventura:{{ b.quest.color }}{% endif %}"
                title="{{ b.quest.title }} · {{ b.quest.get_status_display }} · S{{ b.first }}{% if b.last %}–S{{ b.last }}{% elif b.open %} →{% endif %}">
                 <b>{{ b.quest.title }}</b> <span>{{ b.quest.get_status_display }}</span></a>
             {% endfor %}

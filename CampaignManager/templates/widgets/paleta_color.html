@@ -1,0 +1,8 @@
+{% load i18n %}{% comment %}forms.ColorPaletteWidget: one swatch per colour of the palette, «Sin color» and «Otro», whose colour
+comes from the browser's picker (mesa.js ticks «Otro» when the picker is used).{% endcomment %}
+<div class="paleta" role="radiogroup"{% if widget.group_label %} aria-label="{% translate widget.group_label %}"{% endif %}>
+    <label class="muestra ninguna" title="{% translate 'Sin color' %}"><input type="radio" name="{{ widget.name }}" value=""{% if widget.none_checked %} checked{% endif %}><span class="sr-only">{% translate "Sin color" %}</span></label>
+    {% for s in widget.swatches %}<label class="muestra" style="--muestra:{{ s.color }}" title="{% translate s.label %}"><input type="radio" name="{{ widget.name }}" value="{{ s.color }}"{% if s.checked %} checked{% endif %}><span class="sr-only">{% translate s.label %}</span></label>{% endfor %}
+    <label class="muestra-otra"><input type="radio" name="{{ widget.name }}" value="otro"{% if widget.other_checked %} checked{% endif %} data-color-otro>{% translate "Otro" %}</label>
+    <input class="color-tramo" type="color" name="{{ widget.other_name }}" value="{{ widget.other_value }}" aria-label="{% translate 'Otro color' %}" data-color-elegir>
+</div>

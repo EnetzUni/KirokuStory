@@ -1,0 +1,12 @@
+{% load i18n %}{% comment %}forms.PageImageInput: a button that opens the file box (hidden over it, still reached with the keyboard),
+the name of the file chosen (mesa.js) and a box to remove the image now. The picture shows in the editor's preview.{% endcomment %}
+<div class="imagen-campo">
+    <label class="btn btn-pequeno elegir-imagen">
+        <input type="{{ widget.type }}" name="{{ widget.name }}"{% include "django/forms/widgets/attrs.html" %}>
+        {% if widget.is_initial %}{% translate "Cambiar imagen" %}{% else %}{% translate "Elegir imagen" %}{% endif %}
+    </label>
+    <span class="pequeno atenuado" data-nombre-imagen></span>
+    {% if widget.is_initial and not widget.required %}
+    <label class="casilla"><input type="checkbox" name="{{ widget.checkbox_name }}" id="{{ widget.checkbox_id }}"{% if widget.attrs.disabled %} disabled{% endif %}> {% translate "Quitar la imagen" %}</label>
+    {% endif %}
+</div>

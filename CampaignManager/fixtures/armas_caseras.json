@@ -321,6 +321,60 @@
   }
  },
  {
+  "model": "CampaignManager.effect",
+  "pk": 39,
+  "fields": {
+   "name": "Aterrado",
+   "description": "No puede acercarse a lo que le aterra y tiene desventaja en ataques y pruebas mientras lo vea. Puede gastar sus 2 acciones en calmarse y terminar el efecto.",
+   "duration": ""
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 40,
+  "fields": {
+   "name": "Atado",
+   "description": "Puede moverse, pero no atacar ni usar las manos.",
+   "duration": ""
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 41,
+  "fields": {
+   "name": "Congelado",
+   "description": "Velocidad 0. Control duro: solo uno a la vez (aturdido, congelado, suspendido, paralizado); al librarse, inmune a todos hasta el final de su siguiente activación.",
+   "duration": "Hasta el final de su siguiente activación"
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 42,
+  "fields": {
+   "name": "Quemado",
+   "description": "Al inicio de cada activación recibe 1d6 de fuego que ignora AP. No se acumula. Se apaga gastando 1 acción, rodando por el suelo o con agua.",
+   "duration": ""
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 43,
+  "fields": {
+   "name": "Sangrando",
+   "description": "Pierde los PV del Sangrado al inicio de cada fase de su bando (una vez por ronda) hasta recibir curación o tratar la herida.",
+   "duration": "Hasta curar la herida (máx. 5 rondas)"
+  }
+ },
+ {
+  "model": "CampaignManager.effect",
+  "pk": 44,
+  "fields": {
+   "name": "Suspendido",
+   "description": "Sujeto en el aire por hilos de atadura. Control duro: solo uno a la vez (aturdido, congelado, suspendido, paralizado); al librarse, inmune a todos hasta el final de su siguiente activación.",
+   "duration": "Hasta el final de su siguiente activación"
+  }
+ },
+ {
   "model": "CampaignManager.attack",
   "pk": 149,
   "fields": {

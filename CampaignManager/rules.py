@@ -74,6 +74,8 @@ FEAT_LEVELS = (4, 8, 12, 16, 20)
 SRD_FEAT_LEVELS = (4, 8, 12, 16, 19)
 SRD_EXTRA_FEAT_LEVELS = {"Guerrero": (6, 14), "Pícaro": (10,)}
 MAX_SCORE = 20
+# What a master can write on a sheet or an NPC, beyond the rules (the bestiary's Ausar has Dexterity 34).
+MASTER_MAX_SCORE = 40
 # Hit points of a new level, + the Constitution modifier:
 #   Aegis: 1d4, whatever the class, rolled at the table in front of the master; the
 #   player types the result.

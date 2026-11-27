@@ -13,6 +13,8 @@
                     {% if character.status == "pendiente" %}<span class="pastilla p-ambar">{% translate "Pendiente de aprobar" %}</span>{% endif %}
                 </div>
                 <span class="atenuado">{{ character.race.name }}{% if character.subrace %} ({{ character.subrace.name }}){% endif %} · {{ character.char_class.name }}{% if character.subclass %} ({{ character.subclass.name }}){% endif %} · {% translate "nivel" %} {{ level }}{% if character.player %} · {{ character.player.username }}{% endif %}{% if character.is_npc %} · {% translate "PNJ" %}{% endif %}</span>
+                {% if world_pages %}<div class="en-el-mundo"><span class="pequeno atenuado">{% translate "En el mundo" %}:</span>{% for p in world_pages %}<a class="chip" href="{% url 'world_page' campaign.pk p.slug %}">{{ p.title }}</a>{% endfor %}</div>{% endif %}
+                {% if is_master and character.acts_with %}<div class="en-el-mundo"><span class="pequeno atenuado">{% translate "Actúa a la vez con" %}:</span><a class="chip" href="{% url 'sheet' campaign.pk character.acts_with_id %}">{{ character.acts_with.name }}</a></div>{% endif %}
                 <div class="medidor"><span>XP</span><span class="barra"><span style="width:{{ xp_pct }}%"></span></span><b style="min-width:auto" data-valor="xp">{{ character.xp }}{% if xp_next %} / {{ xp_next }}{% endif %}</b></div>
                 {% if character.can_level_up and can_edit %}
                 <div class="fila-s">
@@ -187,6 +189,7 @@
                 <span><b style="font-size:18px">{{ w.item.name }}</b>{% for t in w.traits %} <span class="rasgo" title="{{ t.title }}">{{ t.label }}</span>{% endfor %}</span>
                 <span class="pastilla p-acento" style="font-size:15px">{% translate "Golpe" %} {% if w.to_hit is None %}?{% else %}{{ w.to_hit|signed }}{% endif %}</span>
             </div>
+            {% if w.item.description %}<p class="pequeno atenuado arma-nota">{{ w.item.description }}</p>{% endif %}
             {% for a in w.attacks %}
             <div class="fila-tabla">
                 <span style="flex:1 1 140px"><b>{{ a.attack.name }}</b><br><span class="pequeno atenuado">{{ a.meta }}</span></span>

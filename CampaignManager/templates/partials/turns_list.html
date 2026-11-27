@@ -11,70 +11,63 @@
         {% else %}<p class="ayuda">{% translate "Esta página se actualiza sola cuando el máster empiece uno." %}</p>{% endif %}
     </div>
     {% else %}
-    <div class="destacado fila-s" style="justify-content:space-between">
-        <span><b style="font-size:20px">{% translate "Ronda" %} <span data-valor="ronda">{{ encounter.round }}</span></b>{% if actor %} · {% translate "turno de" %} <b data-valor="actor">{{ actor.display_name }}</b>{% endif %}</span>
-        {% if my_turn %}<span class="pastilla p-acento">{% translate "Te toca" %}</span>{% endif %}
+    {# The round, whose turn it is (one, or a pair that acts at once) and who comes next, with «Siguiente turno» at hand for the master. #}
+    <div class="combate-cabeza">
+        <div class="combate-ronda"><span>{% translate "Ronda" %}</span><b data-valor="ronda">{{ encounter.round }}</b></div>
+        {% if actor_row %}
+        <div class="combate-actor">
+            <span class="avatares-turno">{% for a in actor_rows %}<span class="avatar grande-m herida-{{ a.wound }}" style="background:{{ a.color }}">{% if a.portrait %}<img src="{{ a.portrait }}" alt="">{% else %}{{ a.c.display_name|initial }}{% endif %}</span>{% endfor %}</span>
+            <span class="pila-s" style="gap:0;min-width:0">
+                <span class="pequeno atenuado">{% translate "Turno de" %}</span>
+                <b class="combate-nombre" data-valor="actor">{{ actor_names }}</b>
+                {% if actor_rows|length > 1 %}<span class="pequeno atenuado">{% translate "Actúan a la vez" %}</span>{% endif %}
+                {% if next_row %}<span class="pequeno atenuado">{% translate "Después" %}: {{ next_names }}</span>{% endif %}
+            </span>
+            {% if my_turn %}<span class="pastilla p-acento">{% translate "Te toca" %}</span>{% endif %}
+        </div>
+        {% endif %}
         {% if is_master %}
-        <form method="post" action="{{ act }}" data-ajax data-target="#turnos" class="fila-s">{% csrf_token %}
-            <button class="btn btn-principal" name="accion" value="siguiente">{% translate "Siguiente" %} →</button>
+        <form method="post" action="{{ act }}" data-ajax data-target="#turnos" class="combate-mandos">{% csrf_token %}
+            <button class="btn btn-principal" name="accion" value="siguiente">{% translate "Siguiente turno" %} →</button>
+            <button class="btn" name="accion" value="ronda">{% translate "Nueva ronda" %}</button>
             <button class="btn" name="accion" value="ordenar">{% translate "Ordenar por iniciativa" %}</button>
         </form>
         {% endif %}
     </div>
 
-    <ol class="lista-limpia" aria-label="{% translate 'Orden de combate' %}">
+    {% if rows %}
+    {# The order of the fight, left to right: who acts now and who comes next. Each one leads to its card. #}
+    <ol class="pista-turnos" aria-label="{% translate 'Orden de combate' %}">
         {% for r in rows %}
-        <li class="turno{% if r.current %} actual{% endif %}"{% if r.current %} aria-current="step"{% endif %}>
-            {% if is_master %}
-            <form method="post" action="{{ act }}" data-ajax data-auto data-target="#turnos" class="fila-s" style="gap:4px">{% csrf_token %}
-                <input type="hidden" name="accion" value="iniciativa"><input type="hidden" name="combatiente" value="{{ r.c.pk }}">
-                <label class="sr-only" for="ini-{{ r.c.pk }}">{% blocktranslate with name=r.c.display_name %}Iniciativa de {{ name }}{% endblocktranslate %}</label>
-                <input id="ini-{{ r.c.pk }}" class="iniciativa" type="number" name="valor" value="{{ r.c.initiative|default_if_none:'' }}" inputmode="numeric"{% if r.hint is not None %} title="{% translate 'Modificador de Destreza' %} {{ r.hint|signed }}"{% endif %}>
-                <button class="btn btn-pequeno sin-js">{% translate "Guardar" %}</button>
-            </form>
-            {% else %}
-            <span class="iniciativa">{{ r.c.initiative|default_if_none:"–" }}</span>
-            {% endif %}
-            <span class="pila-s" style="flex:1 1 180px;gap:4px">
-                <span class="fila-s" style="gap:8px">
-                    {% if r.sheet %}<a href="{% url 'sheet' campaign.pk r.c.character_id %}"><b>{{ r.c.display_name }}</b></a>{% else %}<b>{{ r.c.display_name }}</b>{% endif %}
-                    <span class="pastilla{% if r.pc %} p-verde{% elif r.kind == 'Enemigo' %} p-coral{% endif %}">{% translate r.kind %}</span>
-                    {% if r.current %}<span class="pastilla p-acento">{% translate "Su turno" %}</span>{% endif %}
-                    {% if r.dead %}<span class="pastilla p-coral">{% translate "Muerto" %}</span>{% elif r.down %}<span class="pastilla p-ambar">{% translate "Derribado" %}</span>{% endif %}
-                    {% for e in r.effects %}<span class="rasgo">{{ e }}</span>{% endfor %}
-                </span>
-                {% if r.shown %}
-                <span class="medidor"><span style="min-width:28px">{% translate "Vida" %}</span><span class="barra vida"><span style="width:{% pct r.hp r.hp_max %}%"></span></span><b data-valor="vida-{{ r.c.pk }}">{{ r.hp|default_if_none:"–" }}/{{ r.hp_max|default_if_none:"–" }}</b></span>
-                {% if r.ap is not None %}<span class="medidor"><span style="min-width:28px">AP</span><span class="barra ap"><span style="width:{% pct r.ap r.ap_max %}%"></span></span><b data-valor="ap-{{ r.c.pk }}">{{ r.ap }}/{{ r.ap_max }}</b></span>{% endif %}
-                {% endif %}
-            </span>
-            {% if r.can_touch and r.shown %}
-            <form method="post" action="{{ act }}" data-ajax data-target="#turnos" class="contador">{% csrf_token %}
-                <input type="hidden" name="combatiente" value="{{ r.c.pk }}">
-                <button class="btn btn-cuadrado" name="accion" value="vida_menos" aria-label="{% translate 'Quitar 1 de vida' %}">−1</button>
-                <button class="btn btn-cuadrado" name="accion" value="vida_mas" aria-label="{% translate 'Sumar 1 de vida' %}">+1</button>
-                <label class="sr-only" for="cant-{{ r.c.pk }}">{% translate "Cantidad" %}</label>
-                <input id="cant-{{ r.c.pk }}" class="entrada-num" type="number" name="cantidad" min="1" inputmode="numeric" placeholder="{% translate 'Cant.' %}">
-                {% if r.ap is not None %}
-                <label class="sr-only" for="pen-{{ r.c.pk }}">{% translate "Penetrante" %}</label>
-                <input id="pen-{{ r.c.pk }}" class="entrada-num corta" type="number" name="penetrante" min="0" inputmode="numeric" placeholder="{% translate 'Pen.' %}" title="{% translate 'Penetrante: AP que ignora este golpe' %}">
-                <label class="sr-only" for="tri-{{ r.c.pk }}">{% translate "Triturante" %}</label>
-                <input id="tri-{{ r.c.pk }}" class="entrada-num corta" type="number" name="triturante" min="0" inputmode="numeric" placeholder="{% translate 'Trit.' %}" title="{% translate 'Triturante: AP que quita después del daño' %}">
-                {% endif %}
-                <button class="btn btn-peligro" name="accion" value="dano">{% translate "Daño" %}</button>
-                <button class="btn btn-bien" name="accion" value="curar">{% translate "Curar" %}</button>
-                {% if r.ap is not None %}
-                <button class="btn btn-cuadrado" name="accion" value="ap_menos" aria-label="{% translate 'Quitar 1 de AP' %}">AP−</button>
-                <button class="btn btn-cuadrado" name="accion" value="ap_mas" aria-label="{% translate 'Sumar 1 de AP' %}">AP+</button>
-                {% endif %}
-                {% if is_master %}<button class="btn btn-texto" name="accion" value="quitar">{% translate "Quitar" %}</button>{% endif %}
-            </form>
-            {% endif %}
+        <li class="{% if r.party %}del-grupo{% else %}contra{% endif %}{% if r.current %} actual{% endif %}{% if r.dead %} fuera{% endif %}"{% if r.current %} aria-current="step"{% endif %}>
+            <a href="#combatiente-{{ r.c.pk }}" title="{{ r.c.display_name }} · {% translate 'Iniciativa' %} {{ r.c.initiative|default_if_none:'–' }}">
+                <span class="avatar herida-{{ r.wound }}" style="background:{{ r.color }}">{% if r.portrait %}<img src="{{ r.portrait }}" alt="">{% else %}{{ r.c.display_name|initial }}{% endif %}</span>
+                <span class="pista-ini" aria-hidden="true">{{ r.c.initiative|default_if_none:"–" }}</span>
+                <span class="sr-only">{{ r.c.display_name }}</span>
+            </a>
         </li>
-        {% empty %}
-        <li class="atenuado">{% translate "Todavía no hay combatientes." %}</li>
         {% endfor %}
     </ol>
+    {% endif %}
+
+    {# The table: the party's cards on one side, those who fight against it on the other. #}
+    <div class="campo-batalla">
+        <section class="bando grupo" aria-labelledby="h-bando-grupo">
+            <h2 id="h-bando-grupo" class="bando-titulo">{% translate "El grupo" %} <span>{{ party_rows|length }}</span></h2>
+            <div class="cartas">
+                {% for r in party_rows %}{% include "partials/combat_card.html" %}
+                {% empty %}<p class="atenuado">{% translate "Nadie del grupo en este combate." %}</p>{% endfor %}
+            </div>
+        </section>
+        <div class="versus" aria-hidden="true">VS</div>
+        <section class="bando enemigos" aria-labelledby="h-bando-enemigos">
+            <h2 id="h-bando-enemigos" class="bando-titulo">{% translate "Enemigos" %} <span>{{ enemy_rows|length }}</span></h2>
+            <div class="cartas">
+                {% for r in enemy_rows %}{% include "partials/combat_card.html" %}
+                {% empty %}<p class="atenuado">{% if is_master %}{% translate "Todavía no hay enemigos: añádelos abajo." %}{% else %}{% translate "Todavía no hay enemigos." %}{% endif %}</p>{% endfor %}
+            </div>
+        </section>
+    </div>
 
     {% if is_master %}
     <details id="anadir-combatientes" class="tarjeta compacta"{% if not rows %} open{% endif %}>
@@ -93,7 +86,7 @@
             {% if add_templates %}
             <form method="post" action="{{ act }}" data-ajax data-target="#turnos" class="fila-s">{% csrf_token %}<input type="hidden" name="accion" value="anadir">
                 <label class="sr-only" for="add-plantilla">{% translate "Plantilla de PNJ" %}</label>
-                <select id="add-plantilla" name="plantilla" class="entrada" style="flex:1 1 200px;width:auto">{% for t in add_templates %}<option value="{{ t.pk }}">{{ t.name }}</option>{% endfor %}</select>
+                <select id="add-plantilla" name="plantilla" class="entrada" style="flex:1 1 200px;width:auto">{% for t in add_templates %}<option value="{{ t.pk }}">{{ t.name }}{% if t.acts_with %} · {% blocktranslate with name=t.acts_with.name %}con {{ name }}{% endblocktranslate %}{% endif %}</option>{% endfor %}</select>
                 <button class="btn">{% translate "Copiar y añadir" %}</button>
             </form>
             {% endif %}

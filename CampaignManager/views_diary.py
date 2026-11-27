@@ -232,8 +232,8 @@ def timeline_context(request, campaign, is_master, selected=None):
         "adventure": adventure, "bars": bars,
         "pc_links": [{"label": pc.name, "href": link(pj=pc.pk), "on": params["pj"] == str(pc.pk)} for pc in party],
         "all_pcs_link": link(pj=""), "hidden_link": link(ocultos="0" if show_hidden else ""),
-        "adventure_links": [{"label": q.title, "href": link(aventura=q.pk, evento=""), "on": adventure == q, "status": q.status}
-                            for q in quests],
+        "adventure_links": [{"label": q.title, "href": link(aventura=q.pk, evento=""), "on": adventure == q, "status": q.status,
+                             "color": q.color} for q in quests],
         "all_adventures_link": link(aventura="", evento=""),
     }
 
